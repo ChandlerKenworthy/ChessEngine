@@ -44,6 +44,7 @@ class Board {
 
         // Move tracking
         std::vector<Move> fPseudoLegalMoves;
+        std::vector<Move> fMadeMoves; // Tracks each move made in the game
 
         // Game state variables
         bool fGameIsOver;
@@ -64,6 +65,7 @@ class Board {
         void FillPseudoRookMoves(U64 ownPieces, U64 otherPieces);
         void FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces);
         void FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces);
+        void FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces);
         
 };
 

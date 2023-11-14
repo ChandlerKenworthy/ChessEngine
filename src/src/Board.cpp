@@ -25,6 +25,7 @@ Board::Board() {
     fColorToMove = Color::White;
 
     fPseudoLegalMoves.clear();
+    fMadeMoves.clear();
 }
 
 void Board::GeneratePseudoLegalMoves() {
@@ -33,18 +34,38 @@ void Board::GeneratePseudoLegalMoves() {
     U64 otherPieces = GetBoard(fColorToMove == Color::White ? Color::Black : Color::White);
     fPseudoLegalMoves.clear();
 
-    // Pawn moves
+    FillPseudoPawnMoves(ownPieces, otherPieces);                // Pawn moves
+    FillPseudoKnightMoves(ownPieces);              // Knight moves
+    FillPseudoKingMoves(ownPieces);                // King moves
+    FillPseudoBishopMoves(ownPieces, otherPieces); // Bishop moves
+    FillPseudoRookMoves(ownPieces, otherPieces);   // Rook moves
+    FillPseudoQueenMoves(ownPieces, otherPieces);  // Queen moves
+}
 
-    // Knight moves
-    FillPseudoKnightMoves(ownPieces);
-    // King moves
-    FillPseudoKingMoves(ownPieces);
-    // Bishop moves
-    FillPseudoBishopMoves(ownPieces, otherPieces);
-    // Rook moves
-    FillPseudoRookMoves(ownPieces, otherPieces);
-    // Queen moves
-    FillPseudoQueenMoves(ownPieces, otherPieces);
+void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
+    U64 occ = ownPieces | otherPieces;
+    U64 pawns = GetBoard(fColorToMove, Piece::Pawn);
+    while(pawns) {
+        U64 pawn = 0;
+        set_bit(pawn, pop_LSB(pawns));
+        U64 attacks = 0;
+        if(fColorToMove == Color::White) {
+            attacks |= ((pawn << 8) & ~occ) | ((pawn << 7) & otherPieces) | ((pawn << 9) & otherPieces);
+            if((pawn & RANK_2) && ~((pawn << 8) & occ) && ~((pawn << 16) & occ)) 
+                // Starting position - move 2 forward
+                attacks |= (pawn << 16);
+        } else {
+            attacks |= ((pawn >> 8) & ~occ) | ((pawn >> 7) & otherPieces) | ((pawn >> 9) & otherPieces);
+            if((pawn & RANK_7) && ~((pawn >> 8) & occ) && ~((pawn >> 16) & occ)) 
+                // Starting position - move 2 forward
+                attacks |= (pawn >> 16);
+        }
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fPseudoLegalMoves.push_back(Move{pawn, attack, Piece::Pawn});
+        }
+    }
 }
 
 void Board::FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces) {
@@ -156,6 +177,11 @@ void Board::FillPseudoKnightMoves(U64 ownPieces) {
 }
 
 void Board::MakeMove(Move move) {
+    // 0. Get appropriate boards invovled
+    // 1. Check move is legal
+    // 2. make the move (update bitbsoards)
+    // 3. if it was a special move e.g. castling update variables
+    // 4. update who is to move
     U64* originBoard = GetBoard(fColorToMove, move.origin);
     U64* targetBoard = GetBoard(fColorToMove == Color::White ? Color::Black : Color::White, move.target);
 
@@ -168,12 +194,8 @@ void Board::MakeMove(Move move) {
     // Set the piece at the new position
     set_bit(*originBoard, get_LSB(move.target)); 
 
-
-    // 0. Get appropriate boards invovled
-    // 1. Check move is legal
-    // 2. make the move (update bitbsoards)
-    // 3. if it was a special move e.g. castling update variables
-    // 4. update who is to move
+    fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
+    fMadeMoves.push_back(move);
 }
 
 U64* Board::GetBoard(Color color, U64 occupiedPosition) {
