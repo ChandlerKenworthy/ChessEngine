@@ -62,6 +62,8 @@ class Board {
         void FillPseudoKnightMoves(U64 ownPieces);
         void FillPseudoKingMoves(U64 ownPieces);
         void FillPseudoRookMoves(U64 ownPieces, U64 otherPieces);
+        void FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces);
+        void FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces);
         
 };
 

@@ -34,14 +34,86 @@ void Board::GeneratePseudoLegalMoves() {
     fPseudoLegalMoves.clear();
 
     // Pawn moves
+
     // Knight moves
     FillPseudoKnightMoves(ownPieces);
     // King moves
     FillPseudoKingMoves(ownPieces);
     // Bishop moves
+    FillPseudoBishopMoves(ownPieces, otherPieces);
     // Rook moves
     FillPseudoRookMoves(ownPieces, otherPieces);
     // Queen moves
+    FillPseudoQueenMoves(ownPieces, otherPieces);
+}
+
+void Board::FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces) {
+    U64 occupancy = ownPieces | otherPieces;
+    U64 queen = GetBoard(fColorToMove, Piece::Queen);
+
+    // TODO: maybe given a queen position have 4 lookup tables for positive and negative rays
+
+    // Vertical distance from the primary diagonal
+    int dPrimaryDiag = get_file_number(queen) - 9 + get_rank_number(queen);
+    // Vertical distance from the secondary diagonal
+    int dSecondaryDiag = get_rank_number(queen) - get_file_number(queen);
+
+    U64 mask1 = 0;
+    if(dPrimaryDiag == 0) {
+        mask1 = PRIMARY_DIAGONAL;
+    } else {
+        mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+    }
+
+    U64 mask2 = 0;
+    if(dSecondaryDiag == 0) {
+        mask2 = SECONDARY_DIAGONAL;
+    } else {
+        mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+    }
+
+    U64 attacks = (hypQuint(queen, occupancy, mask1) | hypQuint(queen, occupancy, mask2) | hypQuint(queen, occupancy, get_rank(queen)) | hypQuint(queen, occupancy, get_file(queen))) & ~ownPieces;
+    while(attacks) {
+        U64 attack = 0;
+        set_bit(attack, pop_LSB(attacks));
+        fPseudoLegalMoves.push_back(Move{queen, attack, Piece::Queen});
+    }
+}
+
+void Board::FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces) {
+    U64 occupancy = ownPieces | otherPieces;
+    U64 bishops = GetBoard(fColorToMove, Piece::Bishop);
+    while(bishops) {
+        U64 bishop = 0;
+        set_bit(bishop, pop_LSB(bishops));
+
+        // TODO: maybe given a bishop position have 2 lookup tables for positive and negative ray
+        // Vertical distance from the primary diagonal
+        int dPrimaryDiag = get_file_number(bishop) - 9 + get_rank_number(bishop);
+        // Vertical distance from the secondary diagonal
+        int dSecondaryDiag = get_rank_number(bishop) - get_file_number(bishop);
+
+        U64 mask1 = 0;
+        if(dPrimaryDiag == 0) {
+            mask1 = PRIMARY_DIAGONAL;
+        } else {
+            mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+        }
+
+        U64 mask2 = 0;
+        if(dSecondaryDiag == 0) {
+            mask2 = SECONDARY_DIAGONAL;
+        } else {
+            mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+        }
+
+        U64 attacks = (hypQuint(bishop, occupancy, mask1) | hypQuint(bishop, occupancy, mask2)) & ~ownPieces;
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fPseudoLegalMoves.push_back(Move{bishop, attack, Piece::Bishop});
+        }
+    }
 }
 
 void Board::FillPseudoRookMoves(U64 ownPieces, U64 otherPieces) {
