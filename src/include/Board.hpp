@@ -32,6 +32,7 @@ class Board {
         void GeneratePseudoLegalMoves();
         std::vector<Move> GetPseudoLegalMoves() { return fPseudoLegalMoves; }; // TODO: pointer
         void MakeMove(Move move); // Maybe this and the two fucntions below should actually generate the pseudo-legal moves
+        void SetBitBoard(Color color, Piece piece, U64 board); // TODO: Delete me after testing
     private:
         // Bitboards
         U64 fBoards[12]; // White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)

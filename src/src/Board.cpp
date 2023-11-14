@@ -50,11 +50,12 @@ void Board::FillPseudoRookMoves(U64 ownPieces, U64 otherPieces) {
     while(rooks) {
         U64 rook = 0;
         set_bit(rook, pop_LSB(rooks));
-        U64 potentialBlockers = occupancy & get_rank(rook);
-        //U64 difference = potentialBlockers - (2 * squarebit(rook));
-
-        
-        // For this rook and blcoking pattern find all attacks and add them
+        U64 attacks = (hypQuint(rook, occupancy, get_rank(rook)) | hypQuint(rook, occupancy, get_file(rook))) & ~ownPieces;
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fPseudoLegalMoves.push_back(Move{rook, attack, Piece::Rook});
+        }
     }
 }
 
@@ -127,6 +128,14 @@ U64 Board::GetBoard(Color color, Piece piece) const {
     if(color == Color::White)
         return fBoards[(int)piece];
     return fBoards[(int)piece + 6];
+}
+
+void Board::SetBitBoard(Color color, Piece piece, U64 board) {
+    if(color == Color::White) {
+        fBoards[(int)piece] = board;
+    } else {
+        fBoards[(int)piece + 6] = board;
+    }
 }
 
 void Board::GenerateAttackTables() {
