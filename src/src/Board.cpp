@@ -4,6 +4,7 @@
 
 Board::Board() {
     Reset();
+    GenerateAttackTables();
 }
 
 void Board::Reset() {
@@ -33,23 +34,102 @@ void Board::Reset() {
 
 void Board::GenerateLegalMoves() {
     GeneratePseudoLegalMoves(); // fLegalMoves now full of pseudo-legal moves
-    U64 playerKing = GetBoard(fColorToMove, Piece::King);
-
     // add castling if available
-
     // check for en-passant (was the last move a pawn move 2 squares forward?)
     AddEnPassant();
-
     // Make the pseudo-legal move and see if our king now lives on an attack ray of another piece
     RemoveIllegalMoves(); // Must be after AddEnPassant and castling to ensure strictness
-
     // set if other king now in check as a result of this move
 }
 
 bool Board::GetBoardIsLegal() {
     // Evaluate whether the current board configuration is legal given the player to move
     // e.g. if black is to move but white was left in check by their last move it is an illegal configuration
+    // Generate the attack rays of the colour to move
+    // if they hit the other colours king board is not in a legal state
+    Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
+    U64 targetKing = GetBoard(otherColor, Piece::King);
+    U64 ownPieces = GetBoard(fColorToMove);
+    U64 otherPieces = GetBoard(otherColor);
 
+    // Knights
+    U64 knightAttacks = north(north_east(targetKing)) | north(north_west(targetKing)) | south(south_east(targetKing)) | south(south_west(targetKing)) | east(north_east(targetKing)) | east(south_east(targetKing)) | west(north_west(targetKing)) | west(south_west(targetKing));
+    if(knightAttacks & GetBoard(fColorToMove, Piece::Knight))
+        return false; // Knight on a square attacking the king
+
+    // Pawns
+    if(fColorToMove == Color::White) { // TODO: King cant move into potential double first move of pawn
+        // Black "made" the last move so search for white's "north" pawn attacks
+        if(GetBoard(fColorToMove, Piece::Pawn) & (south_east(targetKing) | south_west(targetKing)))
+            return false;
+    } else {
+        // White "made" the last move so check he didn't move in a southern black pawn attack
+        if(GetBoard(fColorToMove, Piece::Pawn) & (north_east(targetKing) | north_west(targetKing)))
+            return false;
+    }
+
+    // Rooks
+    U64 occupancy = ownPieces | otherPieces;
+    U64 rooks = GetBoard(fColorToMove, Piece::Rook);
+    while(rooks) {
+        U64 rook = 0;
+        set_bit(rook, pop_LSB(rooks));
+        U64 attacks = (hypQuint(rook, occupancy, get_rank(rook)) | hypQuint(rook, occupancy, get_file(rook))) & ~ownPieces;
+        if(attacks & targetKing)
+            return false;
+    }
+
+    // Bishops
+    U64 bishops = GetBoard(fColorToMove, Piece::Bishop);
+    while(bishops) {
+        U64 bishop = 0;
+        set_bit(bishop, pop_LSB(bishops));
+        int dPrimaryDiag = get_file_number(bishop) - 9 + get_rank_number(bishop);
+        int dSecondaryDiag = get_rank_number(bishop) - get_file_number(bishop);
+        U64 mask1 = 0;
+        if(dPrimaryDiag == 0) {
+            mask1 = PRIMARY_DIAGONAL;
+        } else {
+            mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+        }
+
+        U64 mask2 = 0;
+        if(dSecondaryDiag == 0) {
+            mask2 = SECONDARY_DIAGONAL;
+        } else {
+            mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+        }
+
+        U64 attacks = (hypQuint(bishop, occupancy, mask1) | hypQuint(bishop, occupancy, mask2)) & ~ownPieces;
+        if(attacks & targetKing)
+            return false;
+    }
+
+    // Queen
+    U64 queen = GetBoard(fColorToMove, Piece::Queen);
+
+    // Vertical distance from the primary diagonal
+    int dPrimaryDiag = get_file_number(queen) - 9 + get_rank_number(queen);
+    // Vertical distance from the secondary diagonal
+    int dSecondaryDiag = get_rank_number(queen) - get_file_number(queen);
+
+    U64 mask1 = 0;
+    if(dPrimaryDiag == 0) {
+        mask1 = PRIMARY_DIAGONAL;
+    } else {
+        mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+    }
+
+    U64 mask2 = 0;
+    if(dSecondaryDiag == 0) {
+        mask2 = SECONDARY_DIAGONAL;
+    } else {
+        mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+    }
+
+    U64 attacks = (hypQuint(queen, occupancy, mask1) | hypQuint(queen, occupancy, mask2) | hypQuint(queen, occupancy, get_rank(queen)) | hypQuint(queen, occupancy, get_file(queen))) & ~ownPieces;
+    if(attacks & targetKing)
+        return false;
 
     return true;
 }
@@ -71,6 +151,8 @@ void Board::RemoveIllegalMoves() {
 }
 
 void Board::AddEnPassant() {
+    if(fMadeMoves.size() < 3) // Protect against seg fault + faster returns
+        return;
     Move *lastMove = &fMadeMoves.back();
     if(lastMove->piece != Piece::Pawn || lastMove->WasEnPassant)
         return;
@@ -301,6 +383,7 @@ void Board::UndoMove(int nMoves) {
         fMadeMoves.pop_back();
         movingColor = movingColor == Color::White ? Color::Black : Color::White;
     }
+    fColorToMove = movingColor == Color::White ? Color::Black : Color::White;
 }
 
 void Board::MakeMove(Move move) {
