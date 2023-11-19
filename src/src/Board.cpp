@@ -47,7 +47,8 @@ void Board::GenerateLegalMoves() {
 }
 
 void Board::RemoveIllegalMoves() {
-
+    // Check each move of fLegalMoves to see if, after being made the board is in a legal game state
+    // if it is yay, if it is not remove the move
 }
 
 void Board::AddEnPassant() {
@@ -125,6 +126,7 @@ Piece Board::GetPiece(Color color, U64 pos) {
         if(GetBoard(color, p) & pos)
             return p;
     }
+    return Piece::Null;
 }
 
 void Board::FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces) {
@@ -259,12 +261,15 @@ void Board::UndoMove(int nMoves) {
     for(int i = nMoves; i > 0; i--) {
         Move m = fMadeMoves.back();
         U64 movedPieceBoard = GetBoard(movingColor, m.piece);
-        clear_bit(movedPieceBoard, m.target); // clear target bit on the relevant board
-        set_bit(movedPieceBoard, m.origin); // set the origin bit on relevant board
+        clear_bit(movedPieceBoard, get_LSB(m.target)); // clear target bit on the relevant board
+        set_bit(movedPieceBoard, get_LSB(m.origin)); // set the origin bit on relevant board
         SetBitBoard(movingColor, m.piece, movedPieceBoard);
         if(m.takenPiece != Piece::Null) {
             // set bit of any taken pieces at target position (unless en-passant move)
-            
+            Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
+            U64 b = GetBoard(otherColor, m.takenPiece);
+            set_bit(b, get_LSB(m.target));
+            SetBitBoard(otherColor, m.takenPiece, b);
         }
         // TODO: king is in check etc
         fMadeMoves.pop_back();
