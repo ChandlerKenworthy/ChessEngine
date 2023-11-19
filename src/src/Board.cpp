@@ -3,7 +3,10 @@
 #include "Board.hpp"
 
 Board::Board() {
-    // Setup boards
+    Reset();
+}
+
+void Board::Reset() {
     fBoards[0] = RANK_2; // White pawns
     fBoards[1] = RANK_1 & (FILE_C | FILE_F); // White bishops
     fBoards[2] = RANK_1 & (FILE_B | FILE_G); // White knights
@@ -20,23 +23,66 @@ Board::Board() {
     fGameIsOver = false;
     fWhiteInCheckmate = false;
     fBlackInCheckmate = false;
-    fWhiteCanCastle = true; // Only whether castling has already been performed
-    fBlackCanCastle = true;
+    fWhiteHasCastled = false; // Only whether castling has already been performed
+    fBlackHasCastled = false;
     fColorToMove = Color::White;
 
-    fPseudoLegalMoves.clear();
+    fLegalMoves.clear();
     fMadeMoves.clear();
+}
+
+void Board::GenerateLegalMoves() {
+    GeneratePseudoLegalMoves(); // fLegalMoves now full of pseudo-legal moves
+    U64 playerKing = GetBoard(fColorToMove, Piece::King);
+
+    // add castling if available
+
+    // check for en-passant (was the last move a pawn move 2 squares forward?)
+    AddEnPassant();
+
+    // Make the pseudo-legal move and see if our king now lives on an attack ray of another piece
+    RemoveIllegalMoves(); // Must be after AddEnPassant and castling to ensure strictness
+
+    // set if other king now in check as a result of this move
+}
+
+void Board::RemoveIllegalMoves() {
+
+}
+
+void Board::AddEnPassant() {
+    Move *lastMove = &fMadeMoves.back();
+    if(lastMove->piece != Piece::Pawn)
+        return;
+    U64 targetPawnFile = get_file(lastMove->target);
+    U64 pawns = GetBoard(fColorToMove, Piece::Pawn);
+    U64 enPassantPawns = 0;
+    if((fColorToMove == Color::White) && (lastMove->origin & RANK_7) && (lastMove->target & RANK_5)) {
+        // Was a double-move forward with a pawn by black last turn
+        // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 5
+        enPassantPawns = pawns & RANK_5 & (targetPawnFile << 1 | targetPawnFile >> 1);
+    } else if((fColorToMove == Color::Black) && (lastMove->origin & RANK_2) && (lastMove->target & RANK_4)) {
+        // Was a double-move forward with a pawn by black last turn
+        // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 4
+        enPassantPawns = pawns & RANK_4 & (targetPawnFile << 1 | targetPawnFile >> 1);
+    }
+    while(enPassantPawns) {
+        U64 pawn = 0;
+        set_bit(pawn, pop_LSB(enPassantPawns));
+        U64 rank = fColorToMove == Color::White ? RANK_6 : RANK_3;
+        fLegalMoves.push_back(Move{pawn, targetPawnFile & rank, Piece::Pawn, Piece::Pawn});
+    }
 }
 
 void Board::GeneratePseudoLegalMoves() {
     // Generates the set of pseudo-legal moves for fColorToMove
     U64 ownPieces = GetBoard(fColorToMove);
     U64 otherPieces = GetBoard(fColorToMove == Color::White ? Color::Black : Color::White);
-    fPseudoLegalMoves.clear();
+    fLegalMoves.clear();
 
-    FillPseudoPawnMoves(ownPieces, otherPieces);                // Pawn moves
-    FillPseudoKnightMoves(ownPieces);              // Knight moves
-    FillPseudoKingMoves(ownPieces);                // King moves
+    FillPseudoPawnMoves(ownPieces, otherPieces);   // Pawn moves
+    FillPseudoKnightMoves(ownPieces, otherPieces); // Knight moves
+    FillPseudoKingMoves(ownPieces, otherPieces);   // King moves
     FillPseudoBishopMoves(ownPieces, otherPieces); // Bishop moves
     FillPseudoRookMoves(ownPieces, otherPieces);   // Rook moves
     FillPseudoQueenMoves(ownPieces, otherPieces);  // Queen moves
@@ -63,8 +109,21 @@ void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fPseudoLegalMoves.push_back(Move{pawn, attack, Piece::Pawn});
+            Piece takenPiece = Piece::Null;
+            if(attack & otherPieces) // Find the type of piece that is getting removed
+                takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+            fLegalMoves.push_back(Move{pawn, attack, Piece::Pawn, takenPiece});
         }
+    }
+}
+
+Piece Board::GetPiece(Color color, U64 pos) {
+    int adj = 0;
+    if(color == Color::Black)
+        adj = 6;
+    for(Piece p : PIECES) {
+        if(GetBoard(color, p) & pos)
+            return p;
     }
 }
 
@@ -97,7 +156,10 @@ void Board::FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces) {
     while(attacks) {
         U64 attack = 0;
         set_bit(attack, pop_LSB(attacks));
-        fPseudoLegalMoves.push_back(Move{queen, attack, Piece::Queen});
+        Piece takenPiece = Piece::Null;
+        if(attack & otherPieces)
+            takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+        fLegalMoves.push_back(Move{queen, attack, Piece::Queen, takenPiece});
     }
 }
 
@@ -132,7 +194,10 @@ void Board::FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces) {
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fPseudoLegalMoves.push_back(Move{bishop, attack, Piece::Bishop});
+            Piece takenPiece = Piece::Null;
+            if(attack & otherPieces) // Find the type of piece that is getting removed
+                takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+            fLegalMoves.push_back(Move{bishop, attack, Piece::Bishop, takenPiece});
         }
     }
 }
@@ -147,22 +212,28 @@ void Board::FillPseudoRookMoves(U64 ownPieces, U64 otherPieces) {
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fPseudoLegalMoves.push_back(Move{rook, attack, Piece::Rook});
+            Piece takenPiece = Piece::Null;
+            if(attack & otherPieces) // Find the type of piece that is getting removed
+                takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+            fLegalMoves.push_back(Move{rook, attack, Piece::Rook, takenPiece});
         }
     }
 }
 
-void Board::FillPseudoKingMoves(U64 ownPieces) {
+void Board::FillPseudoKingMoves(U64 ownPieces, U64 otherPieces) {
     U64 king = GetBoard(fColorToMove, Piece::King);
     U64 attacks = fKingAttacks[get_LSB(king)] & ~ownPieces;
     while(attacks) {
         U64 attack = 0;
         set_bit(attack, pop_LSB(attacks));
-        fPseudoLegalMoves.push_back(Move{king, attack, Piece::King});
+        Piece takenPiece = Piece::Null;
+        if(attack & otherPieces)
+            takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+        fLegalMoves.push_back(Move{king, attack, Piece::King, takenPiece});
     }
 }
 
-void Board::FillPseudoKnightMoves(U64 ownPieces) {
+void Board::FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces) {
     U64 knights = GetBoard(fColorToMove, Piece::Knight);
     while(knights) {
         U64 knight = 0;
@@ -171,8 +242,33 @@ void Board::FillPseudoKnightMoves(U64 ownPieces) {
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fPseudoLegalMoves.push_back(Move{knight, attack, Piece::Knight});
+            Piece takenPiece = Piece::Null;
+            if(attack & otherPieces) // Find the type of piece that is getting removed
+                takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+            fLegalMoves.push_back(Move{knight, attack, Piece::Knight, takenPiece});
         }
+    }
+}
+
+void Board::UndoMove(int nMoves) {
+    // undoes the last nMoves from the board
+    if(nMoves > fMadeMoves.size())
+        Reset(); // Cannot undo more moves than exist in the move tree
+    // Last move in the stack will be from player of opposing colour
+    Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
+    for(int i = nMoves; i > 0; i--) {
+        Move m = fMadeMoves.back();
+        U64 movedPieceBoard = GetBoard(movingColor, m.piece);
+        clear_bit(movedPieceBoard, m.target); // clear target bit on the relevant board
+        set_bit(movedPieceBoard, m.origin); // set the origin bit on relevant board
+        SetBitBoard(movingColor, m.piece, movedPieceBoard);
+        if(m.takenPiece != Piece::Null) {
+            // set bit of any taken pieces at target position (unless en-passant move)
+            
+        }
+        // TODO: king is in check etc
+        fMadeMoves.pop_back();
+        movingColor = movingColor == Color::White ? Color::Black : Color::White;
     }
 }
 
@@ -185,8 +281,10 @@ void Board::MakeMove(Move move) {
     U64* originBoard = GetBoard(fColorToMove, move.origin);
     U64* targetBoard = GetBoard(fColorToMove == Color::White ? Color::Black : Color::White, move.target);
 
-    if(targetBoard) // Was a piece of the other colour at the target position
+    // Null pointer if nothing at the target position
+    if(targetBoard) { // Was a piece of the other colour at the target position
         clear_bit(*targetBoard, get_LSB(move.origin));
+    }
 
     // Remove piece from the starting position
     clear_bit(*originBoard, get_LSB(move.origin));
@@ -209,7 +307,7 @@ U64* Board::GetBoard(Color color, U64 occupiedPosition) {
     return nullptr;
 }
 
-U64 Board::GetBoard(Color color) const {
+U64 Board::GetBoard(Color color) {
     U64 board = 0;
     int start = color == Color::Black ? 6 : 0;
     for(Piece p : PIECES) {
@@ -218,7 +316,7 @@ U64 Board::GetBoard(Color color) const {
     return board;
 }
 
-U64 Board::GetBoard(Color color, Piece piece) const {
+U64 Board::GetBoard(Color color, Piece piece) {
     if(color == Color::White)
         return fBoards[(int)piece];
     return fBoards[(int)piece + 6];

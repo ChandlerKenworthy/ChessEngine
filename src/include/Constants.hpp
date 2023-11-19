@@ -176,7 +176,8 @@ enum class Piece {
     Knight, // 2
     Rook,   // 3
     Queen,  // 4
-    King    // 5
+    King,   // 5
+    Null,   // 6
 };
 
 const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King};
