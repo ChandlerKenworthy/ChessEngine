@@ -76,6 +76,7 @@ class Board {
         void GeneratePseudoLegalMoves();
         void AddEnPassant();
         void RemoveIllegalMoves();
+        bool GetBoardIsLegal();
         
 };
 

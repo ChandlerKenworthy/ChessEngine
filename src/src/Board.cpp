@@ -46,14 +46,33 @@ void Board::GenerateLegalMoves() {
     // set if other king now in check as a result of this move
 }
 
+bool Board::GetBoardIsLegal() {
+    // Evaluate whether the current board configuration is legal given the player to move
+    // e.g. if black is to move but white was left in check by their last move it is an illegal configuration
+
+
+    return true;
+}
+
 void Board::RemoveIllegalMoves() {
     // Check each move of fLegalMoves to see if, after being made the board is in a legal game state
     // if it is yay, if it is not remove the move
+    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
+        // make the move
+        MakeMove(fLegalMoves[iMove]);
+        bool isLegal = GetBoardIsLegal();
+        // undo the move
+        UndoMove();
+        if(!isLegal) {
+            fLegalMoves.erase(fLegalMoves.begin() + iMove);
+            iMove--;
+        }
+    }
 }
 
 void Board::AddEnPassant() {
     Move *lastMove = &fMadeMoves.back();
-    if(lastMove->piece != Piece::Pawn)
+    if(lastMove->piece != Piece::Pawn || lastMove->WasEnPassant)
         return;
     U64 targetPawnFile = get_file(lastMove->target);
     U64 pawns = GetBoard(fColorToMove, Piece::Pawn);
