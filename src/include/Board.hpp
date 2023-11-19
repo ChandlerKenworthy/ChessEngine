@@ -36,6 +36,7 @@ class Board {
         std::vector<Move> GetLegalMoves() { return fLegalMoves; };
         void MakeMove(Move move);
         void UndoMove(int nMoves);
+        void UndoMove() { UndoMove(1); };
         void SetBitBoard(Color color, Piece piece, U64 board); // TODO: Delete me after testing
         void Reset(); // Clears all game state variables and puts pieces in starting position
     private:

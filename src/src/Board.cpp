@@ -61,11 +61,11 @@ void Board::AddEnPassant() {
     if((fColorToMove == Color::White) && (lastMove->origin & RANK_7) && (lastMove->target & RANK_5)) {
         // Was a double-move forward with a pawn by black last turn
         // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 5
-        enPassantPawns = pawns & RANK_5 & (targetPawnFile << 1 | targetPawnFile >> 1);
+        enPassantPawns = pawns & RANK_5 & (east(targetPawnFile) | west(targetPawnFile));
     } else if((fColorToMove == Color::Black) && (lastMove->origin & RANK_2) && (lastMove->target & RANK_4)) {
         // Was a double-move forward with a pawn by black last turn
         // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 4
-        enPassantPawns = pawns & RANK_4 & (targetPawnFile << 1 | targetPawnFile >> 1);
+        enPassantPawns = pawns & RANK_4 & (east(targetPawnFile) | west(targetPawnFile));
     }
     while(enPassantPawns) {
         U64 pawn = 0;
