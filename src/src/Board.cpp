@@ -265,10 +265,17 @@ void Board::UndoMove(int nMoves) {
         set_bit(movedPieceBoard, get_LSB(m.origin)); // set the origin bit on relevant board
         SetBitBoard(movingColor, m.piece, movedPieceBoard);
         if(m.takenPiece != Piece::Null) {
-            // set bit of any taken pieces at target position (unless en-passant move)
             Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
             U64 b = GetBoard(otherColor, m.takenPiece);
-            set_bit(b, get_LSB(m.target));
+            if(m.WasEnPassant) {
+                std::cout << "Wayyy i'm en passant\n";
+                // special case old bit-board already re-instated need to put piece back in correct place now
+                // crossing of the origin RANK and target FILE = taken piece position 
+                set_bit(b, get_LSB(get_rank(m.origin) & get_file(m.target)));
+
+            } else {
+                set_bit(b, get_LSB(m.target));
+            }
             SetBitBoard(otherColor, m.takenPiece, b);
         }
         // TODO: king is in check etc
@@ -284,11 +291,16 @@ void Board::MakeMove(Move move) {
     // 3. if it was a special move e.g. castling update variables
     // 4. update who is to move
     U64* originBoard = GetBoard(fColorToMove, move.origin);
-    U64* targetBoard = GetBoard(fColorToMove == Color::White ? Color::Black : Color::White, move.target);
 
-    // Null pointer if nothing at the target position
-    if(targetBoard) { // Was a piece of the other colour at the target position
-        clear_bit(*targetBoard, get_LSB(move.origin));
+    if(move.takenPiece != Piece::Null) {
+        Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
+        U64 targetBoard = GetBoard(otherColor, move.takenPiece);
+        if(move.WasEnPassant) {
+            clear_bit(targetBoard, get_LSB(get_rank(move.origin) & get_file(move.target)));
+        } else {
+            clear_bit(targetBoard, get_LSB(move.target));
+        }
+        SetBitBoard(otherColor, move.takenPiece, targetBoard);
     }
 
     // Remove piece from the starting position

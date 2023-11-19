@@ -9,7 +9,9 @@ struct Move {
     U64 origin;
     U64 target;
     Piece piece;
-    Piece takenPiece;
+    Piece takenPiece{ Piece::Null };
+    bool WasEnPassant{ false };
+    bool WasCastling{ false };
 };
 
 class Board {
