@@ -208,6 +208,7 @@ void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
                 // Starting position - move 2 forward
                 attacks |= (pawn >> 16);
         }
+        attacks = attacks & ~ownPieces; // Cannot move to squares you already occupy
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
@@ -519,4 +520,32 @@ void Board::GenerateKnightAttacks(int iPos, U64 position) {
 void Board::GenerateKingAttacks(int iPos, U64 position) {
     U64 attacks = north(position) | east(position) | west(position) | south(position) | north_east(position) | north_west(position) | south_east(position) | south_west(position);
     fKingAttacks[iPos] = attacks;
+}
+
+bool Board::LoadFEN(std::string fen) {
+    // Given a FEN loads it into the appropriate bitboards
+    Reset();
+
+    int currRank = 8;
+    int currFile = 0;
+
+    int index = 0; 
+
+    for (char c : fen) {
+        if (isdigit(c)) { // Jump this many squares
+            int digit = c - '0';
+            std::cout << "Digit: " << digit << std::endl;
+        } else if (isalpha(c)) {
+            if (isupper(c)) { // White piece
+                std::cout << "Uppercase letter: " << c << std::endl;
+            } else { // Black piece
+                std::cout << "Lowercase letter: " << c << std::endl;
+            }
+        } else {
+            std::cout << "Other character: " << c << std::endl;
+        }
+        index++;
+    }
+
+    return true; // success, board was able to be read/loaded correctly
 }

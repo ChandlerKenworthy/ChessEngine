@@ -2,6 +2,8 @@
 #define BOARD_HPP
 
 #include <vector>
+#include <string>
+#include <cctype>
 
 #include "Constants.hpp"
 
@@ -36,6 +38,8 @@ class Board {
         void MakeMove(Move move);
         void UndoMove(int nMoves);
         void UndoMove() { UndoMove(1); };
+        bool LoadFEN(std::string fen);
+        Color GetColorToMove() { return fColorToMove; };
         void SetBitBoard(Color color, Piece piece, U64 board); // TODO: Delete me after testing
         void Reset(); // Clears all game state variables and puts pieces in starting position
     private:
