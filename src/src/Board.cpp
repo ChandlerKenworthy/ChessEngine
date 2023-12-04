@@ -199,12 +199,12 @@ void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
         U64 attacks = 0;
         if(fColorToMove == Color::White) {
             attacks |= ((pawn << 8) & ~occ) | ((pawn << 7) & otherPieces) | ((pawn << 9) & otherPieces);
-            if((pawn & RANK_2) && ~((pawn << 8) & occ) && ~((pawn << 16) & occ)) 
+            if((pawn & RANK_2) && ((pawn << 8) & ~occ) && ((pawn << 16) & ~occ)) 
                 // Starting position - move 2 forward
                 attacks |= (pawn << 16);
         } else {
             attacks |= ((pawn >> 8) & ~occ) | ((pawn >> 7) & otherPieces) | ((pawn >> 9) & otherPieces);
-            if((pawn & RANK_7) && ~((pawn >> 8) & occ) && ~((pawn >> 16) & occ)) 
+            if((pawn & RANK_7) && ((pawn >> 8) & ~occ) && ((pawn >> 16) & ~occ)) 
                 // Starting position - move 2 forward
                 attacks |= (pawn >> 16);
         }
