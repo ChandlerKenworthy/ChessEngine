@@ -61,10 +61,14 @@ class Board {
         bool fBlackInCheckmate;
         bool fWhiteHasCastled;
         bool fBlackHasCastled;
+        bool fWhiteKingMoved;
+        bool fBlackKingMoved;
         Color fColorToMove;
 
         // Internal methods
         Piece GetPiece(Color color, U64 position);
+        bool IsCastlingPossible(U64 occupancy, U64 castlingMask);
+        bool IsUnderAttack(U64 squares);
         void GenerateAttackTables();
         void GenerateKnightAttacks(int iPos, U64 position);
         void GenerateKingAttacks(int iPos, U64 position);
@@ -79,6 +83,7 @@ class Board {
         void FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces);
         void GeneratePseudoLegalMoves();
         void AddEnPassant();
+        void AddCastling();
         void RemoveIllegalMoves();
         bool GetBoardIsLegal();
         void EmptyBoards();

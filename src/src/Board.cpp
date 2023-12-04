@@ -26,6 +26,8 @@ void Board::Reset() {
     fBlackInCheckmate = false;
     fWhiteHasCastled = false; // Only whether castling has already been performed
     fBlackHasCastled = false;
+    fWhiteKingMoved = false;
+    fBlackKingMoved = false;
     fColorToMove = Color::White;
 
     fLegalMoves.clear();
@@ -37,7 +39,8 @@ void Board::GenerateLegalMoves() {
     // add castling if available
     // check for en-passant (was the last move a pawn move 2 squares forward?)
     AddEnPassant();
-    // Make the pseudo-legal move and see if our king now lives on an attack ray of another piece
+    // check for possible castling
+    AddCastling();
     RemoveIllegalMoves(); // Must be after AddEnPassant and castling to ensure strictness
     // set if other king now in check as a result of this move
 }
@@ -149,6 +152,43 @@ void Board::RemoveIllegalMoves() {
         }
     }
 }
+
+void Board::AddCastling() {
+    if (fMadeMoves.size() < MIN_MOVES_FOR_CASTLING)
+        return; // Takes a minimum of MIN_MOVES_FOR_CASTLING moves to castle
+
+    U64 occupancy = GetBoard(Color::White) | GetBoard(Color::Black);
+    U64 origin = GetBoard(fColorToMove, Piece::King);
+
+    // Castling conditions for white
+    if(fColorToMove == Color::White && !fWhiteHasCastled && !fWhiteKingMoved) {
+        if(IsCastlingPossible(occupancy, KING_SIDE_CASTLING_MASK_WHITE)) {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
+        }
+        if(IsCastlingPossible(occupancy, QUEEN_SIDE_CASTLING_MASK_WHITE)) {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
+        }
+    }
+    // Castling conditions for black
+    else if(fColorToMove == Color::Black && !fBlackHasCastled && !fBlackKingMoved) {
+        if (IsCastlingPossible(occupancy, KING_SIDE_CASTLING_MASK_BLACK)) {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
+        }
+        if (IsCastlingPossible(occupancy, QUEEN_SIDE_CASTLING_MASK_BLACK)) {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
+        }
+    }
+}
+
+bool Board::IsCastlingPossible(U64 occupancy, U64 castlingMask) {
+    return !(occupancy & castlingMask) && !IsUnderAttack(castlingMask);
+}
+
+bool Board::IsUnderAttack(U64 squares) {
+    // TODO: Implement the logic to check if the square is under attack.
+    return false;
+}
+
 
 void Board::AddEnPassant() {
     if(fMadeMoves.size() < 3) // Protect against seg fault + faster returns
@@ -411,6 +451,15 @@ void Board::MakeMove(Move move) {
 
     // Set the piece at the new position
     set_bit(*originBoard, get_LSB(move.target)); 
+
+    // If moving a king set appropriate state variable
+    if(move.piece == Piece::King ) {
+        if(fColorToMove == Color::White) {
+            fWhiteKingMoved = true;
+        } else {
+            fBlackKingMoved = true;
+        }
+    }
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(move);

@@ -77,6 +77,12 @@ constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; };
 constexpr U64 south_west(U64 b) { return (b & ~FILE_A) >> 7; };
 constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; };
 
+const int MIN_MOVES_FOR_CASTLING = 6;
+const U64 KING_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_F | FILE_G);
+const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_B | FILE_C | FILE_D);
+const U64 KING_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_F | FILE_G);
+const U64 QUEEN_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_B | FILE_C | FILE_D);
+
 inline U64 get_rank(U64 position) {
     if(position & RANK_1) {
         return RANK_1;
