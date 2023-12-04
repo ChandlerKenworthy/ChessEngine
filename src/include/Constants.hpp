@@ -165,6 +165,46 @@ inline int get_file_number(U64 position) {
     }
 }
 
+inline U64 get_rank_from_number(int n) {
+    if(n == 1) {
+        return RANK_1;
+    } else if(n == 2) {
+        return RANK_2;
+    } else if(n == 3) {
+        return RANK_3;
+    } else if(n == 4) {
+        return RANK_4;
+    } else if(n == 5) {
+        return RANK_5;
+    } else if(n == 6) {
+        return RANK_6;
+    } else if(n == 7) {
+        return RANK_7;
+    } else {
+        return RANK_8;
+    }
+}
+
+inline U64 get_file_from_number(int n) {
+    if(n == 1) {
+        return FILE_A;
+    } else if(n == 2) {
+        return FILE_B;
+    } else if(n == 3) {
+        return FILE_C;
+    } else if(n == 4) {
+        return FILE_D;
+    } else if(n == 5) {
+        return FILE_E;
+    } else if(n == 6) {
+        return FILE_F;
+    } else if(n == 7) {
+        return FILE_G;
+    } else {
+        return FILE_H;
+    }
+}
+
 enum class Color {
     White,
     Black

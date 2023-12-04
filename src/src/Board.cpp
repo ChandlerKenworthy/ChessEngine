@@ -522,30 +522,73 @@ void Board::GenerateKingAttacks(int iPos, U64 position) {
     fKingAttacks[iPos] = attacks;
 }
 
-bool Board::LoadFEN(std::string fen) {
-    // Given a FEN loads it into the appropriate bitboards
+void Board::EmptyBoards() {
+    U64 empty = 0;
+    for(int i = 0; i < 12; i++) {
+        fBoards[i] = empty;
+    }
+}
+
+bool Board::LoadFEN(const std::string &fen) {
     Reset();
+    EmptyBoards();
 
-    int currRank = 8;
-    int currFile = 0;
+    int rank = 8;
+    int file = 1;
+    int ngaps = 0;
 
-    int index = 0; 
+    bool whiteCanCastle = false;
+    bool blackCanCastle = false;
 
     for (char c : fen) {
-        if (isdigit(c)) { // Jump this many squares
-            int digit = c - '0';
-            std::cout << "Digit: " << digit << std::endl;
-        } else if (isalpha(c)) {
-            if (isupper(c)) { // White piece
-                std::cout << "Uppercase letter: " << c << std::endl;
-            } else { // Black piece
-                std::cout << "Lowercase letter: " << c << std::endl;
-            }
-        } else {
-            std::cout << "Other character: " << c << std::endl;
+        
+        if (file > 8) {
+            file = 1;
+            rank--;
         }
-        index++;
+
+        if(isdigit(c)) {
+            file += c - '0';
+        } else if(isalpha(c)) {
+            if (ngaps == 1) {
+                fColorToMove = (toupper(c) == 'B') ? Color::Black : Color::White;
+            } else if (ngaps == 2) {
+                whiteCanCastle |= (c == 'K' || c == 'Q');
+                blackCanCastle |= (c == 'k' || c == 'q');
+            } else {
+                U64 pos = get_rank_from_number(rank) & get_file_from_number(file);
+                Color pieceColor = (isupper(c)) ? Color::White : Color::Black;
+                U64 board = GetBoard(pieceColor, GetPieceFromChar(c));
+                board |= pos;
+                SetBitBoard(pieceColor, GetPieceFromChar(c), board);
+                file++;
+            }
+        } else if (c == ' ') {
+            ngaps++;
+        }
     }
 
-    return true; // success, board was able to be read/loaded correctly
+    fWhiteHasCastled = !whiteCanCastle;
+    fBlackHasCastled = !blackCanCastle;
+
+    return true;  // Success, board was able to be read/loaded correctly
+}
+
+Piece Board::GetPieceFromChar(char c) {
+    c = toupper(c);
+    if(c == 'N') {
+        return Piece::Knight;
+    } else if(c == 'K') {
+        return Piece::King;
+    } else if(c == 'P') { 
+        return Piece::Pawn;
+    } else if(c == 'Q') {
+        return Piece::Queen;
+    } else if(c == 'R') {
+        return Piece::Rook;
+    } else if(c == 'B') {
+        return Piece::Bishop;
+    } else {
+        return Piece::Null;
+    }
 }
