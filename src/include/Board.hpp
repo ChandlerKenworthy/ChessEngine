@@ -46,7 +46,9 @@ class Board {
     private:
         // Bitboards
         U64 fBoards[12]; // White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
-        U64 fKnightAttacks[64]; // 1 bitboard showing all squares the knight attacks given bitboard as input
+        U64 fKnightAttacks[64]; // 1 bitboard showing all squares the knight attacks given LSB bit as input
+        U64 fWhitePawnAttacks[64];
+        U64 fBlackPawnAttacks[64];
         U64 fBishopAttacks[64];
         U64 fKingAttacks[64];
         U64 fRookAttacks[64];
@@ -71,11 +73,12 @@ class Board {
         bool IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor);
         bool IsUnderAttack(U64 squares, Color attackingColor);
         void GenerateAttackTables();
-        void GenerateKnightAttacks(int iPos, U64 position);
-        void GenerateKingAttacks(int iPos, U64 position);
-        void GenerateRookAttacks(int iPos, U64 position);
-        void GenerateBishopAttacks(int iPos, U64 position);
-        void GenerateQueenAttacks(int iPos, U64 position);
+        void PopulateKnightAttackTable(int iPos, U64 position);
+        void PopulateKingAttackTable(int iPos, U64 position);
+        void PopulatePawnAttackTable(int iPos, U64 position);
+        void PopulateRookAttackTable(int iPos, U64 position);
+        void PopulateBishopAttackTable(int iPos, U64 position);
+        void PopulateQueenAttackTable(int iPos, U64 position);
         void FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces);
         void FillPseudoKingMoves(U64 ownPieces, U64 otherPieces);
         void FillPseudoRookMoves(U64 ownPieces, U64 otherPieces);

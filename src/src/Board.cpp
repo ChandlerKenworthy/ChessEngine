@@ -528,15 +528,32 @@ void Board::GenerateAttackTables() {
     for(int i = 0; i < SQUARES; ++i) {
         U64 piece = 0;
         set_bit(piece, i);
-        GenerateKnightAttacks(i, piece);
-        GenerateKingAttacks(i, piece);
-        GenerateRookAttacks(i, piece);
-        GenerateBishopAttacks(i, piece);
-        GenerateQueenAttacks(i, piece);
+        PopulateKnightAttackTable(i, piece);
+        PopulateKingAttackTable(i, piece);
+        PopulatePawnAttackTable(i, piece);
+        PopulateRookAttackTable(i, piece);
+        PopulateBishopAttackTable(i, piece);
+        PopulateQueenAttackTable(i, piece);
     }
 }
 
-void Board::GenerateQueenAttacks(int iPos, U64 position) {
+void Board::PopulatePawnAttackTable(int iPos, U64 position) {
+    U64 attacks = 0;
+    // Case 1: white pawn
+    attacks |= (position << BITS_PER_FILE); // 1 square forward
+    attacks |= (position & RANK_2) & (position << 2 * BITS_PER_FILE); // 2 squares forward on first go
+    attacks |= north_east(position) | north_west(position); // Potential to attack on the diagonals as well
+    fWhitePawnAttacks[iPos] = attacks;
+
+    // Case 2: black pawn
+    attacks = 0;
+    attacks |= (position >> BITS_PER_FILE); // 1 square forward
+    attacks |= (position & RANK_7) & (position >> 2 * BITS_PER_FILE); // 2 squares forward on first go
+    attacks |= south_east(position) | south_west(position); // Potential to attack on the diagonals as well
+    fBlackPawnAttacks[iPos] = attacks;
+}
+
+void Board::PopulateQueenAttackTable(int iPos, U64 position) {
     U64 attacks = 0;
     // Vertical distance from the primary diagonal
     int dPrimaryDiag = (get_file_number(position) - 1) - (7 - (get_rank_number(position) - 1));
@@ -554,10 +571,10 @@ void Board::GenerateQueenAttacks(int iPos, U64 position) {
     U64 rank = get_rank(position);
     U64 file = get_file(position);
 
-    fQueenAttacks[iPos] = (attacks | rank | file) ^ position;;
+    fQueenAttacks[iPos] = (attacks | rank | file) ^ position;
 }
 
-void Board::GenerateBishopAttacks(int iPos, U64 position) {
+void Board::PopulateBishopAttackTable(int iPos, U64 position) {
     // Does not take into account blocking pieces, this is done later
     // Vertical distance from primary diagonal is just abs(x - y) (zero indexed)
     // negative value = shift primary DOWN, positive value = shift primary UP
@@ -578,20 +595,18 @@ void Board::GenerateBishopAttacks(int iPos, U64 position) {
     fBishopAttacks[iPos] = attacks ^ position;
 }
 
-void Board::GenerateRookAttacks(int iPos, U64 position) {
+void Board::PopulateRookAttackTable(int iPos, U64 position) {
     // Does not take into account blocking pieces, this is done later
-    U64 rank = get_rank(position);
-    U64 file = get_file(position);
-    fRookAttacks[iPos] = (rank | file) ^ position;
+    fRookAttacks[iPos] = (get_rank(position) | get_file(position)) ^ position;
 }
 
-void Board::GenerateKnightAttacks(int iPos, U64 position) {
+void Board::PopulateKnightAttackTable(int iPos, U64 position) {
     // Fills the fKnightAttacks array with all attacking positions of the knight give the starting position
     U64 attacks = north(north_east(position)) | north(north_west(position)) | south(south_east(position)) | south(south_west(position)) | east(north_east(position)) | east(south_east(position)) | west(north_west(position)) | west(south_west(position));
     fKnightAttacks[iPos] = attacks;
 }
 
-void Board::GenerateKingAttacks(int iPos, U64 position) {
+void Board::PopulateKingAttackTable(int iPos, U64 position) {
     U64 attacks = north(position) | east(position) | west(position) | south(position) | north_east(position) | north_west(position) | south_east(position) | south_west(position);
     fKingAttacks[iPos] = attacks;
 }
