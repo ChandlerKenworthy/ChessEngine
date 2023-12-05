@@ -141,11 +141,9 @@ void Board::RemoveIllegalMoves() {
     // Check each move of fLegalMoves to see if, after being made the board is in a legal game state
     // if it is yay, if it is not remove the move
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
-        // make the move
-        MakeMove(fLegalMoves[iMove]);
+        MakeMove(fLegalMoves[iMove]); // make the move
         bool isLegal = GetBoardIsLegal();
-        // undo the move
-        UndoMove();
+        UndoMove(); // undo the move
         if(!isLegal) {
             fLegalMoves.erase(fLegalMoves.begin() + iMove);
             iMove--;
@@ -162,33 +160,60 @@ void Board::AddCastling() {
 
     // Castling conditions for white
     if(fColorToMove == Color::White && !fWhiteHasCastled && !fWhiteKingMoved) {
-        if(IsCastlingPossible(occupancy, KING_SIDE_CASTLING_MASK_WHITE)) {
+        if(IsCastlingPossible(occupancy, KING_SIDE_CASTLING_MASK_WHITE, Color::Black)) {
             fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
         }
-        if(IsCastlingPossible(occupancy, QUEEN_SIDE_CASTLING_MASK_WHITE)) {
+        if(IsCastlingPossible(occupancy, QUEEN_SIDE_CASTLING_MASK_WHITE, Color::Black)) {
             fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
         }
     }
     // Castling conditions for black
     else if(fColorToMove == Color::Black && !fBlackHasCastled && !fBlackKingMoved) {
-        if (IsCastlingPossible(occupancy, KING_SIDE_CASTLING_MASK_BLACK)) {
+        if (IsCastlingPossible(occupancy, KING_SIDE_CASTLING_MASK_BLACK, Color::White)) {
             fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
         }
-        if (IsCastlingPossible(occupancy, QUEEN_SIDE_CASTLING_MASK_BLACK)) {
+        if (IsCastlingPossible(occupancy, QUEEN_SIDE_CASTLING_MASK_BLACK, Color::White)) {
             fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
         }
     }
 }
 
-bool Board::IsCastlingPossible(U64 occupancy, U64 castlingMask) {
-    return !(occupancy & castlingMask) && !IsUnderAttack(castlingMask);
+bool Board::IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor) {
+    return !(occupancy & castlingMask) && !IsUnderAttack(castlingMask, attackingColor);
 }
 
-bool Board::IsUnderAttack(U64 squares) {
-    // TODO: Implement the logic to check if the square is under attack.
-    return false;
+bool Board::IsUnderAttack(U64 squares, Color attackingColor) {
+    // Check if the any of the positions in squares are attacked by the specified colour
+    // TODO: Implement the logic to check if the square is under attack
+    U64 attacks = 0;
+    // GetRookAttacks(attackingColor)
+    // GetQueenAttacks(attackingColor)
+    attacks |= GetJumpingPieceAttacks(attackingColor, Piece::Knight);
+    // GetBishopAttacks(attackingColor)
+    attacks |= GetJumpingPieceAttacks(attackingColor, Piece::King);
+    attacks |= GetJumpingPieceAttacks(attackingColor, Piece::Pawn);
+    // return squares & attacks
+    return attacks & squares;
 }
 
+U64 Board::GetJumpingPieceAttacks(Color attackingColor, Piece piece) {
+    U64 attacks = 0;
+    U64 ownPieces = GetBoard(attackingColor);
+    U64 pieces = GetBoard(attackingColor, piece);
+    while(pieces) { // iterate over each using lookup table to find attacks
+        switch(piece) {
+            case Piece::Knight:
+                attacks |= fKnightAttacks[pop_LSB(pieces)];
+            case Piece::King:
+                attacks |= fKingAttacks[pop_LSB(pieces)];
+            case Piece::Pawn:
+                break; // TODO
+            default:
+                break;
+        }
+    }
+    return attacks & ~ownPieces;
+}
 
 void Board::AddEnPassant() {
     if(fMadeMoves.size() < 3) // Protect against seg fault + faster returns

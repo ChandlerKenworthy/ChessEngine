@@ -28,11 +28,12 @@ class Board {
         U64 GetBoard(Color color, Piece piece);
         U64* GetBoard(Color color, U64 occupiedPosition);
         U64 GetBoard(Color color); // Get occupation bitboard for all pieces of specified colour
-        U64 GetKnightAttacks(U64 position) { return fKnightAttacks[get_LSB(position)]; };
-        U64 GetKingAttacks(U64 position) { return fKingAttacks[get_LSB(position)]; };
-        U64 GetRookAttacks(U64 position) { return fRookAttacks[get_LSB(position)]; };
-        U64 GetBishopAttacks(U64 position) { return fBishopAttacks[get_LSB(position)]; };
-        U64 GetQueenAttacks(U64 position) { return fQueenAttacks[get_LSB(position)]; };
+        // U64 GetKnightAttacks(U64 position) { return fKnightAttacks[get_LSB(position)]; };
+        // U64 GetKingAttacks(U64 position) { return fKingAttacks[get_LSB(position)]; };
+        // U64 GetRookAttacks(U64 position) { return fRookAttacks[get_LSB(position)]; };
+        // U64 GetBishopAttacks(U64 position) { return fBishopAttacks[get_LSB(position)]; };
+        // U64 GetQueenAttacks(U64 position) { return fQueenAttacks[get_LSB(position)]; };
+        U64 GetJumpingPieceAttacks(Color attackingColor, Piece piece);
         void GenerateLegalMoves();
         std::vector<Move> GetLegalMoves() { return fLegalMoves; };
         void MakeMove(Move move);
@@ -67,8 +68,8 @@ class Board {
 
         // Internal methods
         Piece GetPiece(Color color, U64 position);
-        bool IsCastlingPossible(U64 occupancy, U64 castlingMask);
-        bool IsUnderAttack(U64 squares);
+        bool IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor);
+        bool IsUnderAttack(U64 squares, Color attackingColor);
         void GenerateAttackTables();
         void GenerateKnightAttacks(int iPos, U64 position);
         void GenerateKingAttacks(int iPos, U64 position);
