@@ -81,10 +81,10 @@ class Board {
         void PopulateBishopAttackTable(int iPos, U64 position);
         void PopulateQueenAttackTable(int iPos, U64 position);
         void FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces);
-        void FillPseudoKingMoves(U64 ownPieces, U64 otherPieces);
+        void FillPseudoKingMoves(U64 otherPieces);
         void FillPseudoRookMoves(U64 ownPieces, U64 otherPieces);
         void FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces);
-        void FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces);
+        void FillPseudoQueenMoves(U64 otherPieces);
         void FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces);
         void GeneratePseudoLegalMoves();
         void AddEnPassant();

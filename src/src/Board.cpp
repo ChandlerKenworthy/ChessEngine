@@ -264,10 +264,10 @@ void Board::GeneratePseudoLegalMoves() {
 
     FillPseudoPawnMoves(ownPieces, otherPieces);   // Pawn moves
     FillPseudoKnightMoves(ownPieces, otherPieces); // Knight moves
-    FillPseudoKingMoves(ownPieces, otherPieces);   // King moves
+    FillPseudoKingMoves(otherPieces);   // King moves
     FillPseudoBishopMoves(ownPieces, otherPieces); // Bishop moves
     FillPseudoRookMoves(ownPieces, otherPieces);   // Rook moves
-    FillPseudoQueenMoves(ownPieces, otherPieces);  // Queen moves
+    FillPseudoQueenMoves(otherPieces);  // Queen moves
 }
 
 Piece Board::GetPiece(Color color, U64 pos) {
@@ -312,32 +312,9 @@ void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
     }
 }
 
-void Board::FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces) {
-    U64 occupancy = ownPieces | otherPieces;
+void Board::FillPseudoQueenMoves(U64 otherPieces) {
     U64 queen = GetBoard(fColorToMove, Piece::Queen);
-
-    // TODO: maybe given a queen position have 4 lookup tables for positive and negative rays
-
-    // Vertical distance from the primary diagonal
-    int dPrimaryDiag = get_file_number(queen) - 9 + get_rank_number(queen);
-    // Vertical distance from the secondary diagonal
-    int dSecondaryDiag = get_rank_number(queen) - get_file_number(queen);
-
-    U64 mask1 = 0;
-    if(dPrimaryDiag == 0) {
-        mask1 = PRIMARY_DIAGONAL;
-    } else {
-        mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
-    }
-
-    U64 mask2 = 0;
-    if(dSecondaryDiag == 0) {
-        mask2 = SECONDARY_DIAGONAL;
-    } else {
-        mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
-    }
-
-    U64 attacks = (hypQuint(queen, occupancy, mask1) | hypQuint(queen, occupancy, mask2) | hypQuint(queen, occupancy, get_rank(queen)) | hypQuint(queen, occupancy, get_file(queen))) & ~ownPieces;
+    U64 attacks = GetSlidingPieceAttacks(fColorToMove, Piece::Queen);
     while(attacks) {
         U64 attack = 0;
         set_bit(attack, pop_LSB(attacks));
@@ -405,9 +382,9 @@ void Board::FillPseudoRookMoves(U64 ownPieces, U64 otherPieces) {
     }
 }
 
-void Board::FillPseudoKingMoves(U64 ownPieces, U64 otherPieces) {
+void Board::FillPseudoKingMoves(U64 otherPieces) {
     U64 king = GetBoard(fColorToMove, Piece::King);
-    U64 attacks = fKingAttacks[get_LSB(king)] & ~ownPieces;
+    U64 attacks = GetJumpingPieceAttacks(fColorToMove, Piece::King);
     while(attacks) {
         U64 attack = 0;
         set_bit(attack, pop_LSB(attacks));
