@@ -50,18 +50,27 @@ bool Board::GetBoardIsLegal() {
     // e.g. if black is to move but white was left in check by their last move it is an illegal configuration
     // Generate the attack rays of the colour to move
     // if they hit the other colours king board is not in a legal state
+
+    // When this function is called you have already made the potentially illegal move
+    // so if when generating attacks of the new color to move, one is on the other king it was illegal
+    // since it must have left that other king in check
     Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
     U64 targetKing = GetBoard(otherColor, Piece::King);
     U64 ownPieces = GetBoard(fColorToMove);
     U64 otherPieces = GetBoard(otherColor);
 
+    // King
+    U64 king_attacks = GetJumpingPieceAttacks(fColorToMove, Piece::King);
+    if(king_attacks & targetKing)
+        return false;
+
     // Knights
-    U64 knightAttacks = north(north_east(targetKing)) | north(north_west(targetKing)) | south(south_east(targetKing)) | south(south_west(targetKing)) | east(north_east(targetKing)) | east(south_east(targetKing)) | west(north_west(targetKing)) | west(south_west(targetKing));
-    if(knightAttacks & GetBoard(fColorToMove, Piece::Knight))
-        return false; // Knight on a square attacking the king
+    U64 knight_attacks = GetJumpingPieceAttacks(fColorToMove, Piece::Knight);
+    if(knight_attacks & targetKing)
+        return false;
 
     // Pawns
-    if(fColorToMove == Color::White) { // TODO: King cant move into potential double first move of pawn
+    if(fColorToMove == Color::White) {
         // Black "made" the last move so search for white's "north" pawn attacks
         if(GetBoard(fColorToMove, Piece::Pawn) & (south_east(targetKing) | south_west(targetKing)))
             return false;
@@ -72,66 +81,18 @@ bool Board::GetBoardIsLegal() {
     }
 
     // Rooks
-    U64 occupancy = ownPieces | otherPieces;
-    U64 rooks = GetBoard(fColorToMove, Piece::Rook);
-    while(rooks) {
-        U64 rook = 0;
-        set_bit(rook, pop_LSB(rooks));
-        U64 attacks = (hypQuint(rook, occupancy, get_rank(rook)) | hypQuint(rook, occupancy, get_file(rook))) & ~ownPieces;
-        if(attacks & targetKing)
-            return false;
-    }
+    U64 rook_attacks = GetSlidingPieceAttacks(fColorToMove, Piece::Rook);
+    if(rook_attacks & targetKing)
+        return false;
 
     // Bishops
-    U64 bishops = GetBoard(fColorToMove, Piece::Bishop);
-    while(bishops) {
-        U64 bishop = 0;
-        set_bit(bishop, pop_LSB(bishops));
-        int dPrimaryDiag = get_file_number(bishop) - 9 + get_rank_number(bishop);
-        int dSecondaryDiag = get_rank_number(bishop) - get_file_number(bishop);
-        U64 mask1 = 0;
-        if(dPrimaryDiag == 0) {
-            mask1 = PRIMARY_DIAGONAL;
-        } else {
-            mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
-        }
-
-        U64 mask2 = 0;
-        if(dSecondaryDiag == 0) {
-            mask2 = SECONDARY_DIAGONAL;
-        } else {
-            mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
-        }
-
-        U64 attacks = (hypQuint(bishop, occupancy, mask1) | hypQuint(bishop, occupancy, mask2)) & ~ownPieces;
-        if(attacks & targetKing)
+    U64 bishop_attacks = GetSlidingPieceAttacks(fColorToMove, Piece::Bishop);
+    if(bishop_attacks & targetKing)
             return false;
-    }
 
     // Queen
-    U64 queen = GetBoard(fColorToMove, Piece::Queen);
-
-    // Vertical distance from the primary diagonal
-    int dPrimaryDiag = get_file_number(queen) - 9 + get_rank_number(queen);
-    // Vertical distance from the secondary diagonal
-    int dSecondaryDiag = get_rank_number(queen) - get_file_number(queen);
-
-    U64 mask1 = 0;
-    if(dPrimaryDiag == 0) {
-        mask1 = PRIMARY_DIAGONAL;
-    } else {
-        mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
-    }
-
-    U64 mask2 = 0;
-    if(dSecondaryDiag == 0) {
-        mask2 = SECONDARY_DIAGONAL;
-    } else {
-        mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
-    }
-
-    U64 attacks = (hypQuint(queen, occupancy, mask1) | hypQuint(queen, occupancy, mask2) | hypQuint(queen, occupancy, get_rank(queen)) | hypQuint(queen, occupancy, get_file(queen))) & ~ownPieces;
-    if(attacks & targetKing)
+    U64 queen_attacks = GetSlidingPieceAttacks(fColorToMove, Piece::Queen);
+    if(queen_attacks & targetKing)
         return false;
 
     return true;
@@ -184,31 +145,85 @@ bool Board::IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingC
 
 bool Board::IsUnderAttack(U64 squares, Color attackingColor) {
     // Check if the any of the positions in squares are attacked by the specified colour
-    // TODO: Implement the logic to check if the square is under attack
     U64 attacks = 0;
-    // GetRookAttacks(attackingColor)
-    // GetQueenAttacks(attackingColor)
+    attacks |= GetSlidingPieceAttacks(attackingColor, Piece::Rook); 
+    attacks |= GetSlidingPieceAttacks(attackingColor, Piece::Queen);
     attacks |= GetJumpingPieceAttacks(attackingColor, Piece::Knight);
-    // GetBishopAttacks(attackingColor)
+    attacks |= GetSlidingPieceAttacks(attackingColor, Piece::Bishop);
     attacks |= GetJumpingPieceAttacks(attackingColor, Piece::King);
     attacks |= GetJumpingPieceAttacks(attackingColor, Piece::Pawn);
-    // return squares & attacks
     return attacks & squares;
 }
 
-U64 Board::GetJumpingPieceAttacks(Color attackingColor, Piece piece) {
+U64 Board::GetSlidingPieceAttacks(Color attackingColor, Piece pieceType) {
+    // Returns all posible attacks of the sliding piece on the current board, does not account for leaving
+    // you in an illegal position. Does include blocker patterns
     U64 attacks = 0;
     U64 ownPieces = GetBoard(attackingColor);
-    U64 pieces = GetBoard(attackingColor, piece);
+    U64 otherPieces = GetBoard(attackingColor == Color::White ? Color::Black : Color::White);
+    U64 occupancy = ownPieces | otherPieces;
+    U64 pieces = GetBoard(attackingColor, pieceType);
+
+    int dPrimaryDiag = 0;
+    int dSecondaryDiag = 0;
+    U64 mask1 = 0;
+    U64 mask2 = 0;
+
+    while(pieces) {
+        U64 piece = 0;
+        set_bit(piece, pop_LSB(pieces));
+        switch(pieceType) {
+            case Piece::Bishop:
+                dPrimaryDiag = get_file_number(piece) - 9 + get_rank_number(piece);
+                dSecondaryDiag = get_rank_number(piece) - get_file_number(piece);
+                mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+                mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+                attacks |= (hypQuint(piece, occupancy, mask1) | hypQuint(piece, occupancy, mask2));
+                break;
+                // TODO: Test this works if for example blocker is enemy piece, should be able to take that piece
+            case Piece::Rook:
+                attacks |= (hypQuint(piece, occupancy, get_rank(piece)) | hypQuint(piece, occupancy, get_file(piece)));
+                break;
+                // TODO: Test this works if for example blocker is enemy piece, should be able to take that piece
+            case Piece::Queen:
+                // Does both the rook + bishop logic
+                // Rook logic
+                attacks |= (hypQuint(piece, occupancy, get_rank(piece)) | hypQuint(piece, occupancy, get_file(piece)));
+                // Bishop logic
+                dPrimaryDiag = get_file_number(piece) - 9 + get_rank_number(piece);
+                dSecondaryDiag = get_rank_number(piece) - get_file_number(piece);
+                mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+                mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+                attacks |= (hypQuint(piece, occupancy, mask1) | hypQuint(piece, occupancy, mask2));
+                break;
+                // TODO: Test this works if for example blocker is enemy piece, should be able to take that piece
+            default:
+                std::cout << "Piece other than rook, queen or bishop searched in sliding piece attacks\n";
+                break;
+        }
+    }
+    return attacks & ~ownPieces;
+}
+
+U64 Board::GetJumpingPieceAttacks(Color attackingColor, Piece pieceType) {
+    // Returns all possible attacks of the specified piece on the current board, does not account for anything
+    // complex e.g. leaving you in an illegal position. Pawn attacks do not include en-passant
+    U64 attacks = 0;
+    U64 ownPieces = GetBoard(attackingColor);
+    U64 pieces = GetBoard(attackingColor, pieceType);
     while(pieces) { // iterate over each using lookup table to find attacks
-        switch(piece) {
+        switch(pieceType) {
             case Piece::Knight:
                 attacks |= fKnightAttacks[pop_LSB(pieces)];
+                break;
             case Piece::King:
                 attacks |= fKingAttacks[pop_LSB(pieces)];
+                break;
             case Piece::Pawn:
-                break; // TODO
+                attacks |= attackingColor == Color::White ? fWhitePawnAttacks[pop_LSB(pieces)] : fBlackPawnAttacks[pop_LSB(pieces)];
+                break;
             default:
+                std::cout << "Tried to get jumping attackd with a piece other than Knight, King or Pawn!\n";
                 break;
         }
     }
@@ -255,6 +270,18 @@ void Board::GeneratePseudoLegalMoves() {
     FillPseudoQueenMoves(ownPieces, otherPieces);  // Queen moves
 }
 
+Piece Board::GetPiece(Color color, U64 pos) {
+    // Returns the type of piece, if any, at the specified position with the color given
+    int adj = 0;
+    if(color == Color::Black)
+        adj = 6;
+    for(Piece p : PIECES) {
+        if(GetBoard(color, p) & pos)
+            return p;
+    }
+    return Piece::Null;
+}
+
 void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
     U64 occ = ownPieces | otherPieces;
     U64 pawns = GetBoard(fColorToMove, Piece::Pawn);
@@ -283,17 +310,6 @@ void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
             fLegalMoves.push_back(Move{pawn, attack, Piece::Pawn, takenPiece});
         }
     }
-}
-
-Piece Board::GetPiece(Color color, U64 pos) {
-    int adj = 0;
-    if(color == Color::Black)
-        adj = 6;
-    for(Piece p : PIECES) {
-        if(GetBoard(color, p) & pos)
-            return p;
-    }
-    return Piece::Null;
 }
 
 void Board::FillPseudoQueenMoves(U64 ownPieces, U64 otherPieces) {
@@ -403,6 +419,8 @@ void Board::FillPseudoKingMoves(U64 ownPieces, U64 otherPieces) {
 }
 
 void Board::FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces) {
+    // U64 attacks = GetJumpingPieceAttacks(fColorToMove, Piece::Knight);
+    // Already masked against own pieces, note that this will include all squares attacked by all knights...
     U64 knights = GetBoard(fColorToMove, Piece::Knight);
     while(knights) {
         U64 knight = 0;
@@ -503,7 +521,6 @@ U64* Board::GetBoard(Color color, U64 occupiedPosition) {
 
 U64 Board::GetBoard(Color color) {
     U64 board = 0;
-    int start = color == Color::Black ? 6 : 0;
     for(Piece p : PIECES) {
         board |= GetBoard(color, p);
     }

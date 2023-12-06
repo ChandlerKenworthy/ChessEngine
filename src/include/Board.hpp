@@ -33,7 +33,8 @@ class Board {
         // U64 GetRookAttacks(U64 position) { return fRookAttacks[get_LSB(position)]; };
         // U64 GetBishopAttacks(U64 position) { return fBishopAttacks[get_LSB(position)]; };
         // U64 GetQueenAttacks(U64 position) { return fQueenAttacks[get_LSB(position)]; };
-        U64 GetJumpingPieceAttacks(Color attackingColor, Piece piece);
+        U64 GetJumpingPieceAttacks(Color attackingColor, Piece pieceType);
+        U64 GetSlidingPieceAttacks(Color attackingColor, Piece pieceType);
         void GenerateLegalMoves();
         std::vector<Move> GetLegalMoves() { return fLegalMoves; };
         void MakeMove(Move move);
