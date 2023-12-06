@@ -326,40 +326,35 @@ void Board::FillPseudoQueenMoves(U64 otherPieces) {
 }
 
 void Board::FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces) {
-    U64 occupancy = ownPieces | otherPieces;
+    // Use the getSlidingPieceattakcs function, then match attacks by square color
+    // since this function will return all attacks for all bishops of a given color
+    // so all black square attakcs must be that of the black bishop etc.
+    U64 bishop_attacks = GetSlidingPieceAttacks(fColorToMove, Piece::Bishop);
+    U64 white_attacks = bishop_attacks & WHITE_SQUARES;
+    U64 black_attacks = bishop_attacks & BLACK_SQUARES;
     U64 bishops = GetBoard(fColorToMove, Piece::Bishop);
-    while(bishops) {
-        U64 bishop = 0;
-        set_bit(bishop, pop_LSB(bishops));
 
-        // TODO: maybe given a bishop position have 2 lookup tables for positive and negative ray
-        // Vertical distance from the primary diagonal
-        int dPrimaryDiag = get_file_number(bishop) - 9 + get_rank_number(bishop);
-        // Vertical distance from the secondary diagonal
-        int dSecondaryDiag = get_rank_number(bishop) - get_file_number(bishop);
-
-        U64 mask1 = 0;
-        if(dPrimaryDiag == 0) {
-            mask1 = PRIMARY_DIAGONAL;
-        } else {
-            mask1 = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
-        }
-
-        U64 mask2 = 0;
-        if(dSecondaryDiag == 0) {
-            mask2 = SECONDARY_DIAGONAL;
-        } else {
-            mask2 = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
-        }
-
-        U64 attacks = (hypQuint(bishop, occupancy, mask1) | hypQuint(bishop, occupancy, mask2)) & ~ownPieces;
-        while(attacks) {
+    U64 white_bishop = bishops & WHITE_SQUARES;
+    if(white_bishop) { // Deal with the white square bishop (if one exists)
+        while(white_attacks) {
             U64 attack = 0;
-            set_bit(attack, pop_LSB(attacks));
+            set_bit(attack, pop_LSB(white_attacks));
             Piece takenPiece = Piece::Null;
             if(attack & otherPieces) // Find the type of piece that is getting removed
                 takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
-            fLegalMoves.push_back(Move{bishop, attack, Piece::Bishop, takenPiece});
+            fLegalMoves.push_back(Move{white_bishop, attack, Piece::Bishop, takenPiece});
+        }
+    }
+
+    U64 black_bishop = bishops & BLACK_SQUARES;
+    if(black_bishop) { // Deal with the black square bishop (if one exists)
+        while(black_attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(black_attacks));
+            Piece takenPiece = Piece::Null;
+            if(attack & otherPieces) // Find the type of piece that is getting removed
+                takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
+            fLegalMoves.push_back(Move{black_bishop, attack, Piece::Bishop, takenPiece});
         }
     }
 }

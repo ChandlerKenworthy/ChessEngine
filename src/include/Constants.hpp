@@ -64,6 +64,16 @@ const U64 FILE_H = 0x0101010101010101ULL;
 const U64 FILE_GH = FILE_G | FILE_H;
 const U64 FILE_AB = FILE_A | FILE_B;
 
+const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
+                            (FILE_B & (RANK_1 | RANK_3 | RANK_5 | RANK_7)) |
+                            (FILE_C & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
+                            (FILE_D & (RANK_1 | RANK_3 | RANK_5 | RANK_7)) |
+                            (FILE_E & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
+                            (FILE_F & (RANK_1 | RANK_3 | RANK_5 | RANK_7)) |
+                            (FILE_G & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
+                            (FILE_H & (RANK_1 | RANK_3 | RANK_5 | RANK_7));
+const U64 BLACK_SQUARES = ~WHITE_SQUARES;
+
 const U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
 const U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
 
