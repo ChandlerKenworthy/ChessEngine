@@ -69,6 +69,9 @@ class Board {
         bool fBlackKingMoved;
         Color fColorToMove;
 
+        // Skipping functions
+        bool fWasLoadedFromFEN;
+
         // Internal methods
         Piece GetPiece(Color color, U64 position);
         bool IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor);

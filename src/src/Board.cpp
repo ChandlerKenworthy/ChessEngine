@@ -28,6 +28,7 @@ void Board::Reset() {
     fBlackHasCastled = false;
     fWhiteKingMoved = false;
     fBlackKingMoved = false;
+    fWasLoadedFromFEN = false;
     fColorToMove = Color::White;
 
     fLegalMoves.clear();
@@ -113,7 +114,7 @@ void Board::RemoveIllegalMoves() {
 }
 
 void Board::AddCastling() {
-    if (fMadeMoves.size() < MIN_MOVES_FOR_CASTLING)
+    if (!fWasLoadedFromFEN && fMadeMoves.size() < MIN_MOVES_FOR_CASTLING)
         return; // Takes a minimum of MIN_MOVES_FOR_CASTLING moves to castle
 
     U64 occupancy = GetBoard(Color::White) | GetBoard(Color::Black);
@@ -648,7 +649,7 @@ bool Board::LoadFEN(const std::string &fen) {
 
     fWhiteHasCastled = !whiteCanCastle;
     fBlackHasCastled = !blackCanCastle;
-
+    fWasLoadedFromFEN = true;
     return true;  // Success, board was able to be read/loaded correctly
 }
 
