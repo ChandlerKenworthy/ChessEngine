@@ -5,7 +5,7 @@
 #include "Engine.hpp"
 
 Engine::Engine(bool init) {
-    fMaxDepth = 5;
+    fMaxDepth = 3;
     if(init) Initalize();
 }
 
@@ -42,9 +42,76 @@ void Engine::Initalize() {
         i--;
     }
     blackQueen.close();
+
+    std::ifstream whiteRook("../src/data/whiteRook.txt");
+    i = 63;
+    for(std::string line; getline(whiteRook, line, ' ');) {
+        fWhiteRookPos[i] = std::stof(line);
+        i--;
+    }
+    whiteRook.close();
+
+    std::ifstream blackRook("../src/data/blackRook.txt");
+    i = 63;
+    for(std::string line; getline(blackRook, line, ' ');) {
+        fBlackRookPos[i] = std::stof(line);
+        i--;
+    }
+    blackRook.close();
+
+    std::ifstream whiteBishop("../src/data/whiteBishop.txt");
+    i = 63;
+    for(std::string line; getline(whiteBishop, line, ' ');) {
+        fWhiteBishopPos[i] = std::stof(line);
+        i--;
+    }
+    whiteBishop.close();
+
+    std::ifstream blackBishop("../src/data/blackBishop.txt");
+    i = 63;
+    for(std::string line; getline(blackBishop, line, ' ');) {
+        fBlackBishopPos[i] = std::stof(line);
+        i--;
+    }
+    blackBishop.close();
+
+    
+    std::ifstream whiteKnight("../src/data/whiteKnight.txt");
+    i = 63;
+    for(std::string line; getline(whiteKnight, line, ' ');) {
+        fWhiteKnightPos[i] = std::stof(line);
+        i--;
+    }
+    whiteRook.close();
+
+    std::ifstream blackKnight("../src/data/blackKnight.txt");
+    i = 63;
+    for(std::string line; getline(blackKnight, line, ' ');) {
+        fBlackKnightPos[i] = std::stof(line);
+        i--;
+    }
+    blackKnight.close();
+
+
+
+    std::ifstream whiteKing("../src/data/whiteKing.txt");
+    i = 63;
+    for(std::string line; getline(whiteKing, line, ' ');) {
+        fWhiteKingPos[i] = std::stof(line);
+        i--;
+    }
+    whiteKing.close();
+
+    std::ifstream blackKing("../src/data/blackKing.txt");
+    i = 63;
+    for(std::string line; getline(blackKing, line, ' ');) {
+        fBlackKingPos[i] = std::stof(line);
+        i--;
+    }
+    blackKing.close();
 }
 
-float Engine::Evaluate(Board *board) {
+float Engine::Evaluate(const std::unique_ptr<Board> &board) {
     
     float eval = GetMaterialEvaluation(board);
     return eval; // Return in centipawns rather than pawns
@@ -111,7 +178,7 @@ float Engine::GetPositionValue(int index, Piece piece, Color color) {
     }
 }
 
-float Engine::GetMaterialEvaluation(Board *board) {
+float Engine::GetMaterialEvaluation(const std::unique_ptr<Board> &board) {
     // TODO: Should value of pieces be functions of number of pieces on board?
     // E.g. bishops at start are weak but later on are really powerful on clear board
     float material = 0.;
