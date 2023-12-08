@@ -477,7 +477,33 @@ void Board::MakeMove(Move move) {
         }
     }
 
+    if(move.WasCastling) { // Need to move the rook as well
+        U64 rookBoard = GetBoard(fColorToMove, Piece::Rook);
+        // See where the origin was (that tells us which rook needs moving and to where)
+        if(move.target & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)
+            clear_bit(rookBoard, get_LSB(RANK_1 & FILE_H));
+            set_bit(rookBoard, get_LSB(RANK_1 & FILE_F));
+        } else if(move.target & RANK_1 & FILE_C) {  // Queenside white castling (rook a1 -> d1)
+            clear_bit(rookBoard, get_LSB(RANK_1 & FILE_A));
+            set_bit(rookBoard, get_LSB(RANK_1 & FILE_D));
+        } else if(move.target & RANK_8 & FILE_G) {
+            clear_bit(rookBoard, get_LSB(RANK_8 & FILE_H));
+            set_bit(rookBoard, get_LSB(RANK_8 & FILE_F));
+        } else if(move.target & RANK_8 & FILE_C) {
+            clear_bit(rookBoard, get_LSB(RANK_8 & FILE_A));
+            set_bit(rookBoard, get_LSB(RANK_8 & FILE_D));
+        }
+        SetBitBoard(fColorToMove, Piece::Rook, rookBoard);
+        if(fColorToMove == Color::White) {
+            fWhiteHasCastled = true;
+        } else {
+            fBlackHasCastled = true;
+        }
+    }
+
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
+
+    // TODO: Did this move end the game i.e. is it checkmate/stalemate?
     fMadeMoves.push_back(move);
 }
 
