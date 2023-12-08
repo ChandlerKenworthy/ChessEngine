@@ -28,11 +28,6 @@ class Board {
         U64 GetBoard(Color color, Piece piece);
         U64* GetBoard(Color color, U64 occupiedPosition);
         U64 GetBoard(Color color); // Get occupation bitboard for all pieces of specified colour
-        // U64 GetKnightAttacks(U64 position) { return fKnightAttacks[get_LSB(position)]; };
-        // U64 GetKingAttacks(U64 position) { return fKingAttacks[get_LSB(position)]; };
-        // U64 GetRookAttacks(U64 position) { return fRookAttacks[get_LSB(position)]; };
-        // U64 GetBishopAttacks(U64 position) { return fBishopAttacks[get_LSB(position)]; };
-        // U64 GetQueenAttacks(U64 position) { return fQueenAttacks[get_LSB(position)]; };
         U64 GetJumpingPieceAttacks(Color attackingColor, Piece pieceType);
         U64 GetSlidingPieceAttacks(Color attackingColor, Piece pieceType);
         void GenerateLegalMoves();
