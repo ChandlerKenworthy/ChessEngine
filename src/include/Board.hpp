@@ -31,6 +31,7 @@ class Board {
         U64 GetJumpingPieceAttacks(Color attackingColor, Piece pieceType);
         U64 GetSlidingPieceAttacks(Color attackingColor, Piece pieceType);
         void GenerateLegalMoves();
+        bool GetMoveIsLegal(Move* move);
         std::vector<Move> GetLegalMoves() { return fLegalMoves; };
         void MakeMove(Move move);
         void UndoMove(int nMoves);
@@ -66,6 +67,7 @@ class Board {
 
         // Skipping functions
         bool fWasLoadedFromFEN;
+        int fnMovesLastUpdate;
 
         // Internal methods
         Piece GetPiece(Color color, U64 position);

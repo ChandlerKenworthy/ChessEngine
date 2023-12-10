@@ -21,6 +21,7 @@ void Board::Reset() {
     fBoards[10] = RANK_8 & FILE_D; // Black queen
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
+    fnMovesLastUpdate = -1;
     fGameIsOver = false;
     fWhiteInCheckmate = false;
     fBlackInCheckmate = false;
@@ -35,7 +36,22 @@ void Board::Reset() {
     fMadeMoves.clear();
 }
 
+bool Board::GetMoveIsLegal(Move *move) {
+    GenerateLegalMoves(); // Probably doesn't need calling but has protection anyway
+    for(Move legalMove : fLegalMoves) {
+        if(legalMove.origin == move->origin) {
+            if(legalMove.target == move->target) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void Board::GenerateLegalMoves() {
+    if(fnMovesLastUpdate == fMadeMoves.size())
+        return; // Nothing happened since last called, don't regenerate
+
     GeneratePseudoLegalMoves(); // fLegalMoves now full of pseudo-legal moves
     // add castling if available
     // check for en-passant (was the last move a pawn move 2 squares forward?)
@@ -44,6 +60,7 @@ void Board::GenerateLegalMoves() {
     AddCastling();
     RemoveIllegalMoves(); // Must be after AddEnPassant and castling to ensure strictness
     // set if other king now in check as a result of this move
+    fnMovesLastUpdate = fMadeMoves.size();
 }
 
 bool Board::GetBoardIsLegal() {

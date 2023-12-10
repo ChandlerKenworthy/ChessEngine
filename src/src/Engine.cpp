@@ -201,8 +201,13 @@ float Engine::GetMaterialEvaluation(const std::unique_ptr<Board> &board) {
     return material;
 }
 
+/*Move* Engine::GetBestMove() {
+    // basically just calls minimax to evaluate the position give the current board...
+    // e.g. give it the current board minimax returns the value of each
+}*/
+
 /*
-float Engine::Minimax(Board *board, int depth, float alpha, float beta, Color maximisingPlayer) {
+float Engine::Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta, Color maximisingPlayer) {
     // Returns the maximum / minimum evaluation of a given position
     if(depth > fMaxDepth)
         depth = fMaxDepth;
@@ -210,7 +215,8 @@ float Engine::Minimax(Board *board, int depth, float alpha, float beta, Color ma
         return Evaluate(board);
     if(maximisingPlayer == Color::White) {
         float maxEval = -99999.;
-        for(move : moves) { // iterate through all possible moves for white in current position
+        board->GenerateLegalMoves();
+        for(Move move : board->GetLegalMoves()) { // iterate through all possible moves for white in current position
             float eval = Minimax(child, depth - 1, alpha, beta, Color::Black); // child is board after the move is made
             maxEval = std::max(maxEval, eval);
             alpha = std::max(alpha, eval);
@@ -220,7 +226,8 @@ float Engine::Minimax(Board *board, int depth, float alpha, float beta, Color ma
         return maxEval;
     } else {
         float minEval = 99999.;
-        for(move : moves) {
+        board->GenerateLegalMoves();
+        for(Move move : board->GetLegalMoves()) {
             float eval = Minimax(child, depth - 1, alpha, beta, Color::White);
             minEval = std::min(minEval, eval);
             beta = std::min(beta, eval);
@@ -231,3 +238,7 @@ float Engine::Minimax(Board *board, int depth, float alpha, float beta, Color ma
     }   
 }
 */
+
+Move Engine::GetBestMove() {
+    return Move{U64{0}, U64{0}, Piece::Null, Piece::Null};
+}
