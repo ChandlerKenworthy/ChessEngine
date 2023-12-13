@@ -30,23 +30,59 @@ int main() {
 }
 
 Game::Game() {
-    fBoard = std::make_unique<Board>();
+    fBoard = Board();
     fEngine = std::make_unique<Engine>(true);
 }
 
+void Game::PrintEngineMove(Move move) {
+    std::cout << "Engine made the move file = ";
+    std::cout << get_file_number(move.origin) << " rank = ";
+    std::cout << get_rank_number(move.origin) << " which was a ";
+    std::cout << GetPieceString(move.piece) << " to square file = ";
+    std::cout << get_file_number(move.target) << " rank = ";
+    std::cout << get_rank_number(move.target) << "\n";
+}
+
+std::string Game::GetPieceString(Piece piece) {
+    switch(piece) {
+    case Piece::Pawn:
+        return "Pawn";
+        break;
+    case Piece::Bishop:
+        return "Bishop";
+        break;
+    case Piece::Knight:
+        return "Knight";
+        break;
+    case Piece::Rook:
+        return "Rook";
+        break;
+    case Piece::Queen:
+        return "Queen";
+        break;
+    case Piece::King:
+        return "King";
+        break;
+    default:
+        return "Error piece does not exist";
+        break;
+    }
+}
+
 void Game::Play(Color playerColor) {
-    while(!fBoard->GetGameIsOver()) {
+    while(!fBoard.GetGameIsOver()) {
         Move thisMove;
-        fBoard->GenerateLegalMoves(); // Updates legal moves internally
-        if(fBoard->GetColorToMove() == playerColor) { // Player makes a move
-            while(!fBoard->GetMoveIsLegal(&thisMove)) {
+        fBoard.GenerateLegalMoves(); // Updates legal moves internally
+        PrintBitset(fBoard.GetBoard(Color::White) | fBoard.GetBoard(Color::Black));
+        if(fBoard.GetColorToMove() == playerColor) { // Player makes a move
+            while(!fBoard.GetMoveIsLegal(&thisMove)) {
                 thisMove = GetUserMove();
             }
         } else { // Engine makes a move
-            std::cout << "Making engine move [Doesn't work yet]\n";
-            thisMove = fEngine->GetBestMove();
+            thisMove = fEngine->GetBestMove(fBoard);
+            PrintEngineMove(thisMove);
         }
-        fBoard->MakeMove(thisMove);
+        fBoard.MakeMove(thisMove);
     }
 }
 
@@ -63,6 +99,8 @@ Move Game::GetUserMove() {
         std::string label = gettingOrigin ? "origin" : "target";
         std::cout << "Enter " << label << " tile (e.g. A1): ";
         getline(std::cin, userText);
+        // Shift the user text to uppercase only
+        std::transform(userText.begin(), userText.end(), userText.begin(), ::toupper);
         if(std::regex_match(userText, pattern)) {
             if(gettingOrigin) {
                 isValidOrigin = true;
@@ -75,9 +113,5 @@ Move Game::GetUserMove() {
         }
             
     }
-
-    // Other move parameters here
-    PrintBitset(userMove.origin);
-
     return userMove;
 }

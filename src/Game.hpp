@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <bitset>
+#include <algorithm>
+#include <cctype>
 #include <vector>
 #include <random>
 #include <memory>
@@ -16,10 +18,13 @@ class Game {
     public:
         explicit Game();
         void Play(Color playerColor); // Initalises the game loop
-        const std::unique_ptr<Board>& GetBoard() { return fBoard; }
+        const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
         Move GetUserMove();
+        void PrintEngineMove(Move move);
+        std::string GetPieceString(Piece piece);
     private:
-        std::unique_ptr<Board> fBoard;
+        //#std::unique_ptr<Board> fBoard;
+        Board fBoard;
         std::unique_ptr<Engine> fEngine;
 };
 

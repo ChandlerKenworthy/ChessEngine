@@ -183,41 +183,44 @@ float Engine::GetMaterialEvaluation(const std::unique_ptr<Board> &board) {
     // E.g. bishops at start are weak but later on are really powerful on clear board
     float material = 0.;
 
+    /*
     for(Piece p : PIECES) {
         if(p == Piece::King)
             continue; // Always kings on the board and king safety evaluated differently
         float white_value = GetPositionalEvaluation(board->GetBoard(Color::White, p), p, Color::White);
         float black_value = GetPositionalEvaluation(board->GetBoard(Color::Black, p), p, Color::Black);
         material += (white_value - black_value);
-    }
+    }*/
 
-    /*
+    // For now use very simple material only heuristic + look-ahead to calculate board position
+    // add heuristics once all mechanics are working correctly
+
+    
     material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
     material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
     material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
     material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
     material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
-    */
+    
     return material;
 }
 
-/*Move* Engine::GetBestMove() {
-    // basically just calls minimax to evaluate the position give the current board...
-    // e.g. give it the current board minimax returns the value of each
-}*/
-
-/*
-float Engine::Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta, Color maximisingPlayer) {
+float Engine::Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer) {
+    // Working on a copy of the board object
     // Returns the maximum / minimum evaluation of a given position
     if(depth > fMaxDepth)
         depth = fMaxDepth;
-    if(board->GetGameIsOver() || depth == 0)
-        return Evaluate(board);
+    if(board.GetGameIsOver() || depth == 0) {
+        std::unique_ptr<Board> boardPtr = std::make_unique<Board>(board);
+        return Evaluate(boardPtr);
+    }
     if(maximisingPlayer == Color::White) {
         float maxEval = -99999.;
-        board->GenerateLegalMoves();
-        for(Move move : board->GetLegalMoves()) { // iterate through all possible moves for white in current position
-            float eval = Minimax(child, depth - 1, alpha, beta, Color::Black); // child is board after the move is made
+        board.GenerateLegalMoves();
+        for(Move move : board.GetLegalMoves()) { // iterate through all possible moves for white in current position
+            // Make the move, send a copy of the board down
+            board.MakeMove(move);
+            float eval = Minimax(board, depth - 1, alpha, beta, Color::Black); // child is board after the move is made
             maxEval = std::max(maxEval, eval);
             alpha = std::max(alpha, eval);
             if(beta <= alpha)
@@ -226,9 +229,10 @@ float Engine::Minimax(const std::unique_ptr<Board> &board, int depth, float alph
         return maxEval;
     } else {
         float minEval = 99999.;
-        board->GenerateLegalMoves();
-        for(Move move : board->GetLegalMoves()) {
-            float eval = Minimax(child, depth - 1, alpha, beta, Color::White);
+        board.GenerateLegalMoves();
+        for(Move move : board.GetLegalMoves()) {
+            board.MakeMove(move);
+            float eval = Minimax(board, depth - 1, alpha, beta, Color::White);
             minEval = std::min(minEval, eval);
             beta = std::min(beta, eval);
             if(beta <= alpha)
@@ -237,8 +241,23 @@ float Engine::Minimax(const std::unique_ptr<Board> &board, int depth, float alph
         return minEval;
     }   
 }
-*/
 
-Move Engine::GetBestMove() {
-    return Move{U64{0}, U64{0}, Piece::Null, Piece::Null};
+Move Engine::GetBestMove(Board board) {
+    board.GenerateLegalMoves();
+
+    Move bestMove;
+    float bestEval = board.GetColorToMove() == Color::White ? -999. : 999;
+    // For each of the moves we want to find the "best" evaluation 
+    for(Move move : board.GetLegalMoves()) {
+        float eval = Minimax(board, 3, 10, 10, board.GetColorToMove());
+        if(board.GetColorToMove() == Color::White && eval > bestEval) {
+            bestEval = eval;
+            bestMove = move;
+
+        } else if(board.GetColorToMove() == Color::Black && eval < bestEval) {
+            bestEval = eval;
+            bestMove = move;
+        }
+    }
+    return bestMove;
 }
