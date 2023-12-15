@@ -53,14 +53,13 @@ void Board::GenerateLegalMoves() {
         return; // Nothing happened since last called, don't regenerate
 
     GeneratePseudoLegalMoves(); // fLegalMoves now full of pseudo-legal moves
-    // add castling if available
-    // check for en-passant (was the last move a pawn move 2 squares forward?)
-    AddEnPassant();
-    // check for possible castling
-    AddCastling();
+    AddEnPassant(); // check for en-passant 
+    AddCastling(); // check for possible castling
     RemoveIllegalMoves(); // Must be after AddEnPassant and castling to ensure strictness
     // set if other king now in check as a result of this move
     fnMovesLastUpdate = fMadeMoves.size();
+    //if(fLegalMoves.size() == 0)
+    //    fGameIsOver = true;
 }
 
 bool Board::GetBoardIsLegal() {
@@ -238,7 +237,7 @@ U64 Board::GetJumpingPieceAttacks(Color attackingColor, Piece pieceType) {
                 attacks |= fKingAttacks[pop_LSB(pieces)];
                 break;
             case Piece::Pawn:
-                attacks |= attackingColor == Color::White ? fWhitePawnAttacks[pop_LSB(pieces)] : fBlackPawnAttacks[pop_LSB(pieces)];
+                attacks |= attackingColor == Color::White ? fWhitePawnAttacks[pop_LSB(pieces)] : fBlackPawnAttacks[pop_LSB(pieces)]; // TODO: fWhitePawnAttacks includes 1, 2 square and diagonal attacks by default, not all of these are actually valid
                 break;
             default:
                 std::cout << "Tried to get jumping attackd with a piece other than Knight, King or Pawn!\n";
@@ -308,17 +307,29 @@ void Board::FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces) {
         set_bit(pawn, pop_LSB(pawns));
         U64 attacks = 0;
         if(fColorToMove == Color::White) {
-            attacks |= ((pawn << 8) & ~occ) | ((pawn << 7) & otherPieces) | ((pawn << 9) & otherPieces);
-            if((pawn & RANK_2) && ((pawn << 8) & ~occ) && ((pawn << 16) & ~occ)) 
-                // Starting position - move 2 forward
-                attacks |= (pawn << 16);
+            if(north(pawn) & ~occ) {
+                // Square directly infront of the pawn is unoccupied, it can move here
+                attacks |= north(pawn);
+                if((pawn & RANK_2) && (north(north(pawn)) & ~occ)) // 2 squares ahead clear and pawn in start position
+                    attacks |= north(north(pawn));
+            } // Now compute diagonal attacks on enemy pieces
+            if(north_east(pawn) & otherPieces)
+                attacks |= north_east(pawn);
+            if(north_west(pawn) & otherPieces)
+                attacks |= north_west(pawn);
         } else {
-            attacks |= ((pawn >> 8) & ~occ) | ((pawn >> 7) & otherPieces) | ((pawn >> 9) & otherPieces);
-            if((pawn & RANK_7) && ((pawn >> 8) & ~occ) && ((pawn >> 16) & ~occ)) 
-                // Starting position - move 2 forward
-                attacks |= (pawn >> 16);
+            if(south(pawn) & ~occ) {
+                // Square directly infront of the pawn is unoccupied, it can move here
+                attacks |= south(pawn);
+                if((pawn & RANK_7) && (south(south(pawn)) & ~occ)) // 2 squares ahead clear and pawn in start position
+                    attacks |= south(south(pawn));
+            } // Now compute diagonal attacks on enemy pieces
+            if(south_east(pawn) & otherPieces)
+                attacks |= south_east(pawn);
+            if(south_west(pawn) & otherPieces)
+                attacks |= south_west(pawn);
         }
-        attacks = attacks & ~ownPieces; // Cannot move to squares you already occupy
+        attacks = attacks & ~ownPieces; // Cannot move to squares you already occupy, double protection
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
@@ -519,9 +530,8 @@ void Board::MakeMove(Move move) {
     }
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
-
-    // TODO: Did this move end the game i.e. is it checkmate/stalemate?
     fMadeMoves.push_back(move);
+    //GenerateLegalMoves();
 }
 
 U64* Board::GetBoard(Color color, U64 occupiedPosition) {
