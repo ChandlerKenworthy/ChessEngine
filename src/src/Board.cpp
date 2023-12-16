@@ -41,6 +41,11 @@ bool Board::GetMoveIsLegal(Move *move) {
     for(Move legalMove : fLegalMoves) {
         if(legalMove.origin == move->origin) {
             if(legalMove.target == move->target) {
+                // User move is a legal one since the origin/target match with a legal move
+                move->piece = legalMove.piece; // Update meta information for the move
+                move->takenPiece = legalMove.takenPiece;
+                move->WasCastling = legalMove.WasCastling;
+                move->WasEnPassant = legalMove.WasEnPassant;
                 return true;
             }
         }
@@ -497,7 +502,7 @@ void Board::MakeMove(Move move) {
     set_bit(*originBoard, get_LSB(move.target)); 
 
     // If moving a king set appropriate state variable
-    if(move.piece == Piece::King ) {
+    if(move.piece == Piece::King) {
         if(fColorToMove == Color::White) {
             fWhiteKingMoved = true;
         } else {
@@ -531,7 +536,14 @@ void Board::MakeMove(Move move) {
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(move);
-    //GenerateLegalMoves();
+    
+    // TODO: Was the product of making this move a check, is the game over?
+    if(IsUnderAttack(GetBoard(fColorToMove, Piece::King), fColorToMove == Color::White ? Color::Black : Color::White)) {
+        // Move was made that has placed the new fColorToMove into a position of check...
+        std::cout << "Check!\n";
+        // Now must check the set of legal moves, if it is zero it is checkmate!
+        // Not sure generate legal moves will correctly handle this yet...
+    }
 }
 
 U64* Board::GetBoard(Color color, U64 occupiedPosition) {

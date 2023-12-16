@@ -112,6 +112,6 @@ Move Game::GetUserMove() {
             }
         }
             
-    }
+    } // No information about taking, castling en-passant, filled in via GetMoveIsLegal
     return userMove;
 }
