@@ -244,19 +244,23 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
 
 Move Engine::GetBestMove(Board board) {
     board.GenerateLegalMoves();
+    std::mt19937 rng(fRandomDevice());
+    std::uniform_int_distribution<std::mt19937::result_type> dist2(0,1); // distribution in range [0, 1]
 
     Move bestMove;
     float bestEval = board.GetColorToMove() == Color::White ? -999. : 999;
     // For each of the moves we want to find the "best" evaluation 
     for(Move move : board.GetLegalMoves()) {
         float eval = Minimax(board, 3, 10, 10, board.GetColorToMove());
-        if(board.GetColorToMove() == Color::White && eval > bestEval) {
+        if(board.GetColorToMove() == Color::White && eval >= bestEval) {
             bestEval = eval;
-            bestMove = move;
+            if(eval == bestEval && (bool)dist2(rng)) // Randomly pick which of the best evaluated moves to use
+                bestMove = move;
 
-        } else if(board.GetColorToMove() == Color::Black && eval < bestEval) {
+        } else if(board.GetColorToMove() == Color::Black && eval <= bestEval) {
             bestEval = eval;
-            bestMove = move;
+            if(eval == bestEval && (bool)dist2(rng))
+                bestMove = move;
         }
     }
     return bestMove;

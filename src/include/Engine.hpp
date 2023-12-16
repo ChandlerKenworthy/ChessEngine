@@ -2,6 +2,7 @@
 #define ENGINE_HPP
 
 #include <memory>
+#include <random>
 
 #include "Constants.hpp"
 #include "Board.hpp"
@@ -15,6 +16,7 @@ class Engine {
         float GetWhitePawnPosValue(U64 position) { return fWhitePawnPos[get_LSB(position)]; };
         Move GetBestMove(Board board);
     private:
+        std::random_device fRandomDevice;
         int fMaxDepth;
         // Piece positional values
         float fWhitePawnPos[64];
