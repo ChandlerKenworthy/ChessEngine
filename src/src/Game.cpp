@@ -1,34 +1,5 @@
 #include "Game.hpp"
 
-int main() {
-    // Use unique/shared pointers "samrt pointers" to cleanup memory management of complex objects
-    /*std::unique_ptr<Board> board = std::make_unique<Board>(); // Provide args inside () if needed
-    std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
-
-    std::string myFen = "rnb1k1nr/ppp2ppp/8/1q1pp3/3BP3/NP1P1N2/P1PQ1PPP/R3K2R w KQkq -";
-    bool success = board->LoadFEN(myFen);
-    if(!success)
-        return 0;
-    
-    PrintBitset(board->GetBoard(Color::White) | board->GetBoard(Color::Black));
-    
-    // Make castling moves ONLY
-    board->GenerateLegalMoves();
-    std::vector<Move> moves = board->GetLegalMoves();
-    if(moves.size() > 0) {
-        std::cout << "Origin = " << get_rank_number(moves[0].origin) << " " << get_file_number(moves[0].origin) << "\n";
-        std::cout << "Target = " << get_rank_number(moves[0].target) << " " << get_file_number(moves[0].target) << "\n";
-        board->MakeMove(moves[0]);
-    }
-
-    PrintBitset(board->GetBoard(Color::White) | board->GetBoard(Color::Black));
-
-    return 1;*/
-
-    Game myGame = Game();
-    myGame.Play(Color::White);
-}
-
 Game::Game() {
     fBoard = Board();
     fEngine = std::make_unique<Engine>(true);
