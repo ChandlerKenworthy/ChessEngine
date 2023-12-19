@@ -538,12 +538,12 @@ void Board::MakeMove(Move move) {
     fMadeMoves.push_back(move);
     
     // TODO: Was the product of making this move a check, is the game over?
-    if(IsUnderAttack(GetBoard(fColorToMove, Piece::King), fColorToMove == Color::White ? Color::Black : Color::White)) {
+    //if(IsUnderAttack(GetBoard(fColorToMove, Piece::King), fColorToMove == Color::White ? Color::Black : Color::White)) {
         // Move was made that has placed the new fColorToMove into a position of check...
-        std::cout << "Check!\n";
+        //std::cout << "Check!\n";
         // Now must check the set of legal moves, if it is zero it is checkmate!
         // Not sure generate legal moves will correctly handle this yet...
-    }
+    //}
 }
 
 U64* Board::GetBoard(Color color, U64 occupiedPosition) {

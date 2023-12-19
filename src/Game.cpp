@@ -32,6 +32,7 @@ int main() {
 Game::Game() {
     fBoard = Board();
     fEngine = std::make_unique<Engine>(true);
+    fEngine->SetMaxDepth(10);
 }
 
 void Game::PrintEngineMove(Move move) {
