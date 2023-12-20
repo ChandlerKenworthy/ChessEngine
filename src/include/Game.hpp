@@ -22,6 +22,7 @@ class Game {
         Move GetUserMove();
         void PrintEngineMove(Move move);
         std::string GetPieceString(Piece piece);
+        Board GetBoard() const { return fBoard; };
     private:
         //#std::unique_ptr<Board> fBoard;
         Board fBoard;

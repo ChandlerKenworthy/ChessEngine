@@ -13,6 +13,7 @@ add_executable(ChessEngine
     src/Game.cpp
     src/Board.cpp
     src/Engine.cpp
+    src/Renderer.cpp
 )
 
 # Include SFML headers

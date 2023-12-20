@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+#include <iostream>
+
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
 #define clear_bit(b, i) ((b) &= ~(1ULL << i))
