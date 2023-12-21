@@ -2,3 +2,6 @@ data/*
 
 # Make files etc
 build
+
+# MacOS
+.DS_Store
