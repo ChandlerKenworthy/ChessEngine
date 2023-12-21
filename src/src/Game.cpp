@@ -63,7 +63,6 @@ void Game::Play(Color playerColor) {
                     }
                 } else { // Engine makes a move
                     thisMove = fEngine->GetBestMove(fBoard);
-                    PrintEngineMove(thisMove);
                 }
                 fBoard.MakeMove(thisMove);
             }
