@@ -9,8 +9,9 @@ int main() {
     while(gui.GetWindowIsOpen()) {
         sf::Event event;
         while(gui.PollEvent(event)) {
-            if(event.type == sf::Event::Closed)
+            if(event.type == sf::Event::Closed) {
                 gui.CloseWindow();
+            }
         }
         gui.Update(myGame.GetBoard());
     }

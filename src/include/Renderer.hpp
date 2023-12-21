@@ -14,7 +14,7 @@ class Renderer {
         void Update(const std::unique_ptr<Board> &board);
         bool GetWindowIsOpen() { return fWindow->isOpen(); };
         void CloseWindow() { fWindow->close(); };
-        bool PollEvent(sf::Event event) { return fWindow->pollEvent(event); };
+        bool PollEvent(sf::Event &event) { return fWindow->pollEvent(event); };
     private:
         const int fWindowWidth{600};
         const int fWindowHeight{600};
