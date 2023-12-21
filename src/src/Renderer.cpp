@@ -4,6 +4,10 @@ Renderer::Renderer() :
 fLightColor{sf::Color(255, 206, 158)}, 
 fDarkColor{sf::Color(209, 139, 71)} {
     fWindow = new sf::RenderWindow(sf::VideoMode(fWindowWidth, fWindowHeight), "Chess Board");
+    
+    if (!fFont.loadFromFile("../assets/BebasNeue-Regular.ttf")) {
+        // Handle the case where the font cannot be loaded
+    }
 }
 
 Renderer::~Renderer() {
@@ -24,6 +28,41 @@ void Renderer::DrawChessBoard(Board *board) {
             square.setPosition(i * squareSize, j * squareSize);
             square.setFillColor((i + j) % 2 == 0 ? fLightColor : fDarkColor);
             fWindow->draw(square);
+
+            if(i == 7) {
+                // Draw rank numbers on the left side of the board
+                sf::Text fileText(std::to_string(8 - j), fFont, 14);
+                fileText.setPosition(0.05 * squareSize, j * squareSize);
+                fileText.setFillColor(sf::Color::Black);
+                fWindow->draw(fileText);
+                
+            }
+
+            if(j == 7) {
+                // Draw file letters at the bottom of the board
+                char fileLetter;
+                if(i == 0) {
+                    fileLetter = 'A';
+                } else if(i == 1) {
+                    fileLetter = 'B';
+                } else if(i == 2) {
+                    fileLetter = 'C';
+                } else if(i == 3) {
+                    fileLetter = 'D';
+                } else if(i == 4) {
+                    fileLetter = 'E';
+                } else if(i == 5) {
+                    fileLetter = 'F';
+                } else if(i == 6) {
+                    fileLetter = 'G';
+                } else {
+                    fileLetter = 'H';
+                }
+                sf::Text rankText(fileLetter, fFont, 14);
+                rankText.setPosition((i + 0.05) * squareSize, (j + 0.75) * squareSize);
+                rankText.setFillColor(sf::Color::Black);
+                fWindow->draw(rankText);
+            }
         }
     }
 

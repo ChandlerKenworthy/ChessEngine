@@ -19,6 +19,7 @@ class Renderer {
         const int fWindowWidth{600};
         const int fWindowHeight{600};
         sf::RenderWindow *fWindow; 
+        sf::Font fFont;
         const sf::Color fLightColor; // Light squares
         const sf::Color fDarkColor;  // Dark squares
         void DrawChessBoard(Board *board);
