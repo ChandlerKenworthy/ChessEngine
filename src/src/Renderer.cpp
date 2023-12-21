@@ -10,13 +10,13 @@ Renderer::~Renderer() {
     delete fWindow;
 }
 
-void Renderer::Update(const std::unique_ptr<Board> &board) {
+void Renderer::Update(Board *board) {
     fWindow->clear();
-    DrawChessBoard();
+    DrawChessBoard(board);
     fWindow->display();
 };
 
-void Renderer::DrawChessBoard() {
+void Renderer::DrawChessBoard(Board *board) {
     const int squareSize = fWindowWidth / 8;
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
@@ -27,11 +27,53 @@ void Renderer::DrawChessBoard() {
         }
     }
 
-    // drawChessPiece(window, Piece::Pawn, Color::White, sf::Vector2i(2, 3), squareSize);
-    // int rank_number = 5;
-    // int file_number = 4;
-    DrawChessPiece(Piece::Pawn, Color::Black, 2, 1);
+    DrawSinglePiece(board, Piece::Queen);
+    DrawSinglePiece(board, Piece::King);
+    DrawMultiPiece(board, Piece::Rook);
+    DrawMultiPiece(board, Piece::Rook);
+    DrawMultiPiece(board, Piece::Bishop);
+    DrawMultiPiece(board, Piece::Knight);
+    DrawMultiPiece(board, Piece::Pawn);
 };
+
+void Renderer::DrawMultiPiece(Board *board, Piece piece) {
+    // Rooks, bishops, knights, pawns
+    U64 white = board->GetBoard(Color::White, piece);
+    U64 black = board->GetBoard(Color::Black, piece);
+
+    while(white) {
+        U64 pos = 0;
+        set_bit(pos, pop_LSB(white));
+        int rank = get_rank_number(pos);
+        int file = get_file_number(pos);
+        DrawChessPiece(piece, Color::White, rank, file);
+    }
+
+    while(black) {
+        U64 pos = 0;
+        set_bit(pos, pop_LSB(black));
+        int rank = get_rank_number(pos);
+        int file = get_file_number(pos);
+        DrawChessPiece(piece, Color::Black, rank, file);
+    }
+}
+
+void Renderer::DrawSinglePiece(Board *board, Piece piece) {
+    // Queen or King
+    U64 white = board->GetBoard(Color::White, piece);
+    U64 black = board->GetBoard(Color::Black, piece);
+
+    if(white) {
+        int rank = get_rank_number(white);
+        int file = get_file_number(white);
+        DrawChessPiece(piece, Color::White, rank, file);
+    }
+    if(black) {
+        int rank = get_rank_number(black);
+        int file = get_file_number(black);
+        DrawChessPiece(piece, Color::Black, rank, file);
+    }
+}
 
 void Renderer::DrawChessPiece(Piece piece, Color color, const int rank, const int file) {
     sf::Texture pieceTexture;

@@ -13,7 +13,9 @@ int main() {
                 gui.CloseWindow();
             }
         }
-        gui.Update(myGame.GetBoard());
+
+        Board b = myGame.GetBoard();
+        gui.Update(&b);
     }
 
     return 0;

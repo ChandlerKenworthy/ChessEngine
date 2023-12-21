@@ -18,7 +18,7 @@ class Game {
     public:
         explicit Game();
         void Play(Color playerColor); // Initalises the game loop
-        const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
+        //const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
         Move GetUserMove();
         void PrintEngineMove(Move move);
         std::string GetPieceString(Piece piece);

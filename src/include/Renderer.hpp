@@ -11,7 +11,7 @@ class Renderer {
     public:
         explicit Renderer();
         ~Renderer();
-        void Update(const std::unique_ptr<Board> &board);
+        void Update(Board *board);
         bool GetWindowIsOpen() { return fWindow->isOpen(); };
         void CloseWindow() { fWindow->close(); };
         bool PollEvent(sf::Event &event) { return fWindow->pollEvent(event); };
@@ -21,9 +21,14 @@ class Renderer {
         sf::RenderWindow *fWindow; 
         const sf::Color fLightColor; // Light squares
         const sf::Color fDarkColor;  // Dark squares
-        void DrawChessBoard();
+        void DrawChessBoard(Board *board);
         void DrawChessPiece(Piece piece, Color color, const int rank, const int file);
-
+        void DrawPawns(U64 whitePawns, U64 blackPawns);
+        void DrawKnights(U64 whiteKnights, U64 blackKnights);
+        void DrawBishops(U64 whiteBishops, U64 blackBishops);
+        void DrawRooks(U64 whiteRooks, U64 blackRooks);
+        void DrawSinglePiece(Board *board, Piece piece);
+        void DrawMultiPiece(Board *board, Piece piece);
 };
 
 #endif
