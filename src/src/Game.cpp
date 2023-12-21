@@ -1,9 +1,11 @@
 #include "Game.hpp"
 
-Game::Game() {
+Game::Game(bool useGUI) {
     fBoard = Board();
     fEngine = std::make_unique<Engine>(true);
     fEngine->SetMaxDepth(10);
+    fUseGUI = useGUI;
+    fGUI = std::make_unique<Renderer>();
 }
 
 void Game::PrintEngineMove(Move move) {
@@ -42,10 +44,53 @@ std::string Game::GetPieceString(Piece piece) {
 }
 
 void Game::Play(Color playerColor) {
+    if(fUseGUI) {
+        while(fGUI->GetWindowIsOpen()) {
+            sf::Event event;
+            while(fGUI->PollEvent(event)) {
+                if(event.type == sf::Event::Closed) {
+                    fGUI->CloseWindow();
+                }
+            }
+
+            while(!fBoard.GetGameIsOver()) {
+                Move thisMove;
+                fBoard.GenerateLegalMoves(); // Updates legal moves internally
+                fGUI->Update(&fBoard); // Clear, draws and updates the board
+                if(fBoard.GetColorToMove() == playerColor) { // Player makes a move
+                    while(!fBoard.GetMoveIsLegal(&thisMove)) {
+                        thisMove = GetUserMove();
+                    }
+                } else { // Engine makes a move
+                    thisMove = fEngine->GetBestMove(fBoard);
+                    PrintEngineMove(thisMove);
+                }
+                fBoard.MakeMove(thisMove);
+            }
+        }
+    } else {
+        while(!fBoard.GetGameIsOver()) {
+            Move thisMove;
+            fBoard.GenerateLegalMoves(); // Updates legal moves internally
+            PrintBitset(fBoard.GetBoard(Color::White) | fBoard.GetBoard(Color::Black));
+            if(fBoard.GetColorToMove() == playerColor) { // Player makes a move
+                while(!fBoard.GetMoveIsLegal(&thisMove)) {
+                    thisMove = GetUserMove();
+                }
+            } else { // Engine makes a move
+                thisMove = fEngine->GetBestMove(fBoard);
+                PrintEngineMove(thisMove);
+            }
+            fBoard.MakeMove(thisMove);
+        }
+    }
+
+
     while(!fBoard.GetGameIsOver()) {
         Move thisMove;
         fBoard.GenerateLegalMoves(); // Updates legal moves internally
         PrintBitset(fBoard.GetBoard(Color::White) | fBoard.GetBoard(Color::Black));
+
         if(fBoard.GetColorToMove() == playerColor) { // Player makes a move
             while(!fBoard.GetMoveIsLegal(&thisMove)) {
                 thisMove = GetUserMove();
@@ -73,6 +118,8 @@ Move Game::GetUserMove() {
         getline(std::cin, userText);
         // Shift the user text to uppercase only
         std::transform(userText.begin(), userText.end(), userText.begin(), ::toupper);
+        if(!userText.compare("EXIT"))
+            fGUI->CloseWindow();
         if(std::regex_match(userText, pattern)) {
             if(gettingOrigin) {
                 isValidOrigin = true;
