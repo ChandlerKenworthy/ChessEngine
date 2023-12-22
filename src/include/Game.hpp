@@ -17,7 +17,7 @@
 
 class Game {
     public:
-        explicit Game(bool useGUI);
+        explicit Game(bool useGUI, int maxDepth);
         void Play(Color playerColor); // Initalises the game loop
         //const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
         Move GetUserMove();

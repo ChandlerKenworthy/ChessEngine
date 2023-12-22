@@ -10,7 +10,7 @@
 class Engine {
     public:
         explicit Engine(bool init);
-        float Evaluate(const std::unique_ptr<Board> &board); // Static evaluation of current game state with no look-ahead
+        float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
         float GetWhitePawnPosValue(U64 position) { return fWhitePawnPos[get_LSB(position)]; };
@@ -33,7 +33,7 @@ class Engine {
         float fBlackKingPos[64];
 
         float Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer);
-        float GetMaterialEvaluation(const std::unique_ptr<Board> &board);
+        float GetMaterialEvaluation(Board board);
         float GetPositionalEvaluation(U64 position, Piece piece, Color pieceColor);
         float GetPositionValue(int index, Piece piece, Color color);
         void Initalize();

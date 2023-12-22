@@ -111,8 +111,7 @@ void Engine::Initalize() {
     blackKing.close();
 }
 
-float Engine::Evaluate(const std::unique_ptr<Board> &board) {
-    
+float Engine::Evaluate(Board board) {
     float eval = GetMaterialEvaluation(board);
     return eval; // Return in centipawns rather than pawns
 }
@@ -178,7 +177,7 @@ float Engine::GetPositionValue(int index, Piece piece, Color color) {
     }
 }
 
-float Engine::GetMaterialEvaluation(const std::unique_ptr<Board> &board) {
+float Engine::GetMaterialEvaluation(Board board) {
     // TODO: Should value of pieces be functions of number of pieces on board?
     // E.g. bishops at start are weak but later on are really powerful on clear board
     float material = 0.;
@@ -194,14 +193,12 @@ float Engine::GetMaterialEvaluation(const std::unique_ptr<Board> &board) {
 
     // For now use very simple material only heuristic + look-ahead to calculate board position
     // add heuristics once all mechanics are working correctly
-
     
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
-    
+    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
+    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
+    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
+    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
+    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
     return material;
 }
 
@@ -210,10 +207,8 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
     // Returns the maximum / minimum evaluation of a given position
     if(depth > fMaxDepth)
         depth = fMaxDepth;
-    if(board.GetGameIsOver() || depth == 0) {
-        std::unique_ptr<Board> boardPtr = std::make_unique<Board>(board);
-        return Evaluate(boardPtr);
-    }
+    if(board.GetGameIsOver() || depth == 0)
+        return Evaluate(board); // Return static evaluation of the current board
     if(maximisingPlayer == Color::White) {
         float maxEval = -99999.;
         board.GenerateLegalMoves();
@@ -225,6 +220,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
             alpha = std::max(alpha, eval);
             if(beta <= alpha)
                 break;
+            board.UndoMove();
         }
         return maxEval;
     } else {
@@ -237,6 +233,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
             beta = std::min(beta, eval);
             if(beta <= alpha)
                 break;
+            board.UndoMove();
         }
         return minEval;
     }   
@@ -249,9 +246,9 @@ Move Engine::GetBestMove(Board board) {
 
     Move bestMove;
     float bestEval = board.GetColorToMove() == Color::White ? -999. : 999;
-    // For each of the moves we want to find the "best" evaluation 
+    // For each of the moves we want to find the "best" evaluation
     for(Move move : board.GetLegalMoves()) {
-        float eval = Minimax(board, 3, 10, 10, board.GetColorToMove());
+        float eval = Minimax(board, fMaxDepth, -99999., 99999., board.GetColorToMove()); // Seg fault happening in here
         if(board.GetColorToMove() == Color::White && eval >= bestEval) {
             bestEval = eval;
             if(eval == bestEval && (bool)dist2(rng)) // Randomly pick which of the best evaluated moves to use

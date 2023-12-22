@@ -1,9 +1,9 @@
 #include "Game.hpp"
 
-Game::Game(bool useGUI) {
+Game::Game(bool useGUI, int maxDepth) {
     fBoard = Board();
     fEngine = std::make_unique<Engine>(true);
-    fEngine->SetMaxDepth(10);
+    fEngine->SetMaxDepth(maxDepth);
     fUseGUI = useGUI;
     fGUI = std::make_unique<Renderer>();
 }
@@ -63,6 +63,7 @@ void Game::Play(Color playerColor) {
                     }
                 } else { // Engine makes a move
                     thisMove = fEngine->GetBestMove(fBoard);
+                    PrintEngineMove(thisMove);
                 }
                 fBoard.MakeMove(thisMove);
             }
