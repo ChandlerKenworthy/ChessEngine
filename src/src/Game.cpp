@@ -76,13 +76,12 @@ Move Game::GetUserMove() {
         std::cout << "Enter " << (gettingOrigin ? "origin" : "target") << ": ";
         getline(std::cin, userText);
         std::transform(userText.begin(), userText.end(), userText.begin(), ::toupper);
-        if(!userText.compare("EXIT"))
+        if(!userText.compare("EXIT")) {
             fGUI->CloseWindow();
             wasBackOrExit = true;
         } else if (userText == "BACK") {
             wasBackOrExit = HandleBackCommand(userMove);
         } else if (std::regex_match(userText, pattern)) {
-        if(std::regex_match(userText, pattern)) {
             if(gettingOrigin) {
                 userMove.origin = convertUserInputToCoords(userText);
                 gettingOrigin = false;
