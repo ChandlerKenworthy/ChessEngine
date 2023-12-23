@@ -17,32 +17,6 @@ void Game::PrintEngineMove(Move move) {
     std::cout << get_rank_number(move.target) << "\n";
 }
 
-std::string Game::GetPieceString(Piece piece) {
-    switch(piece) {
-    case Piece::Pawn:
-        return "Pawn";
-        break;
-    case Piece::Bishop:
-        return "Bishop";
-        break;
-    case Piece::Knight:
-        return "Knight";
-        break;
-    case Piece::Rook:
-        return "Rook";
-        break;
-    case Piece::Queen:
-        return "Queen";
-        break;
-    case Piece::King:
-        return "King";
-        break;
-    default:
-        return "Error piece does not exist";
-        break;
-    }
-}
-
 void Game::Play(Color playerColor) {
     if(fUseGUI) {
         while(fGUI->GetWindowIsOpen()) {
@@ -52,7 +26,6 @@ void Game::Play(Color playerColor) {
                     fGUI->CloseWindow();
                 }
             }
-
             while(!fBoard.GetGameIsOver()) {
                 Move thisMove;
                 fBoard.GenerateLegalMoves(); // Updates legal moves internally
@@ -84,53 +57,48 @@ void Game::Play(Color playerColor) {
             fBoard.MakeMove(thisMove);
         }
     }
-
-
-    while(!fBoard.GetGameIsOver()) {
-        Move thisMove;
-        fBoard.GenerateLegalMoves(); // Updates legal moves internally
-        PrintBitset(fBoard.GetBoard(Color::White) | fBoard.GetBoard(Color::Black));
-
-        if(fBoard.GetColorToMove() == playerColor) { // Player makes a move
-            while(!fBoard.GetMoveIsLegal(&thisMove)) {
-                thisMove = GetUserMove();
-            }
-        } else { // Engine makes a move
-            thisMove = fEngine->GetBestMove(fBoard);
-            PrintEngineMove(thisMove);
-        }
-        fBoard.MakeMove(thisMove);
-    }
 }
 
 Move Game::GetUserMove() {
-    // Returns true when read successfully and false otherwise
-    bool isValidOrigin = false;
-    bool isValidTarget = false;
-    bool gettingOrigin = true;
     const std::regex pattern("^[A-Ha-h][1-8]$");
-    Move userMove;
-    std::string userText;
 
-    while(!(isValidOrigin && isValidTarget)) {
-        std::string label = gettingOrigin ? "origin" : "target";
-        std::cout << "Enter " << label << " tile (e.g. A1): ";
+    Move userMove;
+    bool wasBackOrExit = false;
+
+    auto convertUserInputToCoords = [](const std::string& input) -> int {
+        return get_rank_from_number(input.back() - '0') & get_file_from_number((input.at(0) - 'A') + 1);
+    };
+
+    while (!fBoard.GetMoveIsLegal(&userMove) && !wasBackOrExit) {
+        std::string userText;
+        bool gettingOrigin = true;
+
+        std::cout << "Enter " << (gettingOrigin ? "origin" : "target") << ": ";
         getline(std::cin, userText);
-        // Shift the user text to uppercase only
         std::transform(userText.begin(), userText.end(), userText.begin(), ::toupper);
         if(!userText.compare("EXIT"))
             fGUI->CloseWindow();
+            wasBackOrExit = true;
+        } else if (userText == "BACK") {
+            wasBackOrExit = HandleBackCommand(userMove);
+        } else if (std::regex_match(userText, pattern)) {
         if(std::regex_match(userText, pattern)) {
             if(gettingOrigin) {
-                isValidOrigin = true;
-                userMove.origin = get_rank_from_number(userText.back() - '0') & get_file_from_number((userText.at(0) - 'A') + 1);
+                userMove.origin = convertUserInputToCoords(userText);
                 gettingOrigin = false;
             } else {
-                isValidTarget = true;
-                userMove.target = get_rank_from_number(userText.back() - '0' ) & get_file_from_number((userText.at(0) - 'A') + 1);
+                userMove.target = convertUserInputToCoords(userText);
+                gettingOrigin = true;
             }
         }
-            
-    } // No information about taking, castling en-passant, filled in via GetMoveIsLegal
+    }
+    // No information about taking, castling en-passant, filled in via GetMoveIsLegal
     return userMove;
+}
+
+bool Game::HandleBackCommand(Move& userMove) {
+    fBoard.UndoMove();
+    fBoard.GenerateLegalMoves();
+    fGUI->Update(&fBoard);
+    return true;
 }

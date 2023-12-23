@@ -2,6 +2,7 @@
 #define CONSTANTS_HPP
 
 #include <iostream>
+#include <string>
 
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
@@ -200,8 +201,10 @@ inline U64 get_rank_from_number(int n) {
         return RANK_6;
     } else if(n == 7) {
         return RANK_7;
-    } else {
+    } else if(n == 8) {
         return RANK_8;
+    } else {
+        return U64{0};
     }
 }
 
@@ -220,8 +223,10 @@ inline U64 get_file_from_number(int n) {
         return FILE_F;
     } else if(n == 7) {
         return FILE_G;
-    } else {
+    } else if(n ==8) {
         return FILE_H;
+    } else {
+        return U64{0};
     }
 }
 
@@ -239,6 +244,32 @@ enum class Piece {
     King,   // 5
     Null,   // 6
 };
+
+inline std::string GetPieceString(Piece piece) {
+    switch(piece) {
+    case Piece::Pawn:
+        return "Pawn";
+        break;
+    case Piece::Bishop:
+        return "Bishop";
+        break;
+    case Piece::Knight:
+        return "Knight";
+        break;
+    case Piece::Rook:
+        return "Rook";
+        break;
+    case Piece::Queen:
+        return "Queen";
+        break;
+    case Piece::King:
+        return "King";
+        break;
+    default:
+        return "Error piece does not exist";
+        break;
+    }
+}
 
 const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King};
 

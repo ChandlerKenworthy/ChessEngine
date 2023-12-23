@@ -22,7 +22,6 @@ class Game {
         //const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
         Move GetUserMove();
         void PrintEngineMove(Move move);
-        std::string GetPieceString(Piece piece);
         Board GetBoard() const { return fBoard; };
     private:
         //#std::unique_ptr<Board> fBoard;
@@ -30,6 +29,8 @@ class Game {
         std::unique_ptr<Engine> fEngine;
         bool fUseGUI;
         std::unique_ptr<Renderer> fGUI;
+
+        bool HandleBackCommand(Move& userMove);
 };
 
 #endif
