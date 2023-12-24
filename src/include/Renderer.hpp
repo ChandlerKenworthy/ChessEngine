@@ -35,11 +35,10 @@ class Renderer {
          * @brief Get whether the GUI windows is currently open
         */
         bool GetWindowIsOpen() { return fWindow->isOpen(); };
-
-
-        void HandlePress(int rank, int file);
-
-
+        /**
+         * @brief Return the bitboard with a set bit at the square the user clicked the mouse in
+        */
+        U64 GetClickedSquare(sf::Event &event);
         /**
          * @brief Close the currently open window (if it exists)
         */

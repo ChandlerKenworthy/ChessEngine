@@ -714,7 +714,7 @@ std::pair<Color, Piece> Board::GetIsOccupied(U64 pos) {
     for(int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
             Piece pieceType = Piece::Null;
-            int x;
+            int x = iBoard;
             if(iBoard >= 6)
                 x = iBoard - 6;
 

@@ -25,17 +25,14 @@ void Renderer::Update(const std::unique_ptr<Board> &board) {
     fWindow->display();
 };
 
-void Renderer::HandlePress(int rank, int file) { // 0--7 range for both
-    // Find the rank/file of the pressed square
-    // TODO: Highlight attack rays of the piece pressed
-    /*for(int n = 0; n < fHighlightedSquares.size(); n++) {
-        std::pair<int, int> *square = &fHighlightedSquares[n];
-        if(square->first == rank && square->second == file) {
-            fHighlightedSquares.erase(fHighlightedSquares.begin() + n);
-            return; // Clicking on already highlighted square to de-select it
-        }
-    }
-    fHighlightedSquares.push_back(std::make_pair(rank, file));*/
+U64 Renderer::GetClickedSquare(sf::Event &event) {
+    float x = event.mouseButton.x;
+    float y = event.mouseButton.y;
+
+    int rank = 9 - (y / (float)fSquareWidth); // Span range [1,8]
+    int file = (x / (float)fSquareWidth) + 1; // Span range [1,8]
+
+    return get_rank_from_number(rank) & get_file_from_number(file);
 }
 
 void Renderer::DrawChessBoard(const std::unique_ptr<Board> &board) {
