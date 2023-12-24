@@ -2,7 +2,9 @@
 
 Renderer::Renderer() : 
 fLightColor{sf::Color(255, 206, 158)}, 
-fDarkColor{sf::Color(209, 139, 71)} {
+fDarkColor{sf::Color(209, 139, 71)}, fYellowLightColor{sf::Color(245, 235, 138)},
+fYellowDarkColor{sf::Color(216, 196, 100)},
+fHighlightedSquares{} {
     fWindow = new sf::RenderWindow(sf::VideoMode(fWindowWidth, fWindowHeight), "Chess Board");
     
     if (!fFont.loadFromFile("../assets/Roboto-Bold.ttf")) {
@@ -20,6 +22,22 @@ void Renderer::Update(Board *board) {
     fWindow->display();
 };
 
+void Renderer::HandlePress(sf::Event *event) {
+    // Find the rank/file of the pressed square
+    const int squareSize = fWindowWidth / 8;
+    int rank = 8 - (event->mouseButton.y / (float)squareSize); // 0->7 range
+    int file = event->mouseButton.x / (float)squareSize; // 0->7 range
+    // TODO: Highlight attack rays of the piece pressed
+    for(int n = 0; n < fHighlightedSquares.size(); n++) {
+        std::pair<int, int> *square = &fHighlightedSquares[n];
+        if(square->first == rank && square->second == file) {
+            fHighlightedSquares.erase(fHighlightedSquares.begin() + n);
+            return; // Clicking on already highlighted square to de-select it
+        }
+    }
+    fHighlightedSquares.push_back(std::make_pair(rank, file));
+}
+
 void Renderer::DrawChessBoard(Board *board) {
     const int squareSize = fWindowWidth / 8;
     for (int i = 0; i < 8; ++i) {
@@ -27,6 +45,11 @@ void Renderer::DrawChessBoard(Board *board) {
             sf::RectangleShape square(sf::Vector2f(squareSize, squareSize));
             square.setPosition(i * squareSize, j * squareSize);
             square.setFillColor((i + j) % 2 == 0 ? fLightColor : fDarkColor);
+            for(int n = 0; n < fHighlightedSquares.size(); n++) {
+                std::pair<int, int> *thisSquare = &fHighlightedSquares[n];
+                if((7 - j) == thisSquare->first && i == thisSquare->second)
+                    square.setFillColor((i + j) % 2 == 0 ? fYellowLightColor : fYellowDarkColor);
+            }
             fWindow->draw(square);
 
             if(i == 7) {

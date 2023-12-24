@@ -25,8 +25,12 @@ void Game::Play(Color playerColor) {
                 if(event.type == sf::Event::Closed) {
                     fGUI->CloseWindow();
                 }
+                if(event.type == sf::Event::MouseButtonPressed) {
+                    fGUI->HandlePress(&event);
+                }
             }
-            while(!fBoard.GetGameIsOver()) {
+            fGUI->Update(&fBoard);
+            /*while(!fBoard.GetGameIsOver()) {
                 Move thisMove;
                 fBoard.GenerateLegalMoves(); // Updates legal moves internally
                 fGUI->Update(&fBoard); // Clear, draws and updates the board
@@ -39,7 +43,7 @@ void Game::Play(Color playerColor) {
                     PrintEngineMove(thisMove);
                 }
                 fBoard.MakeMove(thisMove);
-            }
+            }*/
         }
     } else {
         while(!fBoard.GetGameIsOver()) {

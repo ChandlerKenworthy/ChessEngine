@@ -2,6 +2,7 @@
 #define RENDER_HPP
 
 #include <memory>
+#include <vector>
 
 #include <SFML/Graphics.hpp>
 #include "Constants.hpp"
@@ -13,15 +14,19 @@ class Renderer {
         ~Renderer();
         void Update(Board *board);
         bool GetWindowIsOpen() { return fWindow->isOpen(); };
+        void HandlePress(sf::Event *event);
         void CloseWindow() { fWindow->close(); };
         bool PollEvent(sf::Event &event) { return fWindow->pollEvent(event); };
     private:
         const int fWindowWidth{800};
         const int fWindowHeight{800};
+        std::vector<std::pair<int, int>> fHighlightedSquares;
         sf::RenderWindow *fWindow; 
         sf::Font fFont;
         const sf::Color fLightColor; // Light squares
         const sf::Color fDarkColor;  // Dark squares
+        const sf::Color fYellowLightColor;
+        const sf::Color fYellowDarkColor; 
         void DrawChessBoard(Board *board);
         void DrawChessPiece(Piece piece, Color color, const int rank, const int file);
         void DrawPawns(U64 whitePawns, U64 blackPawns);
