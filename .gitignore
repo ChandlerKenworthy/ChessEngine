@@ -9,3 +9,6 @@ build
 # Doxygen
 doc/html/*.png
 doc/html/*.svg
+*.html
+*.tex
+*.js
