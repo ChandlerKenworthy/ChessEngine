@@ -16,8 +16,8 @@ class Renderer {
         void CloseWindow() { fWindow->close(); };
         bool PollEvent(sf::Event &event) { return fWindow->pollEvent(event); };
     private:
-        const int fWindowWidth{600};
-        const int fWindowHeight{600};
+        const int fWindowWidth{800};
+        const int fWindowHeight{800};
         sf::RenderWindow *fWindow; 
         sf::Font fFont;
         const sf::Color fLightColor; // Light squares

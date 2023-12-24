@@ -5,7 +5,7 @@ fLightColor{sf::Color(255, 206, 158)},
 fDarkColor{sf::Color(209, 139, 71)} {
     fWindow = new sf::RenderWindow(sf::VideoMode(fWindowWidth, fWindowHeight), "Chess Board");
     
-    if (!fFont.loadFromFile("../assets/BebasNeue-Regular.ttf")) {
+    if (!fFont.loadFromFile("../assets/Roboto-Bold.ttf")) {
         // Handle the case where the font cannot be loaded
     }
 }
@@ -31,9 +31,9 @@ void Renderer::DrawChessBoard(Board *board) {
 
             if(i == 7) {
                 // Draw rank numbers on the left side of the board
-                sf::Text fileText(std::to_string(8 - j), fFont, 14);
-                fileText.setPosition(0.05 * squareSize, j * squareSize);
-                fileText.setFillColor(sf::Color::Black);
+                sf::Text fileText(std::to_string(8 - j), fFont, 18);
+                fileText.setPosition(0.1 * squareSize, (j+0.05) * squareSize);
+                fileText.setFillColor((i + j) % 2 == 0 ? fLightColor : fDarkColor);
                 fWindow->draw(fileText);
                 
             }
@@ -58,9 +58,9 @@ void Renderer::DrawChessBoard(Board *board) {
                 } else {
                     fileLetter = 'H';
                 }
-                sf::Text rankText(fileLetter, fFont, 14);
-                rankText.setPosition((i + 0.05) * squareSize, (j + 0.75) * squareSize);
-                rankText.setFillColor(sf::Color::Black);
+                sf::Text rankText(fileLetter, fFont, 18);
+                rankText.setPosition((i + 0.8) * squareSize, (j + 0.75) * squareSize);
+                rankText.setFillColor((i + j) % 2 == 0 ? fDarkColor : fLightColor);
                 fWindow->draw(rankText);
             }
         }
@@ -140,6 +140,7 @@ void Renderer::DrawChessPiece(Piece piece, Color color, const int rank, const in
             break;
         default:
             // Handle an unknown piece type
+            std::cout << "Unknown piece type\n";
             return;
     }
 
@@ -152,14 +153,18 @@ void Renderer::DrawChessPiece(Piece piece, Color color, const int rank, const in
     // Create a sprite and set its position
     sf::Sprite pieceSprite(pieceTexture);
     const float squareSize = static_cast<float>(fWindowWidth) / 8.;
-    const float squarePad = 0.2 * squareSize;
     int posy = 8 - rank;
     int posx = file - 1;
-    pieceSprite.setPosition((posx * squareSize) + (squarePad / 2), (posy * squareSize) + (squarePad / 2));
 
     // Scale the sprite to fit the square, with some additional padding
-    pieceSprite.setScale(static_cast<float>(squareSize) * 0.8 / pieceTexture.getSize().x,
-                         static_cast<float>(squareSize) * 0.8 / pieceTexture.getSize().y);
+    // Via the max width/height 
+    float maxLength = std::max(pieceTexture.getSize().x, pieceTexture.getSize().y);
+    float scale = squareSize * 0.68 / maxLength;
+    float xmargin = (squareSize - (pieceTexture.getSize().x * scale)) / 2;
+    float ymargin = (squareSize - (pieceTexture.getSize().y * scale)) / 2;
+
+    pieceSprite.setPosition((posx * squareSize) + xmargin, (posy * squareSize) + ymargin);
+    pieceSprite.setScale(scale, scale);
 
     // Draw the piece on the window
     fWindow->draw(pieceSprite);
