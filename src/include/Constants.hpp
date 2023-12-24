@@ -344,6 +344,6 @@ inline Piece GetPieceFromChar(char c) {
     }
 }
 
-const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King};
+const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King}; ///< Vector of all the piece types for easy iterations
 
 #endif

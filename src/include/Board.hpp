@@ -38,7 +38,7 @@ class Board {
          */
         U64 GetBoard(Color color, Piece piece);
         /**
-         * @brief et occupation bitboard for all pieces of specified colour.
+         * @brief Get occupation bitboard for all pieces of specified colour.
          * @param color The color whose logical or of bitboards is required.
          * @return U64, the bitboard containing the abstract representation of all pieces of color.
          */
