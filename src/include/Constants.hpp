@@ -22,7 +22,7 @@
  */
 typedef unsigned long long U64;
 
-const int SQUARES = 64;
+const int NSQUARES = 64;
 const int BITS_PER_FILE = 8;
 const int MIN_MOVES_FOR_CASTLING = 6;
 

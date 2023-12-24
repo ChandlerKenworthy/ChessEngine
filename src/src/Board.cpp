@@ -4,7 +4,6 @@
 
 Board::Board() {
     Reset();
-    GenerateAttackTables();
 }
 
 void Board::Reset() {
@@ -178,7 +177,7 @@ bool Board::IsUnderAttack(U64 squares, Color attackingColor) {
 U64 Board::GetSlidingPieceAttacks(Color attackingColor, Piece pieceType) {
     // Returns all posible attacks of the sliding piece on the current board, does not account for leaving
     // you in an illegal position. Does include blocker patterns
-    U64 attacks = 0;
+    /*U64 attacks = 0;
     U64 ownPieces = GetBoard(attackingColor);
     U64 otherPieces = GetBoard(attackingColor == Color::White ? Color::Black : Color::White);
     U64 occupancy = ownPieces | otherPieces;
@@ -222,13 +221,14 @@ U64 Board::GetSlidingPieceAttacks(Color attackingColor, Piece pieceType) {
                 break;
         }
     }
-    return attacks & ~ownPieces;
+    return attacks & ~ownPieces;*/
+    return U64{0};
 }
 
 U64 Board::GetJumpingPieceAttacks(Color attackingColor, Piece pieceType) {
     // Returns all possible attacks of the specified piece on the current board, does not account for anything
     // complex e.g. leaving you in an illegal position. Pawn attacks do not include en-passant
-    U64 attacks = 0;
+    /*U64 attacks = 0;
     U64 ownPieces = GetBoard(attackingColor);
     U64 pieces = GetBoard(attackingColor, pieceType);
     while(pieces) { // iterate over each using lookup table to find attacks
@@ -247,7 +247,8 @@ U64 Board::GetJumpingPieceAttacks(Color attackingColor, Piece pieceType) {
                 break;
         }
     }
-    return attacks & ~ownPieces;
+    return attacks & ~ownPieces;*/
+    return U64{0};
 }
 
 void Board::AddEnPassant() {
@@ -425,7 +426,7 @@ void Board::FillPseudoKingMoves(U64 otherPieces) {
 void Board::FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces) {
     // U64 attacks = GetJumpingPieceAttacks(fColorToMove, Piece::Knight);
     // Already masked against own pieces, note that this will include all squares attacked by all knights...
-    U64 knights = GetBoard(fColorToMove, Piece::Knight);
+    /*U64 knights = GetBoard(fColorToMove, Piece::Knight);
     while(knights) {
         U64 knight = 0;
         set_bit(knight, pop_LSB(knights));
@@ -438,7 +439,7 @@ void Board::FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces) {
                 takenPiece = GetPiece(fColorToMove == Color::White ? Color::Black : Color::White, attack);
             fLegalMoves.push_back(Move{knight, attack, Piece::Knight, takenPiece});
         }
-    }
+    }*/
 }
 
 void Board::UndoMove() {
@@ -477,7 +478,7 @@ void Board::MakeMove(Move *move) {
     // 2. make the move (update bitbsoards)
     // 3. if it was a special move e.g. castling update variables
     // 4. update who is to move
-    U64* originBoard = GetBoard(fColorToMove, move->origin);
+    U64 originBoard = GetBoard(fColorToMove, move->origin);
 
     if(move->takenPiece != Piece::Null) {
         Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
@@ -491,10 +492,10 @@ void Board::MakeMove(Move *move) {
     }
 
     // Remove piece from the starting position
-    clear_bit(*originBoard, get_LSB(move->origin));
+    clear_bit(originBoard, get_LSB(move->origin));
 
     // Set the piece at the new position
-    set_bit(*originBoard, get_LSB(move->target)); 
+    set_bit(originBoard, get_LSB(move->target)); 
 
     // If moving a king set appropriate state variable
     if(move->piece == Piece::King) {
@@ -572,93 +573,6 @@ void Board::SetBoard(Color color, Piece piece, U64 board) {
     } else {
         fBoards[(int)piece + 6] = board;
     }
-}
-
-void Board::GenerateAttackTables() {
-    for(int i = 0; i < SQUARES; ++i) {
-        U64 piece = 0;
-        set_bit(piece, i);
-        PopulateKnightAttackTable(i, piece);
-        PopulateKingAttackTable(i, piece);
-        PopulatePawnAttackTable(i, piece);
-        PopulateRookAttackTable(i, piece);
-        PopulateBishopAttackTable(i, piece);
-        PopulateQueenAttackTable(i, piece);
-    }
-}
-
-void Board::PopulatePawnAttackTable(int iPos, U64 position) {
-    U64 attacks = 0;
-    // Case 1: white pawn
-    attacks |= (position << BITS_PER_FILE); // 1 square forward
-    attacks |= (position & RANK_2) & (position << 2 * BITS_PER_FILE); // 2 squares forward on first go
-    attacks |= north_east(position) | north_west(position); // Potential to attack on the diagonals as well
-    fWhitePawnAttacks[iPos] = attacks;
-
-    // Case 2: black pawn
-    attacks = 0;
-    attacks |= (position >> BITS_PER_FILE); // 1 square forward
-    attacks |= (position & RANK_7) & (position >> 2 * BITS_PER_FILE); // 2 squares forward on first go
-    attacks |= south_east(position) | south_west(position); // Potential to attack on the diagonals as well
-    fBlackPawnAttacks[iPos] = attacks;
-}
-
-void Board::PopulateQueenAttackTable(int iPos, U64 position) {
-    U64 attacks = 0;
-    // Vertical distance from the primary diagonal
-    int dPrimaryDiag = (get_file_number(position) - 1) - (7 - (get_rank_number(position) - 1));
-    // Vertical distance from the secondary diagonal
-    int dSecondaryDiag = 7 - (get_file_number(position) - 1) - (8 - get_rank_number(position));
-
-    if(dPrimaryDiag == 0)
-        attacks = PRIMARY_DIAGONAL;
-    attacks = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
-
-    if(dSecondaryDiag == 0)
-        attacks |= SECONDARY_DIAGONAL;
-    attacks |= dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
-
-    U64 rank = get_rank(position);
-    U64 file = get_file(position);
-
-    fQueenAttacks[iPos] = (attacks | rank | file) ^ position;
-}
-
-void Board::PopulateBishopAttackTable(int iPos, U64 position) {
-    // Does not take into account blocking pieces, this is done later
-    // Vertical distance from primary diagonal is just abs(x - y) (zero indexed)
-    // negative value = shift primary DOWN, positive value = shift primary UP
-    U64 attacks = 0;
-    // Vertical distance from the primary diagonal
-    int dPrimaryDiag = (get_file_number(position) - 1) - (7 - (get_rank_number(position) - 1));
-    // Vertical distance from the secondary diagonal
-    int dSecondaryDiag = 7 - (get_file_number(position) - 1) - (8 - get_rank_number(position));
-
-    if(dPrimaryDiag == 0)
-        attacks = PRIMARY_DIAGONAL;
-    attacks = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
-
-    if(dSecondaryDiag == 0)
-        attacks |= SECONDARY_DIAGONAL;
-    attacks |= dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
-
-    fBishopAttacks[iPos] = attacks ^ position;
-}
-
-void Board::PopulateRookAttackTable(int iPos, U64 position) {
-    // Does not take into account blocking pieces, this is done later
-    fRookAttacks[iPos] = (get_rank(position) | get_file(position)) ^ position;
-}
-
-void Board::PopulateKnightAttackTable(int iPos, U64 position) {
-    // Fills the fKnightAttacks array with all attacking positions of the knight give the starting position
-    U64 attacks = north(north_east(position)) | north(north_west(position)) | south(south_east(position)) | south(south_west(position)) | east(north_east(position)) | east(south_east(position)) | west(north_west(position)) | west(south_west(position));
-    fKnightAttacks[iPos] = attacks;
-}
-
-void Board::PopulateKingAttackTable(int iPos, U64 position) {
-    U64 attacks = north(position) | east(position) | west(position) | south(position) | north_east(position) | north_west(position) | south_east(position) | south_west(position);
-    fKingAttacks[iPos] = attacks;
 }
 
 void Board::EmptyBoards() {

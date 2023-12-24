@@ -6,175 +6,89 @@
 
 Engine::Engine(bool init) {
     fMaxDepth = 3;
-    if(init) Initalize();
+    if(init) 
+        Prepare();
 }
 
-void Engine::Initalize() {
-    // Load the positional arrays
-    std::ifstream whitePawns("../src/data/whitePawns.txt");
-    int i = 63;
-    for(std::string line; getline(whitePawns, line, ' ');) {
-        fWhitePawnPos[i] = std::stof(line);
-        i--;
+void Engine::Prepare() {
+    for(int iBit = 0; iBit < NSQUARES; iBit++) {
+        U64 pos = 0; // TODO: Must be a better way to do this e.g. a one-liner
+        set_bit(pos, iBit);
+        BuildPawnAttackTable(pos);
+        BuildKnightAttackTable(pos);
+        BuildRookAttackTable(pos);
+        BuildBishopAttackTable(pos);
+        BuildQueenAttackTable(pos);
+        BuildKingAttackTable(pos);
     }
-    whitePawns.close();
-
-    std::ifstream blackPawns("../src/data/blackPawns.txt");
-    i = 63;
-    for(std::string line; getline(blackPawns, line, ' ');) {
-        fBlackPawnPos[i] = std::stof(line);
-        i--;
-    }
-    blackPawns.close();
-
-    std::ifstream whiteQueen("../src/data/whiteQueen.txt");
-    i = 63;
-    for(std::string line; getline(whiteQueen, line, ' ');) {
-        fWhiteQueenPos[i] = std::stof(line);
-        i--;
-    }
-    whiteQueen.close();
-
-    std::ifstream blackQueen("../src/data/blackQueen.txt");
-    i = 63;
-    for(std::string line; getline(blackQueen, line, ' ');) {
-        fBlackQueenPos[i] = std::stof(line);
-        i--;
-    }
-    blackQueen.close();
-
-    std::ifstream whiteRook("../src/data/whiteRook.txt");
-    i = 63;
-    for(std::string line; getline(whiteRook, line, ' ');) {
-        fWhiteRookPos[i] = std::stof(line);
-        i--;
-    }
-    whiteRook.close();
-
-    std::ifstream blackRook("../src/data/blackRook.txt");
-    i = 63;
-    for(std::string line; getline(blackRook, line, ' ');) {
-        fBlackRookPos[i] = std::stof(line);
-        i--;
-    }
-    blackRook.close();
-
-    std::ifstream whiteBishop("../src/data/whiteBishop.txt");
-    i = 63;
-    for(std::string line; getline(whiteBishop, line, ' ');) {
-        fWhiteBishopPos[i] = std::stof(line);
-        i--;
-    }
-    whiteBishop.close();
-
-    std::ifstream blackBishop("../src/data/blackBishop.txt");
-    i = 63;
-    for(std::string line; getline(blackBishop, line, ' ');) {
-        fBlackBishopPos[i] = std::stof(line);
-        i--;
-    }
-    blackBishop.close();
-
-    
-    std::ifstream whiteKnight("../src/data/whiteKnight.txt");
-    i = 63;
-    for(std::string line; getline(whiteKnight, line, ' ');) {
-        fWhiteKnightPos[i] = std::stof(line);
-        i--;
-    }
-    whiteRook.close();
-
-    std::ifstream blackKnight("../src/data/blackKnight.txt");
-    i = 63;
-    for(std::string line; getline(blackKnight, line, ' ');) {
-        fBlackKnightPos[i] = std::stof(line);
-        i--;
-    }
-    blackKnight.close();
-
-
-
-    std::ifstream whiteKing("../src/data/whiteKing.txt");
-    i = 63;
-    for(std::string line; getline(whiteKing, line, ' ');) {
-        fWhiteKingPos[i] = std::stof(line);
-        i--;
-    }
-    whiteKing.close();
-
-    std::ifstream blackKing("../src/data/blackKing.txt");
-    i = 63;
-    for(std::string line; getline(blackKing, line, ' ');) {
-        fBlackKingPos[i] = std::stof(line);
-        i--;
-    }
-    blackKing.close();
 }
+
+void Engine::BuildPawnAttackTable(U64 pos) {
+    // Note this does not include special pawn moves like en-passant or promotion
+    U64 attacks = 0;
+    // White pawn case (attacks in a northern direction)
+    attacks |= north(pos);
+    // Only valid when occupied by enemy piece aas these are taking moves
+    attacks |= (north_east(pos) | north_west(pos));
+    if(pos & RANK_2)
+        attacks |= north(north(pos)); // Assumes nothing blocking the pawns path
+    fWhitePawnAttacks[get_LSB(pos)] = attacks;
+
+    attacks = 0; // Now case for the black pawn attacking in a southern direction
+    attacks |= south(pos);
+    attacks |= (south_east(pos) | south_west(pos));
+    if(pos & RANK_7)
+        attacks |= south(south(pos));
+    fBlackPawnAttacks[get_LSB(pos)] = attacks;
+}
+
+void Engine::BuildKnightAttackTable(U64 pos) {
+    // TODO: Check pos has exactly 1 on bit
+    fKnightAttacks[get_LSB(pos)] = north(north_east(pos)) | north(north_west(pos)) | south(south_east(pos)) | south(south_west(pos)) | east(north_east(pos)) | east(south_east(pos)) | west(north_west(pos)) | west(south_west(pos));
+}
+
+void Engine::BuildBishopAttackTable(U64 pos) {
+    // Vertical distance from primary diagonal is just abs(x - y) (zero indexed)
+    // negative value = shift primary DOWN, positive value = shift primary UP
+    U64 attacks = 0;
+    // Vertical distance from the primary diagonal
+    int dPrimaryDiag = (get_file_number(pos) - 1) - (8 - get_rank_number(pos));
+    // Vertical distance from the secondary diagonal
+    int dSecondaryDiag = (8 - get_file_number(pos)) - (8 - get_rank_number(pos));
+
+    attacks = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+
+    attacks ^= dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+
+    fBishopAttacks[get_LSB(pos)] = attacks;
+}
+
+void Engine::BuildQueenAttackTable(U64 pos) {
+    U64 attacks = 0;
+    // Vertical distance from the primary diagonal
+    int dPrimaryDiag = (get_file_number(pos) - 1) - (8 - get_rank_number(pos));
+    // Vertical distance from the secondary diagonal
+    int dSecondaryDiag = (8 - get_file_number(pos)) - (8 - get_rank_number(pos));
+    attacks = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+    attacks ^= dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+    attacks ^= (get_rank(pos) ^ get_file(pos));
+    fQueenAttacks[get_LSB(pos)] = attacks;
+}
+
+void Engine::BuildRookAttackTable(U64 pos) {
+    // XOR as you cannot move to the square you currently occupy
+    fRookAttacks[get_LSB(pos)] = get_rank(pos) ^ get_file(pos); 
+}
+
+void Engine::BuildKingAttackTable(U64 pos) {
+    fKingAttacks[get_LSB(pos)] = north(pos) | east(pos) | west(pos) | south(pos) | north_east(pos) | north_west(pos) | south_east(pos) | south_west(pos);
+}
+
+
 
 float Engine::Evaluate(Board board) {
     float eval = GetMaterialEvaluation(board);
     return eval; // Return in centipawns rather than pawns
-}
-
-float Engine::GetPositionalEvaluation(U64 position, Piece piece, Color pieceColor) {
-    float base_value = 0.;
-    switch (piece) {
-    case Piece::Pawn:
-        base_value = VALUE_PAWN;
-        break;
-    case Piece::Bishop:
-        base_value = VALUE_BISHOP;
-        break;
-    case Piece::Knight:
-        base_value = VALUE_KNIGHT;
-        break;
-    case Piece::Rook:
-        base_value = VALUE_ROOK;
-        break;
-    case Piece::Queen:
-        base_value = VALUE_QUEEN;
-        break;
-    case Piece::King:
-        base_value = VALUE_KING;
-        break;
-    default:
-        std::cout << "[Warning] Something went wrong searching for a piece value\n";
-        break;
-    }
-    float positionTotal = 0.;
-    while(position) {
-        U64 singlePiece = pop_LSB(position);
-        positionTotal += (GetPositionValue(get_LSB(singlePiece), piece, pieceColor) * base_value);
-    }
-
-    return positionTotal;
-}
-
-float Engine::GetPositionValue(int index, Piece piece, Color color) {
-    switch (piece) {
-    case Piece::Pawn:
-        return color == Color::White ? fWhitePawnPos[index] : fBlackPawnPos[index];
-        break;
-    case Piece::Knight:
-        return color == Color::White ? fWhiteKnightPos[index] : fBlackKnightPos[index];
-        break;
-    case Piece::Bishop:
-        return color == Color::White ? fWhiteBishopPos[index] : fBlackBishopPos[index];
-        break;
-    case Piece::Rook:
-        return color == Color::White ? fWhiteRookPos[index] : fBlackRookPos[index];
-        break;
-    case Piece::Queen:
-        return color == Color::White ? fWhiteQueenPos[index] : fBlackQueenPos[index];
-        break;
-    case Piece::King:
-        return color == Color::White ? fWhiteKingPos[index] : fBlackKingPos[index];
-        break;
-    default:
-        std::cout << "[Warning] Invalid piece searched in GetPositionValue\n";
-        return 0.;
-        break;
-    }
 }
 
 float Engine::GetMaterialEvaluation(Board board) {

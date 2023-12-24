@@ -92,13 +92,6 @@ class Board {
         void Reset();
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
-        U64 fKnightAttacks[64]; ///< Bitboard giving all squares the knight attacks given LSB as input
-        U64 fWhitePawnAttacks[64]; ///< Bitboard giving all squares the white pawn attacks given LSB as input
-        U64 fBlackPawnAttacks[64]; ///< Bitboard giving all squares the black pawn attacks given LSB as input
-        U64 fBishopAttacks[64]; ///< Bitboard giving (un-blocked) attack rays of bishop at LSB
-        U64 fKingAttacks[64]; ///< Bitboard of king attacks at LSB position
-        U64 fRookAttacks[64]; ///< Bitboard of rook attacks (un-blocked) at LSB
-        U64 fQueenAttacks[64]; ///< Array of bitboards for queen attacks (un-blocked) at each LSB
 
         // Move tracking
         std::vector<Move> fLegalMoves;
@@ -127,13 +120,6 @@ class Board {
         Piece GetPiece(Color color, U64 position);
         bool IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor);
         bool IsUnderAttack(U64 squares, Color attackingColor);
-        void GenerateAttackTables();
-        void PopulateKnightAttackTable(int iPos, U64 position);
-        void PopulateKingAttackTable(int iPos, U64 position);
-        void PopulatePawnAttackTable(int iPos, U64 position);
-        void PopulateRookAttackTable(int iPos, U64 position);
-        void PopulateBishopAttackTable(int iPos, U64 position);
-        void PopulateQueenAttackTable(int iPos, U64 position);
         void FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces);
         void FillPseudoKingMoves(U64 otherPieces);
         void FillPseudoRookMoves(U64 ownPieces, U64 otherPieces);
