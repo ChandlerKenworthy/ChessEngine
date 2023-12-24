@@ -5,3 +5,7 @@ build
 
 # MacOS
 .DS_Store
+
+# Doxygen
+doc/html/*.png
+doc/html/*.svg

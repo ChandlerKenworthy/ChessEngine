@@ -15,8 +15,21 @@
 #include "Engine.hpp"
 #include "Renderer.hpp"
 
+/**
+ * @file Game.cpp
+ * @brief This is the game class.
+ */
+
+/**
+ * @brief This is a sample class.
+ */
 class Game {
     public:
+        /**
+         * @brief A brief description of this function.
+         * @param parameter1 Description of parameter1.
+         * @return Description of the return value.
+         */
         explicit Game(bool useGUI, int maxDepth);
         void Play(Color playerColor); // Initalises the game loop
         //const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
