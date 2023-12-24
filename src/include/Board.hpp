@@ -43,11 +43,13 @@ class Board {
          * @return U64, the bitboard containing the abstract representation of all pieces of color.
          */
         U64 GetBoard(Color color);
-
-
-        U64* GetBoard(Color color, U64 occupiedPosition);
-        
-
+        /**
+         * @brief Get occupation bitboard for all pieces with the specified colour and type found at the given position.
+         * @param color The color of the pieces to search.
+         * @param occupiedPosition The position of the piece on the board to check.
+         * @return U64, the bitboard containing the abstract representation of all pieces of color. Empty board if no piece found at occupiedPosition.
+         */
+        U64 GetBoard(Color color, U64 occupiedPosition);
         /**
          * @brief Get the colour of the player whose turn it is to move.
          */

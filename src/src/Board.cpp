@@ -541,15 +541,15 @@ void Board::MakeMove(Move *move) {
     //}
 }
 
-U64* Board::GetBoard(Color color, U64 occupiedPosition) {
+U64 Board::GetBoard(Color color, U64 occupiedPosition) {
     int adj = 0;
     if(color == Color::Black)
         adj = 6;
     for(Piece p : PIECES) {
         if(fBoards[(int)p + adj] & occupiedPosition)
-            return &fBoards[(int)p + adj];
+            return fBoards[(int)p + adj];
     }
-    return nullptr;
+    return U64{0};
 }
 
 U64 Board::GetBoard(Color color) {

@@ -27,7 +27,8 @@ int main() {
                     selectedPiece = clickedPosition;
                     pieceTile = selectedTile;
                 } else { // User clicked on an empty square
-                    // TODO: If currently selected piece & tile is selected...move piece to that tile and deselect all
+                    // TODO: This should actually call the MakeMove function of board...
+                    // since that will properly handle move legality and capturing etc.
                     if(selectedPiece.second != Piece::Null) {
                         U64 currBoard = b->GetBoard(selectedPiece.first, selectedPiece.second);
                         // take selected piece position and move to selectedTile
