@@ -4,6 +4,11 @@
 #include <iostream>
 #include <string>
 
+/**
+ * @file Constants.hpp
+ * @brief Lots of useful constants and bit manipulation functions.
+ */
+
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
 #define clear_bit(b, i) ((b) &= ~(1ULL << i))
@@ -12,6 +17,31 @@
 
 typedef unsigned long long U64;
 const int SQUARES = 64;
+const int BITS_PER_FILE = 8;
+const int MIN_MOVES_FOR_CASTLING = 6;
+
+const float VALUE_PAWN = 100; // centi-pawn value
+const float VALUE_BISHOP = 300;
+const float VALUE_KNIGHT = 300;
+const float VALUE_ROOK = 500;
+const float VALUE_QUEEN = 900;
+const float VALUE_KING = 99999;
+
+/**
+ * @struct Move
+ * @brief Represents a move.
+ * 
+ * The Move struct provides a representation and grouping of all parameters required to specify a chess move.
+ * It includes information about the piece being moved, from where, to where and whether it was a special move. For example en-passant or castling.
+ */
+struct Move {
+    U64 origin;
+    U64 target;
+    Piece piece;
+    Piece takenPiece{ Piece::Null };
+    bool WasEnPassant{ false };
+    bool WasCastling{ false };
+};
 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);
@@ -45,8 +75,6 @@ inline int PrintBitset(U64 b) {
     return 0;
 }
 
-const int BITS_PER_FILE = 8;
-
 const U64 RANK_1 = 0x00000000000000FFULL;
 const U64 RANK_2 = 0x000000000000FF00ULL;
 const U64 RANK_3 = 0x0000000000FF0000ULL;
@@ -76,10 +104,8 @@ const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_G & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_H & (RANK_1 | RANK_3 | RANK_5 | RANK_7));
 const U64 BLACK_SQUARES = ~WHITE_SQUARES;
-
 const U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
 const U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
-
 const U64 EDGES = RANK_1 | RANK_8 | FILE_A | FILE_H;
 
 constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; };
@@ -92,7 +118,6 @@ constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; };
 constexpr U64 south_west(U64 b) { return (b & ~FILE_A) >> 7; };
 constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; };
 
-const int MIN_MOVES_FOR_CASTLING = 6;
 const U64 KING_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_F | FILE_G);
 const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_B | FILE_C | FILE_D);
 const U64 KING_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_F | FILE_G);
@@ -272,12 +297,5 @@ inline std::string GetPieceString(Piece piece) {
 }
 
 const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King};
-
-const float VALUE_PAWN = 100; // centi-pawn value
-const float VALUE_BISHOP = 300;
-const float VALUE_KNIGHT = 300;
-const float VALUE_ROOK = 500;
-const float VALUE_QUEEN = 900;
-const float VALUE_KING = 99999;
 
 #endif

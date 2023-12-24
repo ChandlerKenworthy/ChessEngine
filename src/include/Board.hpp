@@ -8,22 +8,22 @@
 
 #include "Constants.hpp"
 
-struct Move {
-    U64 origin;
-    U64 target;
-    Piece piece;
-    Piece takenPiece{ Piece::Null };
-    bool WasEnPassant{ false };
-    bool WasCastling{ false };
-};
+/**
+ * @file Board.hpp
+ * @brief Definition of the Board class and Move struct.
+ */
 
+/**
+ * @class Board
+ * @brief Abstract representation of the state of a chess board using a bitboard representation.
+ * 
+ * The Board class provides an abstract representation of the state of the chess game leaning on the bitboard representation. It includes properties of the game such as the set of moves that have been made, whether the king is in check, the global game state e.g. checkmate or stalemate and the ability to read in and load FEN strings.
+ */ 
 class Board {
-    /*
-    Class used as a wrapper to contain all 12 bitboards needed to define a chess position as well as 
-    relevant game variables including whether castling and en-passant are available and whether the
-    game is over (either through a draw or checkmate)
-    */
     public:
+        /**
+         * @brief Constructs a board object.
+         */
         explicit Board();
         bool GetGameIsOver() { return fGameIsOver; };
         U64 GetBoard(Color color, Piece piece);
