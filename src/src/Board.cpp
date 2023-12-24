@@ -22,7 +22,7 @@ void Board::Reset() {
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
     fnMovesLastUpdate = -1;
-    fGameIsOver = false;
+    fGameState = State::Play;
     fWhiteInCheckmate = false;
     fBlackInCheckmate = false;
     fWhiteHasCastled = false; // Only whether castling has already been performed
@@ -443,9 +443,9 @@ void Board::FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces) {
     }
 }
 
-void Board::UndoMove(int nMoves) {
+void Board::UndoMove() {
     // undoes the last nMoves from the board
-    if(nMoves > fMadeMoves.size())
+    if(fMadeMoves.size() < 1)
         Reset(); // Cannot undo more moves than exist in the move tree
     // Last move in the stack will be from player of opposing colour
     Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
@@ -715,7 +715,6 @@ bool Board::LoadFEN(const std::string &fen) {
     fWhiteHasCastled = !whiteCanCastle;
     fBlackHasCastled = !blackCanCastle;
     fWasLoadedFromFEN = true;
-    return true;  // Success, board was able to be read/loaded correctly
 }
 
 Piece Board::GetPieceFromChar(char c) {

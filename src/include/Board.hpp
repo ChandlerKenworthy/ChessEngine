@@ -1,6 +1,6 @@
 /**
  * @file Board.hpp
- * @brief Definition of the Board class and Move struct.
+ * @brief Definition of the Board class.
  */
 
 #ifndef BOARD_HPP
@@ -25,47 +25,90 @@ class Board {
          * @brief Constructs a board object.
          */
         explicit Board();
-        bool GetGameIsOver() { return fGameIsOver; };
+        /**
+         * @brief Get the current state of the game can either be in play, stalemate or checkmate.
+         * @return State, the enumeration for the current game state.
+         */
+        State GetState() { return fGameState; };
+        /**
+         * @brief Get bitboard associated with a particular colour and type of piece.
+         * @param color The color of the piece(s).
+         * @param piece The type of the piece.
+         * @return U64, the bitboard containing the abstract representation of the piece positions.
+         */
         U64 GetBoard(Color color, Piece piece);
+        /**
+         * @brief et occupation bitboard for all pieces of specified colour.
+         * @param color The color whose logical or of bitboards is required.
+         * @return U64, the bitboard containing the abstract representation of all pieces of color.
+         */
+        U64 GetBoard(Color color);
+
+
         U64* GetBoard(Color color, U64 occupiedPosition);
-        U64 GetBoard(Color color); // Get occupation bitboard for all pieces of specified colour
+        
+
+        /**
+         * @brief Get the colour of the player whose turn it is to move.
+         */
+        Color GetColorToMove() { return fColorToMove; };
+        /**
+         * @brief Make the move on the board.
+         * @param move The move to be made
+         * 
+         * Updates all the bit boards and required game state variables to make the requested move.
+         */
+        void MakeMove(Move *move);
+        /**
+         * @brief Undoes the actions of the last move.
+         */
+        void UndoMove();
+        /**
+         * @brief Loads a chess position from the FEN notation.
+        */
+        void LoadFEN(const std::string &fen);
+
+        //////// >>>>> Move, document and refactor into Engine <<<<<<<
         std::pair<Color, Piece> GetIsOccupied(U64 pos);
         U64 GetJumpingPieceAttacks(Color attackingColor, Piece pieceType);
         U64 GetSlidingPieceAttacks(Color attackingColor, Piece pieceType);
         void GenerateLegalMoves();
         bool GetMoveIsLegal(Move* move);
         std::vector<Move> GetLegalMoves() { return fLegalMoves; };
-        void MakeMove(Move move);
-        void UndoMove(int nMoves);
-        void UndoMove() { UndoMove(1); };
-        bool LoadFEN(const std::string &fen);
-        Color GetColorToMove() { return fColorToMove; };
-        void SetBitBoard(Color color, Piece piece, U64 board); // TODO: Delete me after testing
-        void Reset(); // Clears all game state variables and puts pieces in starting position
+        //////// >>>>> Move, document and refactor into Engine <<<<<<<
+                
+        /**
+         * @brief Clears all game state variables and put pieces in starting position.
+         * @param color The color of the piece.
+         * @param piece The type of the piece.
+         * @param board The bit-board to overwrite the existing bitboard
+         */
+        void SetBoard(Color color, Piece piece, U64 board);
+        /**
+         * @brief Clears all game state variables and put pieces in starting position.
+         */
+        void Reset();
     private:
-        // Bitboards
-        U64 fBoards[12]; // White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
-        U64 fKnightAttacks[64]; // 1 bitboard showing all squares the knight attacks given LSB bit as input
-        U64 fWhitePawnAttacks[64];
-        U64 fBlackPawnAttacks[64];
-        U64 fBishopAttacks[64];
-        U64 fKingAttacks[64];
-        U64 fRookAttacks[64];
-        U64 fQueenAttacks[64];
+        U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
+        U64 fKnightAttacks[64]; ///< Bitboard giving all squares the knight attacks given LSB as input
+        U64 fWhitePawnAttacks[64]; ///< Bitboard giving all squares the white pawn attacks given LSB as input
+        U64 fBlackPawnAttacks[64]; ///< Bitboard giving all squares the black pawn attacks given LSB as input
+        U64 fBishopAttacks[64]; ///< Bitboard giving (un-blocked) attack rays of bishop at LSB
+        U64 fKingAttacks[64]; ///< Bitboard of king attacks at LSB position
+        U64 fRookAttacks[64]; ///< Bitboard of rook attacks (un-blocked) at LSB
+        U64 fQueenAttacks[64]; ///< Array of bitboards for queen attacks (un-blocked) at each LSB
 
         // Move tracking
         std::vector<Move> fLegalMoves;
         std::vector<Move> fMadeMoves; // Tracks each move made in the game
 
         // Game state variables
-        bool fGameIsOver;
-        bool fWhiteInCheckmate;
-        bool fBlackInCheckmate;
-        bool fWhiteHasCastled;
-        bool fBlackHasCastled;
-        bool fWhiteKingMoved;
-        bool fBlackKingMoved;
-        Color fColorToMove;
+        State fGameState; ///< Current state of play in the game e.g. stalemate
+        bool fWhiteHasCastled; ///< Whether white has castled
+        bool fBlackHasCastled; ///< Whether black has castled
+        bool fWhiteKingMoved; ///< True if the white king has moved
+        bool fBlackKingMoved; ///< True if the black king has moved
+        Color fColorToMove; ///< Current colour to make a move
 
         // Skipping functions
         bool fWasLoadedFromFEN;

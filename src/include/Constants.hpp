@@ -261,19 +261,42 @@ inline U64 get_file_from_number(int n) {
     }
 }
 
-enum class Color {
-    White,
-    Black
+
+/**
+ * @brief Enumeration describing different states of the chess game.
+ *
+ * Represents all possible game states: in-play, stalemate, draw or checkmate.
+ */
+enum class State {
+    Play,      ///< Game is in play.
+    Stalemate, ///< Game is stalemate.
+    Draw,      ///< Game is draw.
+    Checkmate  ///< Game is checkmate.
 };
 
+/**
+ * @brief Enumeration describing different piece colors.
+ *
+ * This enum class represents white and black colors.
+ */
+enum class Color {
+    White, ///< White color.
+    Black  ///< Black color.
+};
+
+/**
+ * @brief Enumeration for all different types of chess piece.
+ *
+ * Represents all possible chess pieces: pawn, bishop, knight, rook, queen and king. Also includes a Null piece to represent emptiness.
+ */
 enum class Piece {
-    Pawn,   // 0
-    Bishop, // 1
-    Knight, // 2
-    Rook,   // 3
-    Queen,  // 4
-    King,   // 5
-    Null,   // 6
+    Pawn,   ///< Pawn piece.
+    Bishop, ///< Bishop piece.
+    Knight, ///< Knight piece.
+    Rook,   ///< Rook piece.
+    Queen,  ///< Queen piece.
+    King,   ///< King piece.
+    Null,   ///< Null piece.
 };
 
 inline std::string GetPieceString(Piece piece) {
