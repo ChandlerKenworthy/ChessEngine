@@ -736,3 +736,30 @@ Piece Board::GetPieceFromChar(char c) {
         return Piece::Null;
     }
 }
+
+std::pair<Color, Piece> Board::GetIsOccupied(U64 pos) {
+    for(int iBoard = 0; iBoard < 12; iBoard++) {
+        if(pos & fBoards[iBoard]) {
+            Piece pieceType = Piece::Null;
+            int x;
+            if(iBoard >= 6)
+                x = iBoard - 6;
+
+            if(x == 0) {
+                pieceType = Piece::Pawn;
+            } else if(x == 1) {
+                pieceType = Piece::Bishop;
+            } else if(x == 2) {
+                pieceType = Piece::Knight;
+            } else if(x == 3) {
+                pieceType = Piece::Rook;
+            } else if(x == 4) {
+                pieceType = Piece::Queen;
+            } else if(x == 5) {
+                pieceType = Piece::King;
+            }
+            return std::make_pair(iBoard < 6 ? Color::White : Color::Black, pieceType);
+        }
+    }
+    return std::make_pair(Color::White, Piece::Null);
+}

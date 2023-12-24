@@ -14,9 +14,11 @@ class Renderer {
         ~Renderer();
         void Update(Board *board);
         bool GetWindowIsOpen() { return fWindow->isOpen(); };
-        void HandlePress(sf::Event *event);
+        void HandlePress(int rank, int file);
         void CloseWindow() { fWindow->close(); };
         bool PollEvent(sf::Event &event) { return fWindow->pollEvent(event); };
+        int GetWindowWidth() const { return fWindowWidth; };
+        float GetSquareSize() const { return (float)fWindowWidth / 8.; };
     private:
         const int fWindowWidth{800};
         const int fWindowHeight{800};

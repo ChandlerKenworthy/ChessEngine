@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "Game.hpp"
 
 Renderer::Renderer() : 
 fLightColor{sf::Color(255, 206, 158)}, 
@@ -6,7 +7,6 @@ fDarkColor{sf::Color(209, 139, 71)}, fYellowLightColor{sf::Color(245, 235, 138)}
 fYellowDarkColor{sf::Color(216, 196, 100)},
 fHighlightedSquares{} {
     fWindow = new sf::RenderWindow(sf::VideoMode(fWindowWidth, fWindowHeight), "Chess Board");
-    
     if (!fFont.loadFromFile("../assets/Roboto-Bold.ttf")) {
         // Handle the case where the font cannot be loaded
     }
@@ -22,11 +22,8 @@ void Renderer::Update(Board *board) {
     fWindow->display();
 };
 
-void Renderer::HandlePress(sf::Event *event) {
+void Renderer::HandlePress(int rank, int file) { // 0--7 range for both
     // Find the rank/file of the pressed square
-    const int squareSize = fWindowWidth / 8;
-    int rank = 8 - (event->mouseButton.y / (float)squareSize); // 0->7 range
-    int file = event->mouseButton.x / (float)squareSize; // 0->7 range
     // TODO: Highlight attack rays of the piece pressed
     for(int n = 0; n < fHighlightedSquares.size(); n++) {
         std::pair<int, int> *square = &fHighlightedSquares[n];

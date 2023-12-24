@@ -1,11 +1,13 @@
 #include "Game.hpp"
+#include "Renderer.hpp"
 
 Game::Game(bool useGUI, int maxDepth) {
     fBoard = Board();
     fEngine = std::make_unique<Engine>(true);
     fEngine->SetMaxDepth(maxDepth);
     fUseGUI = useGUI;
-    fGUI = std::make_unique<Renderer>();
+    fGUI = std::unique_ptr<Renderer>();
+    fIsDragging = false;
 }
 
 void Game::PrintEngineMove(Move move) {
@@ -19,14 +21,26 @@ void Game::PrintEngineMove(Move move) {
 
 void Game::Play(Color playerColor) {
     if(fUseGUI) {
+        std::cout << "Ye mam 1 \n";
         while(fGUI->GetWindowIsOpen()) {
             sf::Event event;
             while(fGUI->PollEvent(event)) {
                 if(event.type == sf::Event::Closed) {
                     fGUI->CloseWindow();
-                }
-                if(event.type == sf::Event::MouseButtonPressed) {
-                    fGUI->HandlePress(&event);
+                } else if(event.type == sf::Event::MouseButtonPressed) {
+                    int rank = 8 - (event.mouseButton.y / fGUI->GetSquareSize()); // 0->7 range
+                    int file = event.mouseButton.x / fGUI->GetSquareSize(); // 0->7 range
+                    U64 square = get_rank_from_number(rank + 1) & get_file_from_number(file + 1);
+                    if(fBoard.GetIsOccupied(square).second != Piece::Null) {
+                        fIsDragging = true;
+                        fDraggedPiece = fBoard.GetIsOccupied(square);
+                    }
+                    fGUI->HandlePress(rank, file);
+                } else if(event.type == sf::Event::MouseButtonReleased) {
+                    //fGUI->DropPiece(fDraggedPiece);
+                    fIsDragging = false;
+                } else if(event.type == sf::Event::MouseMoved && fIsDragging) {
+                    // Move the piece currently being dragged
                 }
             }
             fGUI->Update(&fBoard);

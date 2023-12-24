@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cctype>
+#include <utility>
 
 #include "Constants.hpp"
 
@@ -28,6 +29,7 @@ class Board {
         U64 GetBoard(Color color, Piece piece);
         U64* GetBoard(Color color, U64 occupiedPosition);
         U64 GetBoard(Color color); // Get occupation bitboard for all pieces of specified colour
+        std::pair<Color, Piece> GetIsOccupied(U64 pos);
         U64 GetJumpingPieceAttacks(Color attackingColor, Piece pieceType);
         U64 GetSlidingPieceAttacks(Color attackingColor, Piece pieceType);
         void GenerateLegalMoves();

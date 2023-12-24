@@ -22,6 +22,8 @@ class Game {
         //const std::unique_ptr<Board>& GetBoard() { return std::make_unique<Board>(fBoard); }
         Move GetUserMove();
         void PrintEngineMove(Move move);
+        void SetIsDragging(bool isDragging) { fIsDragging = isDragging; };
+        bool GetIsDragging() const { return fIsDragging; };
         Board GetBoard() const { return fBoard; };
     private:
         //#std::unique_ptr<Board> fBoard;
@@ -29,6 +31,8 @@ class Game {
         std::unique_ptr<Engine> fEngine;
         bool fUseGUI;
         std::unique_ptr<Renderer> fGUI;
+        bool fIsDragging;
+        std::pair<Color, Piece> fDraggedPiece;
 
         bool HandleBackCommand(Move& userMove);
 };
