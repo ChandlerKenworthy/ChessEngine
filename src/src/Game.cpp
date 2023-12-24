@@ -64,15 +64,14 @@ Move Game::GetUserMove() {
 
     Move userMove;
     bool wasBackOrExit = false;
+    bool gettingOrigin = true;
 
     auto convertUserInputToCoords = [](const std::string& input) -> int {
         return get_rank_from_number(input.back() - '0') & get_file_from_number((input.at(0) - 'A') + 1);
     };
 
-    while (!fBoard.GetMoveIsLegal(&userMove) && !wasBackOrExit) {
+    while(!(userMove.origin && userMove.target) && !wasBackOrExit) { // Need valid origin, target and not back/exit command
         std::string userText;
-        bool gettingOrigin = true;
-
         std::cout << "Enter " << (gettingOrigin ? "origin" : "target") << ": ";
         getline(std::cin, userText);
         std::transform(userText.begin(), userText.end(), userText.begin(), ::toupper);
