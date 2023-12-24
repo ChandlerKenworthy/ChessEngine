@@ -23,8 +23,6 @@ void Board::Reset() {
 
     fnMovesLastUpdate = -1;
     fGameState = State::Play;
-    fWhiteInCheckmate = false;
-    fBlackInCheckmate = false;
     fWhiteHasCastled = false; // Only whether castling has already been performed
     fBlackHasCastled = false;
     fWhiteKingMoved = false;
@@ -124,7 +122,7 @@ void Board::RemoveIllegalMoves() {
     // Check each move of fLegalMoves to see if, after being made the board is in a legal game state
     // if it is yay, if it is not remove the move
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
-        MakeMove(fLegalMoves[iMove]); // make the move
+        MakeMove(&fLegalMoves[iMove]); // make the move
         bool isLegal = GetBoardIsLegal();
         UndoMove(); // undo the move
         if(!isLegal) {
@@ -449,26 +447,23 @@ void Board::UndoMove() {
         Reset(); // Cannot undo more moves than exist in the move tree
     // Last move in the stack will be from player of opposing colour
     Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
-    for(int i = nMoves; i > 0; i--) {
-        Move m = fMadeMoves.back();
-        U64 movedPieceBoard = GetBoard(movingColor, m.piece);
-        clear_bit(movedPieceBoard, get_LSB(m.target)); // clear target bit on the relevant board
-        set_bit(movedPieceBoard, get_LSB(m.origin)); // set the origin bit on relevant board
-        SetBitBoard(movingColor, m.piece, movedPieceBoard);
-        if(m.takenPiece != Piece::Null) {
-            Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
-            U64 b = GetBoard(otherColor, m.takenPiece);
-            if(m.WasEnPassant) {
-                std::cout << "Wayyy i'm en passant\n";
-                // special case old bit-board already re-instated need to put piece back in correct place now
-                // crossing of the origin RANK and target FILE = taken piece position 
-                set_bit(b, get_LSB(get_rank(m.origin) & get_file(m.target)));
+    Move m = fMadeMoves.back();
+    U64 movedPieceBoard = GetBoard(movingColor, m.piece);
+    clear_bit(movedPieceBoard, get_LSB(m.target)); // clear target bit on the relevant board
+    set_bit(movedPieceBoard, get_LSB(m.origin)); // set the origin bit on relevant board
+    SetBoard(movingColor, m.piece, movedPieceBoard);
+    if(m.takenPiece != Piece::Null) {
+        Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
+        U64 b = GetBoard(otherColor, m.takenPiece);
+        if(m.WasEnPassant) {
+            // special case old bit-board already re-instated need to put piece back in correct place now
+            // crossing of the origin RANK and target FILE = taken piece position 
+            set_bit(b, get_LSB(get_rank(m.origin) & get_file(m.target)));
 
-            } else {
-                set_bit(b, get_LSB(m.target));
-            }
-            SetBitBoard(otherColor, m.takenPiece, b);
+        } else {
+            set_bit(b, get_LSB(m.target));
         }
+        SetBoard(otherColor, m.takenPiece, b);
         // TODO: king is in check etc
         fMadeMoves.pop_back();
         movingColor = movingColor == Color::White ? Color::Black : Color::White;
@@ -476,33 +471,33 @@ void Board::UndoMove() {
     fColorToMove = movingColor == Color::White ? Color::Black : Color::White;
 }
 
-void Board::MakeMove(Move move) {
+void Board::MakeMove(Move *move) {
     // 0. Get appropriate boards invovled
     // 1. Check move is legal
     // 2. make the move (update bitbsoards)
     // 3. if it was a special move e.g. castling update variables
     // 4. update who is to move
-    U64* originBoard = GetBoard(fColorToMove, move.origin);
+    U64* originBoard = GetBoard(fColorToMove, move->origin);
 
-    if(move.takenPiece != Piece::Null) {
+    if(move->takenPiece != Piece::Null) {
         Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
-        U64 targetBoard = GetBoard(otherColor, move.takenPiece);
-        if(move.WasEnPassant) {
-            clear_bit(targetBoard, get_LSB(get_rank(move.origin) & get_file(move.target)));
+        U64 targetBoard = GetBoard(otherColor, move->takenPiece);
+        if(move->WasEnPassant) {
+            clear_bit(targetBoard, get_LSB(get_rank(move->origin) & get_file(move->target)));
         } else {
-            clear_bit(targetBoard, get_LSB(move.target));
+            clear_bit(targetBoard, get_LSB(move->target));
         }
-        SetBitBoard(otherColor, move.takenPiece, targetBoard);
+        SetBoard(otherColor, move->takenPiece, targetBoard);
     }
 
     // Remove piece from the starting position
-    clear_bit(*originBoard, get_LSB(move.origin));
+    clear_bit(*originBoard, get_LSB(move->origin));
 
     // Set the piece at the new position
-    set_bit(*originBoard, get_LSB(move.target)); 
+    set_bit(*originBoard, get_LSB(move->target)); 
 
     // If moving a king set appropriate state variable
-    if(move.piece == Piece::King) {
+    if(move->piece == Piece::King) {
         if(fColorToMove == Color::White) {
             fWhiteKingMoved = true;
         } else {
@@ -510,23 +505,23 @@ void Board::MakeMove(Move move) {
         }
     }
 
-    if(move.WasCastling) { // Need to move the rook as well
+    if(move->WasCastling) { // Need to move the rook as well
         U64 rookBoard = GetBoard(fColorToMove, Piece::Rook);
         // See where the origin was (that tells us which rook needs moving and to where)
-        if(move.target & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)
+        if(move->target & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)
             clear_bit(rookBoard, get_LSB(RANK_1 & FILE_H));
             set_bit(rookBoard, get_LSB(RANK_1 & FILE_F));
-        } else if(move.target & RANK_1 & FILE_C) {  // Queenside white castling (rook a1 -> d1)
+        } else if(move->target & RANK_1 & FILE_C) {  // Queenside white castling (rook a1 -> d1)
             clear_bit(rookBoard, get_LSB(RANK_1 & FILE_A));
             set_bit(rookBoard, get_LSB(RANK_1 & FILE_D));
-        } else if(move.target & RANK_8 & FILE_G) {
+        } else if(move->target & RANK_8 & FILE_G) {
             clear_bit(rookBoard, get_LSB(RANK_8 & FILE_H));
             set_bit(rookBoard, get_LSB(RANK_8 & FILE_F));
-        } else if(move.target & RANK_8 & FILE_C) {
+        } else if(move->target & RANK_8 & FILE_C) {
             clear_bit(rookBoard, get_LSB(RANK_8 & FILE_A));
             set_bit(rookBoard, get_LSB(RANK_8 & FILE_D));
         }
-        SetBitBoard(fColorToMove, Piece::Rook, rookBoard);
+        SetBoard(fColorToMove, Piece::Rook, rookBoard);
         if(fColorToMove == Color::White) {
             fWhiteHasCastled = true;
         } else {
@@ -535,7 +530,7 @@ void Board::MakeMove(Move move) {
     }
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
-    fMadeMoves.push_back(move);
+    fMadeMoves.push_back(*move);
     
     // TODO: Was the product of making this move a check, is the game over?
     //if(IsUnderAttack(GetBoard(fColorToMove, Piece::King), fColorToMove == Color::White ? Color::Black : Color::White)) {
@@ -571,7 +566,7 @@ U64 Board::GetBoard(Color color, Piece piece) {
     return fBoards[(int)piece + 6];
 }
 
-void Board::SetBitBoard(Color color, Piece piece, U64 board) {
+void Board::SetBoard(Color color, Piece piece, U64 board) {
     if(color == Color::White) {
         fBoards[(int)piece] = board;
     } else {
@@ -673,7 +668,7 @@ void Board::EmptyBoards() {
     }
 }
 
-bool Board::LoadFEN(const std::string &fen) {
+void Board::LoadFEN(const std::string &fen) {
     Reset();
     EmptyBoards();
 
@@ -685,7 +680,6 @@ bool Board::LoadFEN(const std::string &fen) {
     bool blackCanCastle = false;
 
     for (char c : fen) {
-        
         if (file > 8) {
             file = 1;
             rank--;
@@ -702,9 +696,8 @@ bool Board::LoadFEN(const std::string &fen) {
             } else {
                 U64 pos = get_rank_from_number(rank) & get_file_from_number(file);
                 Color pieceColor = (isupper(c)) ? Color::White : Color::Black;
-                U64 board = GetBoard(pieceColor, GetPieceFromChar(c));
-                board |= pos;
-                SetBitBoard(pieceColor, GetPieceFromChar(c), board);
+                U64 board = GetBoard(pieceColor, GetPieceFromChar(c)) | pos;
+                SetBoard(pieceColor, GetPieceFromChar(c), board);
                 file++;
             }
         } else if (c == ' ') {
@@ -715,25 +708,6 @@ bool Board::LoadFEN(const std::string &fen) {
     fWhiteHasCastled = !whiteCanCastle;
     fBlackHasCastled = !blackCanCastle;
     fWasLoadedFromFEN = true;
-}
-
-Piece Board::GetPieceFromChar(char c) {
-    c = toupper(c);
-    if(c == 'N') {
-        return Piece::Knight;
-    } else if(c == 'K') {
-        return Piece::King;
-    } else if(c == 'P') { 
-        return Piece::Pawn;
-    } else if(c == 'Q') {
-        return Piece::Queen;
-    } else if(c == 'R') {
-        return Piece::Rook;
-    } else if(c == 'B') {
-        return Piece::Bishop;
-    } else {
-        return Piece::Null;
-    }
 }
 
 std::pair<Color, Piece> Board::GetIsOccupied(U64 pos) {

@@ -207,14 +207,14 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
     // Returns the maximum / minimum evaluation of a given position
     if(depth > fMaxDepth)
         depth = fMaxDepth;
-    if(board.GetGameIsOver() || depth == 0)
+    if(board.GetState() != State::Play || depth == 0)
         return Evaluate(board); // Return static evaluation of the current board
     if(maximisingPlayer == Color::White) {
         float maxEval = -99999.;
         board.GenerateLegalMoves();
         for(Move move : board.GetLegalMoves()) { // iterate through all possible moves for white in current position
             // Make the move, send a copy of the board down
-            board.MakeMove(move);
+            board.MakeMove(&move);
             float eval = Minimax(board, depth - 1, alpha, beta, Color::Black); // child is board after the move is made
             maxEval = std::max(maxEval, eval);
             alpha = std::max(alpha, eval);
@@ -227,7 +227,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
         float minEval = 99999.;
         board.GenerateLegalMoves();
         for(Move move : board.GetLegalMoves()) {
-            board.MakeMove(move);
+            board.MakeMove(&move);
             float eval = Minimax(board, depth - 1, alpha, beta, Color::White);
             minEval = std::min(minEval, eval);
             beta = std::min(beta, eval);

@@ -33,22 +33,6 @@ const float VALUE_ROOK = 500;
 const float VALUE_QUEEN = 900;
 const float VALUE_KING = 99999;
 
-/**
- * @struct Move
- * @brief Represents a move.
- * 
- * The Move struct provides a representation and grouping of all parameters required to specify a chess move.
- * It includes information about the piece being moved, from where, to where and whether it was a special move. For example en-passant or castling.
- */
-struct Move {
-    U64 origin;
-    U64 target;
-    Piece piece;
-    Piece takenPiece{ Piece::Null };
-    bool WasEnPassant{ false };
-    bool WasCastling{ false };
-};
-
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);
     b &= b - 1;
@@ -299,6 +283,22 @@ enum class Piece {
     Null,   ///< Null piece.
 };
 
+/**
+ * @struct Move
+ * @brief Represents a move.
+ * 
+ * The Move struct provides a representation and grouping of all parameters required to specify a chess move.
+ * It includes information about the piece being moved, from where, to where and whether it was a special move. For example en-passant or castling.
+ */
+struct Move {
+    U64 origin;
+    U64 target;
+    Piece piece;
+    Piece takenPiece{ Piece::Null };
+    bool WasEnPassant{ false };
+    bool WasCastling{ false };
+};
+
 inline std::string GetPieceString(Piece piece) {
     switch(piece) {
     case Piece::Pawn:
@@ -322,6 +322,25 @@ inline std::string GetPieceString(Piece piece) {
     default:
         return "Error piece does not exist";
         break;
+    }
+}
+
+inline Piece GetPieceFromChar(char c) {
+    c = toupper(c);
+    if(c == 'N') {
+        return Piece::Knight;
+    } else if(c == 'K') {
+        return Piece::King;
+    } else if(c == 'P') { 
+        return Piece::Pawn;
+    } else if(c == 'Q') {
+        return Piece::Queen;
+    } else if(c == 'R') {
+        return Piece::Rook;
+    } else if(c == 'B') {
+        return Piece::Bishop;
+    } else {
+        return Piece::Null;
     }
 }
 

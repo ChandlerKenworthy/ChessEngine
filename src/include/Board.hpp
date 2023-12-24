@@ -115,6 +115,13 @@ class Board {
         int fnMovesLastUpdate;
 
         // Internal methods
+
+        /**
+         * @brief Set all internal bitboards describing the chess board to zero (empty boards)
+        */
+        void EmptyBoards();
+
+        // Undocumented/to be moved
         Piece GetPiece(Color color, U64 position);
         bool IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor);
         bool IsUnderAttack(U64 squares, Color attackingColor);
@@ -136,8 +143,6 @@ class Board {
         void AddCastling();
         void RemoveIllegalMoves();
         bool GetBoardIsLegal();
-        void EmptyBoards();
-        Piece GetPieceFromChar(char c);
         
 };
 
