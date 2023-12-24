@@ -1,3 +1,8 @@
+/**
+ * @file Board.hpp
+ * @brief Definition of the Board class and Move struct.
+ */
+
 #ifndef BOARD_HPP
 #define BOARD_HPP
 
@@ -7,11 +12,6 @@
 #include <utility>
 
 #include "Constants.hpp"
-
-/**
- * @file Board.hpp
- * @brief Definition of the Board class and Move struct.
- */
 
 /**
  * @class Board

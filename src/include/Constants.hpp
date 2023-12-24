@@ -15,7 +15,13 @@
 #define get_LSB(b) (__builtin_ctzll(b))
 #define get_MSB(b) (__builtin_clzll(b))
 
+/**
+ * @brief Typedef for U64 using unsigned long long.
+ *
+ * Using unsigned long long provides a 64-bit integer. Each bit can be considered a square on the chess board.
+ */
 typedef unsigned long long U64;
+
 const int SQUARES = 64;
 const int BITS_PER_FILE = 8;
 const int MIN_MOVES_FOR_CASTLING = 6;
