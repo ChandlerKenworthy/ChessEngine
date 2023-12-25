@@ -25,6 +25,7 @@ typedef unsigned long long U64;
 const int NSQUARES = 64;
 const int BITS_PER_FILE = 8;
 const int MIN_MOVES_FOR_CASTLING = 6;
+const int MIN_MOVES_FOR_ENPASSANT = 3;
 
 const float VALUE_PAWN = 100; // centi-pawn value
 const float VALUE_BISHOP = 300;

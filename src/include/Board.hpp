@@ -69,16 +69,48 @@ class Board {
          * @brief Loads a chess position from the FEN notation.
         */
         void LoadFEN(const std::string &fen);
-
-        //////// >>>>> Move, document and refactor into Engine <<<<<<<
+        /**
+         * @brief Get whether a position on the board is occupied.
+         * @param pos The position on the board to check.
+         * @return The color and piece of the occupying piece (if any) else Null piece is given.
+        */
         std::pair<Color, Piece> GetIsOccupied(U64 pos);
-        U64 GetJumpingPieceAttacks(Color attackingColor, Piece pieceType);
-        U64 GetSlidingPieceAttacks(Color attackingColor, Piece pieceType);
-        void GenerateLegalMoves();
-        bool GetMoveIsLegal(Move* move);
-        std::vector<Move> GetLegalMoves() { return fLegalMoves; };
-        //////// >>>>> Move, document and refactor into Engine <<<<<<<
-                
+        /**
+            * @brief Get the number of completed moves (i.e. the ply)
+        */
+        int GetNMovesMade() { return fMadeMoves.size(); };
+        /**
+         * @brief True if the white king has moved
+        */
+        bool GetWhiteKingMoved() { return fWhiteKingMoved; };
+        /**
+         * @brief True if the black king has moved
+        */
+        bool GetBlackKingMoved() { return fBlackKingMoved; };
+        /**
+         * @brief True if the white kingside rook has moved
+        */
+        bool GetWhiteKingsideRookMoved() { return fWhiteKingsideRookMoved; };
+        /**
+         * @brief True if the white queenside rook has moved
+        */
+        bool GetWhiteQueensideRookMoved() { return fWhiteQueensideRookMoved; };
+        /**
+         * @brief True if the black kingside rook has moved
+        */
+        bool GetBlackKingsideRookMoved() { return fBlackKingsideRookMoved; };
+        /**
+         * @brief True if the black queenside rook has moved
+        */
+        bool GetBlackQueensideRookMoved() { return fBlackQueensideRookMoved; };
+        /**
+         * @brief Get the integer incremented everytime the board changes (+1 even for undo)
+        */
+        int GetUnique() { return fUnique; };
+        /**
+         * @brief Get a pointer to the last move made on the board.
+        */
+        Move* GetLastMove() { return fMadeMoves.size() > 0 ? &fMadeMoves.back() : nullptr; }
         /**
          * @brief Clears all game state variables and put pieces in starting position.
          * @param color The color of the piece.
@@ -93,23 +125,24 @@ class Board {
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
 
+        int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
+
         // Move tracking
         std::vector<Move> fLegalMoves;
         std::vector<Move> fMadeMoves; // Tracks each move made in the game
 
         // Game state variables
         State fGameState; ///< Current state of play in the game e.g. stalemate
-        bool fWhiteHasCastled; ///< Whether white has castled
-        bool fBlackHasCastled; ///< Whether black has castled
         bool fWhiteKingMoved; ///< True if the white king has moved
         bool fBlackKingMoved; ///< True if the black king has moved
+        bool fWhiteKingsideRookMoved; ///< True if the white kingside rook has moved
+        bool fWhiteQueensideRookMoved; ///< True if the white queenside rook has moved
+        bool fBlackKingsideRookMoved; ///< True if the black kingside rook has moved
+        bool fBlackQueensideRookMoved; ///< True if the black queenside rook has moved
         Color fColorToMove; ///< Current colour to make a move
 
         // Skipping functions
         bool fWasLoadedFromFEN;
-        int fnMovesLastUpdate;
-
-        // Internal methods
 
         /**
          * @brief Set all internal bitboards describing the chess board to zero (empty boards)
@@ -118,17 +151,6 @@ class Board {
 
         // Undocumented/to be moved
         Piece GetPiece(Color color, U64 position);
-        bool IsCastlingPossible(U64 occupancy, U64 castlingMask, Color attackingColor);
-        bool IsUnderAttack(U64 squares, Color attackingColor);
-        void FillPseudoKnightMoves(U64 ownPieces, U64 otherPieces);
-        void FillPseudoKingMoves(U64 otherPieces);
-        void FillPseudoRookMoves(U64 ownPieces, U64 otherPieces);
-        void FillPseudoBishopMoves(U64 ownPieces, U64 otherPieces);
-        void FillPseudoQueenMoves(U64 otherPieces);
-        void FillPseudoPawnMoves(U64 ownPieces, U64 otherPieces);
-        void GeneratePseudoLegalMoves();
-        void AddEnPassant();
-        void AddCastling();
         void RemoveIllegalMoves();
         bool GetBoardIsLegal();
         

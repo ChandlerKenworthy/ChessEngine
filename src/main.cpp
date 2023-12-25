@@ -2,6 +2,7 @@
 
 #include "Board.hpp"
 #include "Renderer.hpp"
+#include "Engine.hpp"
 
 int main() {
     //Game myGame = Game(true, 4); // use false to toggle off the GUI, max depth = 10
@@ -9,6 +10,7 @@ int main() {
 
     const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();
+    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
 
     std::pair<Color, Piece> selectedPiece = std::make_pair(Color::White, Piece::Null);
     U64 pieceTile = 0;
@@ -30,11 +32,17 @@ int main() {
                     // TODO: This should actually call the MakeMove function of board...
                     // since that will properly handle move legality and capturing etc.
                     if(selectedPiece.second != Piece::Null) {
-                        U64 currBoard = b->GetBoard(selectedPiece.first, selectedPiece.second);
-                        // take selected piece position and move to selectedTile
-                        clear_bit(currBoard, get_LSB(pieceTile));
-                        set_bit(currBoard, get_LSB(selectedTile));
-                        b->SetBoard(selectedPiece.first, selectedPiece.second, currBoard);
+                        engine->GenerateLegalMoves(b);
+                        Move userMove = Move{pieceTile, selectedTile, selectedPiece.second};
+                        PrintBitset(b->GetBoard(Color::White, Piece::Pawn));
+                        PrintBitset(pieceTile);
+                        PrintBitset(selectedTile);
+                        if(engine->GetMoveIsLegal(&userMove)) {
+                            b->MakeMove(&userMove);
+                        } else {
+                            std::cout << "Move was found to be illegal!\n";
+                        }
+                        PrintBitset(b->GetBoard(Color::White, Piece::Pawn));
                     }
                     selectedPiece = std::make_pair(Color::White, Piece::Null);
                     pieceTile = 0;
