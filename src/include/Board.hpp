@@ -119,7 +119,7 @@ class Board {
         */
         Move* GetLastMove() { return fMadeMoves.size() > 0 ? &fMadeMoves.back() : nullptr; }
         /**
-         * @brief Clears all game state variables and put pieces in starting position.
+         * @brief Overwrite the bitboard for the specified piece and colour with a new bitboard.
          * @param color The color of the piece.
          * @param piece The type of the piece.
          * @param board The bit-board to overwrite the existing bitboard
