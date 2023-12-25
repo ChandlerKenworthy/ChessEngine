@@ -104,6 +104,7 @@ void Board::MakeMove(Move *move) {
     }
 
     if(move->WasCastling) { // Need to move the rook as well
+        std::cout << "Detected castling move\n";
         U64 *rook = GetBoardPointer(fColorToMove, Piece::Rook);
         // See where the origin was (that tells us which rook needs moving and to where)
         if(move->target & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)

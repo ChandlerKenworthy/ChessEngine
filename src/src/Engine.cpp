@@ -75,12 +75,17 @@ void Engine::BuildKingAttackTable(const U64 pos) {
 
 void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     // Legal moves have already been calculated for this board configuration, don't recalculate
-    if(fLastUnique == board->GetUnique())
+    if(fLastUnique == board->GetUnique()) {
+        std::cout << "Skipping, no changes since last calculation\n";
         return;
+    }
     fLegalMoves.clear();
     GeneratePseudoLegalMoves(board);
+    std::cout << "generated pseudo legal\n";
     GenerateCastlingMoves(board);
+    std::cout << "generated castling\n";
     GenerateEnPassantMoves(board);
+    std::cout << "generated en-passant\n";
     // TODO: Prune out the illegal moves
 
     fLastUnique = board->GetUnique();
@@ -195,7 +200,7 @@ bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr
     U64 bishops = board->GetBoard(attackingColor, Piece::Bishop);
     while(bishops) {
         U64 bishop = 0;
-        uint8_t lsb = pop_LSB(bishop);
+        uint8_t lsb = pop_LSB(bishops);
         set_bit(bishop, lsb);
         attacks |= (hypQuint(bishop, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, occ, fSecondaryDiagonalAttacks[lsb]));
     }
@@ -204,7 +209,7 @@ bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr
     U64 rooks = board->GetBoard(attackingColor, Piece::Rook);
     while(rooks) {
         U64 rook = 0;
-        uint8_t lsb = pop_LSB(rook);
+        uint8_t lsb = pop_LSB(rooks);
         set_bit(rook, lsb);
         attacks |= (hypQuint(rook, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb]));
     }
@@ -213,7 +218,7 @@ bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr
     U64 queens = board->GetBoard(attackingColor, Piece::Queen);
     while(queens) {
         U64 queen = 0;
-        uint8_t lsb = pop_LSB(queen);
+        uint8_t lsb = pop_LSB(queens);
         set_bit(queen, lsb);
         attacks |= (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb]));
     }
