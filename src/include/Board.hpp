@@ -38,6 +38,13 @@ class Board {
          */
         U64 GetBoard(Color color, Piece piece);
         /**
+         * @brief Get a pointer to the bitboard associated with a particular colour and type of piece.
+         * @param color The color of the piece(s).
+         * @param piece The type of the piece.
+         * @return U64*, pointer to the bitboard containing the abstract representation of the piece positions.
+        */
+        U64* GetBoardPointer(Color color, Piece piece);
+        /**
          * @brief Get occupation bitboard for all pieces of specified colour.
          * @param color The color whose logical or of bitboards is required.
          * @return U64, the bitboard containing the abstract representation of all pieces of color.

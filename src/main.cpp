@@ -25,24 +25,19 @@ int main() {
                 selectedTile = gui->GetClickedSquare(event);
                 // User clicked on a piece (not an empty square)
                 std::pair<Color, Piece> clickedPosition = b->GetIsOccupied(selectedTile);
-                if(clickedPosition.second != Piece::Null) { // set-bit on the bitboard of occupation
+                if(clickedPosition.second != Piece::Null && clickedPosition.first == b->GetColorToMove()) { // set-bit on the bitboard of occupation
                     selectedPiece = clickedPosition;
                     pieceTile = selectedTile;
-                } else { // User clicked on an empty square
-                    // TODO: This should actually call the MakeMove function of board...
-                    // since that will properly handle move legality and capturing etc.
+                } else { // User clicked on an empty square/enemy piece
                     if(selectedPiece.second != Piece::Null) {
                         engine->GenerateLegalMoves(b);
                         Move userMove = Move{pieceTile, selectedTile, selectedPiece.second};
-                        PrintBitset(b->GetBoard(Color::White, Piece::Pawn));
-                        PrintBitset(pieceTile);
-                        PrintBitset(selectedTile);
                         if(engine->GetMoveIsLegal(&userMove)) {
+                            std::cout << "Make move was called\n";
                             b->MakeMove(&userMove);
                         } else {
                             std::cout << "Move was found to be illegal!\n";
                         }
-                        PrintBitset(b->GetBoard(Color::White, Piece::Pawn));
                     }
                     selectedPiece = std::make_pair(Color::White, Piece::Null);
                     pieceTile = 0;

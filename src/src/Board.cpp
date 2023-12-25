@@ -78,31 +78,58 @@ void Board::UndoMove() {
 }
 
 void Board::MakeMove(Move *move) {
-    // 0. Get appropriate boards invovled
-    // 1. Check move is legal
-    // 2. make the move (update bitbsoards)
-    // 3. if it was a special move e.g. castling update variables
-    // 4. update who is to move
-    U64 originBoard = GetBoard(fColorToMove, move->origin);
+    // Change position of moved piece
+    // Take away any taken pieces
+    // Move rook if castling was involved
+    // Update king/rook has moved if either of these were moved
+    // Update made moves and unique counters
 
-    if(move->takenPiece != Piece::Null) {
-        Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
-        U64 targetBoard = GetBoard(otherColor, move->takenPiece);
-        if(move->WasEnPassant) {
-            clear_bit(targetBoard, get_LSB(get_rank(move->origin) & get_file(move->target)));
-        } else {
-            clear_bit(targetBoard, get_LSB(move->target));
-        }
-        SetBoard(otherColor, move->takenPiece, targetBoard);
-    }
-
+    U64 *origin = GetBoardPointer(fColorToMove, move->piece);
+    
     // Remove piece from the starting position
-    clear_bit(originBoard, get_LSB(move->origin));
+    clear_bit(*origin, get_LSB(move->origin));
 
     // Set the piece at the new position
-    set_bit(originBoard, get_LSB(move->target)); 
+    set_bit(*origin, get_LSB(move->target));
 
-    // If moving a king set appropriate state variable
+    // Handle pieces being taken
+    if(move->takenPiece != Piece::Null) {
+        U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, move->takenPiece);
+        // Check, move could be en-passant
+        if(move->WasEnPassant) {
+            clear_bit(*targ, get_LSB(get_rank(move->origin) & get_file(move->target)));
+        } else {
+            clear_bit(*targ, get_LSB(move->target));
+        }
+    }
+
+    if(move->WasCastling) { // Need to move the rook as well
+        U64 *rook = GetBoardPointer(fColorToMove, Piece::Rook);
+        // See where the origin was (that tells us which rook needs moving and to where)
+        if(move->target & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)
+            clear_bit(*rook, get_LSB(RANK_1 & FILE_H));
+            set_bit(*rook, get_LSB(RANK_1 & FILE_F));
+            fWhiteKingsideRookMoved = true;
+        } else if(move->target & RANK_1 & FILE_C) {  // Queenside white castling (rook a1 -> d1)
+            clear_bit(*rook, get_LSB(RANK_1 & FILE_A));
+            set_bit(*rook, get_LSB(RANK_1 & FILE_D));
+            fWhiteQueensideRookMoved = true;
+        } else if(move->target & RANK_8 & FILE_G) { // Kingside black castling
+            clear_bit(*rook, get_LSB(RANK_8 & FILE_H));
+            set_bit(*rook, get_LSB(RANK_8 & FILE_F));
+            fBlackKingsideRookMoved = true;
+        } else if(move->target & RANK_8 & FILE_C) { // Queenside black castling
+            clear_bit(*rook, get_LSB(RANK_8 & FILE_A));
+            set_bit(*rook, get_LSB(RANK_8 & FILE_D));
+            fBlackQueensideRookMoved = true;
+        }
+        if(fColorToMove == Color::White) {
+            fWhiteKingMoved = true;
+        } else {
+            fBlackKingMoved = true;
+        }
+    }
+
     if(move->piece == Piece::King) {
         if(fColorToMove == Color::White) {
             fWhiteKingMoved = true;
@@ -111,41 +138,27 @@ void Board::MakeMove(Move *move) {
         }
     }
 
-    if(move->WasCastling) { // Need to move the rook as well
-        U64 rookBoard = GetBoard(fColorToMove, Piece::Rook);
-        // See where the origin was (that tells us which rook needs moving and to where)
-        if(move->target & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)
-            clear_bit(rookBoard, get_LSB(RANK_1 & FILE_H));
-            set_bit(rookBoard, get_LSB(RANK_1 & FILE_F));
-        } else if(move->target & RANK_1 & FILE_C) {  // Queenside white castling (rook a1 -> d1)
-            clear_bit(rookBoard, get_LSB(RANK_1 & FILE_A));
-            set_bit(rookBoard, get_LSB(RANK_1 & FILE_D));
-        } else if(move->target & RANK_8 & FILE_G) {
-            clear_bit(rookBoard, get_LSB(RANK_8 & FILE_H));
-            set_bit(rookBoard, get_LSB(RANK_8 & FILE_F));
-        } else if(move->target & RANK_8 & FILE_C) {
-            clear_bit(rookBoard, get_LSB(RANK_8 & FILE_A));
-            set_bit(rookBoard, get_LSB(RANK_8 & FILE_D));
-        }
-        SetBoard(fColorToMove, Piece::Rook, rookBoard);
+    if(move->piece == Piece::Rook) { // TODO: Implement this properly
         if(fColorToMove == Color::White) {
-            //fWhiteHasCastled = true;
+            if(move->origin & FILE_A) {
+                fWhiteQueensideRookMoved = true;
+            } else if(move->origin & FILE_H) {
+                fWhiteKingsideRookMoved = true;
+            }
         } else {
-            //fBlackHasCastled = true;
+            if(move->origin & FILE_A) {
+                fBlackQueensideRookMoved = true;
+            } else if(move->origin & FILE_H) {
+                fBlackKingsideRookMoved = true;
+            }
         }
     }
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(*move);
     fUnique++;
-    
-    // TODO: Was the product of making this move a check, is the game over?
-    //if(IsUnderAttack(GetBoard(fColorToMove, Piece::King), fColorToMove == Color::White ? Color::Black : Color::White)) {
-        // Move was made that has placed the new fColorToMove into a position of check...
-        //std::cout << "Check!\n";
-        // Now must check the set of legal moves, if it is zero it is checkmate!
-        // Not sure generate legal moves will correctly handle this yet...
-    //}
+
+    // TODO: Check if game is over or not
 }
 
 U64 Board::GetBoard(Color color, U64 occupiedPosition) {
@@ -171,6 +184,12 @@ U64 Board::GetBoard(Color color, Piece piece) {
     if(color == Color::White)
         return fBoards[(int)piece];
     return fBoards[(int)piece + 6];
+}
+
+U64* Board::GetBoardPointer(Color color, Piece piece) {
+    if(color == Color::White)
+        return &fBoards[(int)piece];
+    return &fBoards[(int)piece + 6];
 }
 
 void Board::SetBoard(Color color, Piece piece, U64 board) {

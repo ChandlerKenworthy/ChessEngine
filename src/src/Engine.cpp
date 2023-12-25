@@ -363,7 +363,9 @@ bool Engine::GetMoveIsLegal(Move* move) {
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
         Move* legalMove = &fLegalMoves[iMove];
         if((legalMove->origin & move->origin) && (legalMove->target & move->target)) {
-            // TODO: Update the move here i.e. was castling/en-passant etc..
+            move->WasCastling = legalMove->WasCastling;
+            move->WasEnPassant = legalMove->WasEnPassant;
+            move->takenPiece = legalMove->takenPiece;
             return true;
         }
     }
