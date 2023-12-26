@@ -4,177 +4,502 @@
 
 #include "Engine.hpp"
 
-Engine::Engine(bool init) {
+Engine::Engine(const bool init) {
     fMaxDepth = 3;
-    if(init) Initalize();
+    fLastUnique = -1;
+    if(init) 
+        Prepare();
 }
 
-void Engine::Initalize() {
-    // Load the positional arrays
-    std::ifstream whitePawns("../src/data/whitePawns.txt");
-    int i = 63;
-    for(std::string line; getline(whitePawns, line, ' ');) {
-        fWhitePawnPos[i] = std::stof(line);
-        i--;
+void Engine::Prepare() {
+    for(int iBit = 0; iBit < NSQUARES; iBit++) {
+        U64 pos = 0; // TODO: Must be a better way to do this e.g. a one-liner
+        set_bit(pos, iBit);
+        BuildPawnAttackTables(pos);
+        BuildKnightAttackTable(pos);
+        BuildKingAttackTable(pos);
+        BuildStraightAttackTables(pos);
+        BuildDiagonalAttackTables(pos);
     }
-    whitePawns.close();
+}
 
-    std::ifstream blackPawns("../src/data/blackPawns.txt");
-    i = 63;
-    for(std::string line; getline(blackPawns, line, ' ');) {
-        fBlackPawnPos[i] = std::stof(line);
-        i--;
+void Engine::BuildPawnAttackTables(const U64 pos) {
+    // Note this does not include special pawn moves like en-passant or promotion
+    U64 attacks = 0;
+    uint8_t lsb = get_LSB(pos);
+    // White pawn case (attacks in a northern direction)
+    attacks |= north(pos);
+    if(pos & RANK_2)
+        attacks |= north(north(pos)); // Assumes nothing blocking the pawns path
+    fWhitePawnForwardAttacks[lsb] = attacks;
+    // Only valid when occupied by enemy piece aas these are taking moves
+    fWhitePawnDiagonalAttacks[lsb] = north_east(pos) | north_west(pos);
+
+    attacks = 0; // Now case for the black pawn attacking in a southern direction
+    attacks |= south(pos);
+    if(pos & RANK_7)
+        attacks |= south(south(pos));
+    fBlackPawnForwardAttacks[lsb] = attacks;
+    fBlackPawnDiagonalAttacks[lsb] = south_east(pos) | south_west(pos);
+}
+
+void Engine::BuildKnightAttackTable(const U64 pos) {
+    // TODO: Check pos has exactly 1 on bit
+    fKnightAttacks[get_LSB(pos)] = north(north_east(pos)) | north(north_west(pos)) | south(south_east(pos)) | south(south_west(pos)) | east(north_east(pos)) | east(south_east(pos)) | west(north_west(pos)) | west(south_west(pos));
+}
+
+void Engine::BuildDiagonalAttackTables(const U64 pos) {
+    // Vertical distance from primary diagonal is just abs(x - y) (zero indexed)
+    // negative value = shift primary DOWN, positive value = shift primary UP
+    // Vertical distance from the primary diagonal
+    int dPrimaryDiag = (get_file_number(pos) - 1) - (8 - get_rank_number(pos));
+    // Vertical distance from the secondary diagonal
+    int dSecondaryDiag = (8 - get_file_number(pos)) - (8 - get_rank_number(pos));
+
+    U64 primaryAttacks = dPrimaryDiag > 0 ? PRIMARY_DIAGONAL << (abs(dPrimaryDiag) * 8) : PRIMARY_DIAGONAL >> (abs(dPrimaryDiag) * 8);
+
+    U64 secondaryAttacks = dSecondaryDiag > 0 ? SECONDARY_DIAGONAL << (abs(dSecondaryDiag) * 8) : SECONDARY_DIAGONAL >> (abs(dSecondaryDiag) * 8);
+
+    fPrimaryDiagonalAttacks[get_LSB(pos)] = primaryAttacks ^ pos;
+    fSecondaryDiagonalAttacks[get_LSB(pos)] = secondaryAttacks ^ pos;
+}
+
+void Engine::BuildStraightAttackTables(const U64 pos) {
+    fPrimaryStraightAttacks[get_LSB(pos)] = get_rank(pos) ^ pos;
+    fSecondaryStraightAttacks[get_LSB(pos)] = get_file(pos) ^ pos;
+}
+
+void Engine::BuildKingAttackTable(const U64 pos) {
+    fKingAttacks[get_LSB(pos)] = north(pos) | east(pos) | west(pos) | south(pos) | north_east(pos) | north_west(pos) | south_east(pos) | south_west(pos);
+}
+
+void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
+    // Legal moves have already been calculated for this board configuration, don't recalculate
+    if(fLastUnique == board->GetUnique()) {
+        return;
     }
-    blackPawns.close();
+    fLegalMoves.clear();
+    GeneratePseudoLegalMoves(board);
+    GenerateCastlingMoves(board);
+    GenerateEnPassantMoves(board);
+    // TODO: Prune out the illegal moves, e.g. leaving your own king in check
+    StripIllegalMoves(board);
+    fLastUnique = board->GetUnique();
+}
 
-    std::ifstream whiteQueen("../src/data/whiteQueen.txt");
-    i = 63;
-    for(std::string line; getline(whiteQueen, line, ' ');) {
-        fWhiteQueenPos[i] = std::stof(line);
-        i--;
-    }
-    whiteQueen.close();
+void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
+    // IsUnderAttack(mask, attackingColor, board);
+    // Check all the illegal moves, do they result in your own king being in check?
 
-    std::ifstream blackQueen("../src/data/blackQueen.txt");
-    i = 63;
-    for(std::string line; getline(blackQueen, line, ' ');) {
-        fBlackQueenPos[i] = std::stof(line);
-        i--;
-    }
-    blackQueen.close();
-
-    std::ifstream whiteRook("../src/data/whiteRook.txt");
-    i = 63;
-    for(std::string line; getline(whiteRook, line, ' ');) {
-        fWhiteRookPos[i] = std::stof(line);
-        i--;
-    }
-    whiteRook.close();
-
-    std::ifstream blackRook("../src/data/blackRook.txt");
-    i = 63;
-    for(std::string line; getline(blackRook, line, ' ');) {
-        fBlackRookPos[i] = std::stof(line);
-        i--;
-    }
-    blackRook.close();
-
-    std::ifstream whiteBishop("../src/data/whiteBishop.txt");
-    i = 63;
-    for(std::string line; getline(whiteBishop, line, ' ');) {
-        fWhiteBishopPos[i] = std::stof(line);
-        i--;
-    }
-    whiteBishop.close();
-
-    std::ifstream blackBishop("../src/data/blackBishop.txt");
-    i = 63;
-    for(std::string line; getline(blackBishop, line, ' ');) {
-        fBlackBishopPos[i] = std::stof(line);
-        i--;
-    }
-    blackBishop.close();
-
+    const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
+    const U64 underAttack = GetAttacks(board, otherColor); // TODO: Doesn't take into account pinning of other pieces
+    // by your current pieces
+    const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
     
-    std::ifstream whiteKnight("../src/data/whiteKnight.txt");
-    i = 63;
-    for(std::string line; getline(whiteKnight, line, ' ');) {
-        fWhiteKnightPos[i] = std::stof(line);
-        i--;
+    std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and attacking piece (so check for capture else prune the move)
+    for(Direction d : DIRECTIONS) {
+        AddAbolsutePins(board, &pinnedPieces, d);
     }
-    whiteRook.close();
+    const U64 pinnedPositions = std::accumulate(
+        pinnedPieces.begin(), pinnedPieces.end(), U64(0),
+        [](U64 acc, const std::pair<U64, U64>& p) {
+            return acc | p.first;
+        }
+    );
+    
+    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
+        Move* m = &fLegalMoves[iMove];
+        bool isIllegal = false;
 
-    std::ifstream blackKnight("../src/data/blackKnight.txt");
-    i = 63;
-    for(std::string line; getline(blackKnight, line, ' ');) {
-        fBlackKnightPos[i] = std::stof(line);
-        i--;
+        // King cant move to squares the opponent attacks
+        if((m->piece == Piece::King) && (m->target & underAttack)) {
+            isIllegal = true;
+        // Absolutely pinned pieces may not move, unless it is a capture of that piece
+        } else if(pinnedPositions & m->origin) { 
+            // Piece originates from a pinned position
+            bool isLegal = false;
+            for(auto pins : pinnedPieces) {
+                if(m->target & pins.second)
+                    isLegal = true; // Pieces move was to capture pinning piece
+            }
+            isIllegal = !isLegal;
+        }
+        
+        if(isIllegal) {
+            fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+            iMove--;
+        }
     }
-    blackKnight.close();
+}
 
+void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d) {
+    // Make artificial occupancy to block in the king and only get the north ray
+    const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King);
+    const uint8_t lsb = get_LSB(king);
+    Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
+    U64 rayOccupancy = board->GetBoard(otherColor);
+    const U64 defendingRook = board->GetBoard(otherColor, Piece::Rook);
+    const U64 defendingBishop = board->GetBoard(otherColor, Piece::Bishop);
+    const U64 defendingQueen = board->GetBoard(otherColor, Piece::Queen);
+    const U64 ownPieces = board->GetBoard(board->GetColorToMove());
+    U64 rayMask = 0;
+    U64 enemies = defendingQueen;
 
-
-    std::ifstream whiteKing("../src/data/whiteKing.txt");
-    i = 63;
-    for(std::string line; getline(whiteKing, line, ' ');) {
-        fWhiteKingPos[i] = std::stof(line);
-        i--;
+    switch(d) {
+        case Direction::North:
+            rayOccupancy |= south(king);
+            rayMask = fPrimaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::East:
+            rayOccupancy |= west(king);
+            rayMask = fSecondaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::West:
+            rayOccupancy |= east(king);
+            rayMask = fSecondaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::South:
+            rayOccupancy |= north(king);
+            rayMask = fPrimaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::NorthEast:
+            rayOccupancy |= south_west(king);
+            rayMask = fPrimaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        case Direction::NorthWest:
+            rayOccupancy |= south_east(king);
+            rayMask = fSecondaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        case Direction::SouthEast:
+            rayOccupancy |= north_west(king);
+            rayMask = fSecondaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        case Direction::SouthWest:
+            rayOccupancy |= north_east(king);
+            rayMask = fPrimaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        default:
+            return;
+            break;
     }
-    whiteKing.close();
 
-    std::ifstream blackKing("../src/data/blackKing.txt");
-    i = 63;
-    for(std::string line; getline(blackKing, line, ' ');) {
-        fBlackKingPos[i] = std::stof(line);
-        i--;
+    U64 ray = hypQuint(king, rayOccupancy, rayMask);
+    U64 rayAndEnemy = ray & enemies;
+
+    if(rayAndEnemy) { // Enemy piece on the ray pointing at the king (that could attack king, if not blocked)
+        // Note that rayAndEnemy is actually the position of the attacking piece on the ray
+        U64 potentialPin = ray & ownPieces; // All your pieces that exist on the ray (between king and attacking piece)
+        if(CountSetBits(potentialPin) == 1) { // A single piece is on the ray and so absolutely pinned
+            v->push_back(std::make_pair(potentialPin, rayAndEnemy));
+        } else {
+            // None of your pieces in the way so the king is in check from attacker
+        }
     }
-    blackKing.close();
+}
+
+U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor) {
+    U64 attacks = 0;
+    U64 defender = board->GetBoard(attackingColor == Color::White ? Color::Black : Color::White);
+    U64 attacker = board->GetBoard(attackingColor);
+    U64 occ = defender | attacker;
+
+    // Pawns (only diagonal forwards check as only care about attacks)
+    U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
+    while(pawns) {
+        U64 pawn = 0;
+        uint8_t lsb = pop_LSB(pawns);
+        set_bit(pawn, lsb);
+        attacks |= attackingColor == Color::White ? fWhitePawnDiagonalAttacks[lsb] : fBlackPawnDiagonalAttacks[lsb];
+    }
+
+    // Knights
+    U64 knights = board->GetBoard(attackingColor, Piece::Knight);
+    while(knights) {
+        U64 knight = 0;
+        uint8_t lsb = pop_LSB(knights);
+        set_bit(knight, lsb);
+        attacks |= fKnightAttacks[lsb];
+    }
+    // Bishops
+    U64 bishops = board->GetBoard(attackingColor, Piece::Bishop);
+    while(bishops) {
+        U64 bishop = 0;
+        uint8_t lsb = pop_LSB(bishops);
+        set_bit(bishop, lsb);
+        attacks |= (hypQuint(bishop, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, occ, fSecondaryDiagonalAttacks[lsb]));
+    }
+
+    // Rooks
+    U64 rooks = board->GetBoard(attackingColor, Piece::Rook);
+    while(rooks) {
+        U64 rook = 0;
+        uint8_t lsb = pop_LSB(rooks);
+        set_bit(rook, lsb);
+        attacks |= (hypQuint(rook, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb]));
+    }
+
+    // Queens
+    U64 queens = board->GetBoard(attackingColor, Piece::Queen);
+    while(queens) {
+        U64 queen = 0;
+        uint8_t lsb = pop_LSB(queens);
+        set_bit(queen, lsb);
+        attacks |= (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb]));
+    }
+
+    // King
+    U64 king = board->GetBoard(attackingColor, Piece::King);
+    attacks |= fKingAttacks[get_LSB(king)];
+    return attacks;
+}
+
+void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    GeneratePawnPseudoLegalMoves(board);
+    GenerateKingPseudoLegalMoves(board);
+    GenerateKnightPseudoLegalMoves(board);
+    GenerateBishopPseudoLegalMoves(board);
+    GenerateRookPseudoLegalMoves(board);
+    GenerateQueenPseudoLegalMoves(board);
+}
+
+void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
+    if(board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT) // Protect against seg fault + faster returns
+        return;
+    Move *lastMove = board->GetLastMove();
+    // Faster return if you know en-passant will not be possible
+    if(lastMove->piece != Piece::Pawn || lastMove->WasEnPassant || lastMove->WasCastling)
+        return;
+
+    U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
+    U64 enPassantPawns = 0;
+
+    if(board->GetColorToMove() == Color::White && (lastMove->origin & RANK_7) && (lastMove->target & RANK_5)) {
+        // Was a double-move forward with a pawn by black last turn
+        // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 5
+        enPassantPawns = (east(lastMove->target) | west(lastMove->target)) & pawns;
+    } else if(board->GetColorToMove() == Color::Black && (lastMove->origin & RANK_2) && (lastMove->target & RANK_4)) {
+        // Was a double-move forward with a pawn by white last turn
+        enPassantPawns = (east(lastMove->target) | west(lastMove->target)) & pawns;
+    }
+    while(enPassantPawns) {
+        U64 pawn = 0;
+        set_bit(pawn, pop_LSB(enPassantPawns));
+        fLegalMoves.push_back(Move{
+            pawn, 
+            board->GetColorToMove() == Color::White ? north(lastMove->target) : south(lastMove->target), 
+            Piece::Pawn, 
+            Piece::Pawn,
+            true
+        });
+    }
+}
+
+void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
+    if(board->GetNMovesMade() < MIN_MOVES_FOR_CASTLING)
+        return;
+
+    U64 occupancy = board->GetOccupancy();
+    U64 origin = board->GetBoard(board->GetColorToMove(), Piece::King);
+
+    // Castling conditions for white
+    if(board->GetColorToMove() == Color::White && !board->GetWhiteKingMoved()) {
+        if(!board->GetWhiteKingsideRookMoved() && 
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, board)) 
+        {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
+        }
+        if(!board->GetWhiteQueensideRookMoved() &&
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, board)) {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
+        }
+    // Castling conditions for black
+    } else if(board->GetColorToMove() == Color::Black && !board->GetBlackKingMoved()) {
+        if (board->GetBlackKingsideRookMoved() &&
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, board)) 
+        {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
+        }
+        if (board->GetBlackQueensideRookMoved() &&
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, board)) 
+        {
+            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
+        }
+    }
+}
+
+bool Engine::IsCastlingPossible(U64 castlingMask, const std::unique_ptr<Board> &board) {
+    U64 occ = board->GetOccupancy();
+    return !(occ & castlingMask) && !IsUnderAttack(castlingMask, board->GetColorToMove() == Color::White ? Color::Black : Color::White, board);
+}
+
+bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board) {
+    // TODO: This will have to calculate pins at some point I expect...e.g. rook might not have all the moves
+    // e.g. attackingColor might not be able to move rook because it is pinned
+        // check for pins by calculating sliding piece attakcs but take out the piece that wants to move in the occupancy??
+    
+    U64 attacker = board->GetBoard(attackingColor);
+    U64 attacks = GetAttacks(board, attackingColor);
+    return attacks & mask & ~attacker;
+}
+
+void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
+    U64 enemy = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    U64 occ = enemy | board->GetBoard(board->GetColorToMove());
+    while(pawns) {
+        U64 pawn = 0;
+        uint8_t lsb = pop_LSB(pawns);
+        set_bit(pawn, lsb);
+
+        // Only allow diagonal attacks if occupied by enemy piece
+        U64 attacks = (board->GetColorToMove() == Color::White ? fWhitePawnDiagonalAttacks[lsb] : fBlackPawnDiagonalAttacks[lsb]) & enemy;
+
+        // Get rid of 2-square attack if 1st or 2nd square is occupied, add single square attacks
+        U64 oneSquareForward = (board->GetColorToMove() == Color::White ? north(pawn) : south(pawn)) & ~occ;
+        attacks |= oneSquareForward;
+        if(oneSquareForward)
+            attacks |= (board->GetColorToMove() == Color::White ? north(north(pawn)) : south(south(pawn))) & ~occ;
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fLegalMoves.push_back(Move{
+                pawn,
+                attack,
+                Piece::Pawn,
+                board->GetIsOccupied(attack).second,
+            });
+        }
+    }
+}
+
+void Engine::GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 king = board->GetBoard(board->GetColorToMove(), Piece::King);
+    U64 attacks = fKingAttacks[get_LSB(king)] & ~board->GetBoard(board->GetColorToMove());
+    while(attacks) {
+        U64 attack = 0;
+        set_bit(attack, pop_LSB(attacks));
+        Piece takenPiece = board->GetIsOccupied(attack).second;
+        fLegalMoves.push_back(Move{
+            king, 
+            attack, 
+            Piece::King, 
+            takenPiece
+        });
+    }
+}
+
+void Engine::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 knights = board->GetBoard(board->GetColorToMove(), Piece::Knight);
+    while(knights) {
+        U64 knight = 0;
+        uint8_t lsb = pop_LSB(knights);
+        set_bit(knight, lsb);
+        U64 attacks = fKnightAttacks[lsb] & ~board->GetBoard(board->GetColorToMove());
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            Piece takenPiece = board->GetIsOccupied(attack).second;
+            fLegalMoves.push_back(Move{
+                knight, 
+                attack, 
+                Piece::Knight, 
+                takenPiece
+            });
+        }
+    }
+}
+
+void Engine::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 bishops = board->GetBoard(board->GetColorToMove(), Piece::Bishop);
+    U64 you = board->GetBoard(board->GetColorToMove());
+    U64 occ = you | board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    while(bishops) {
+        U64 bishop = 0;
+        uint8_t lsb = pop_LSB(bishops);
+        set_bit(bishop, lsb);
+        U64 attacks = (hypQuint(bishop, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, occ, fSecondaryDiagonalAttacks[lsb])) & ~you;
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fLegalMoves.push_back(Move{
+                bishop,
+                attack,
+                Piece::Bishop,
+                board->GetIsOccupied(attack).second
+            });
+        }
+    }
+}
+
+void Engine::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 rooks = board->GetBoard(board->GetColorToMove(), Piece::Rook);
+    U64 you = board->GetBoard(board->GetColorToMove());
+    U64 occ = you | board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    while(rooks) {
+        U64 rook = 0;
+        uint8_t lsb = pop_LSB(rooks);
+        set_bit(rook, lsb);
+        U64 attacks = (hypQuint(rook, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb])) & ~you;
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fLegalMoves.push_back(Move{
+                rook,
+                attack,
+                Piece::Rook,
+                board->GetIsOccupied(attack).second
+            });
+        }
+    }
+}
+
+void Engine::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 queens = board->GetBoard(board->GetColorToMove(), Piece::Queen); // Could have multiple due to promotion
+    U64 you = board->GetBoard(board->GetColorToMove());
+    U64 occ = you | board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    while(queens) {
+        U64 queen = 0;
+        uint8_t lsb = pop_LSB(queens);
+        set_bit(queen, lsb);
+        U64 attacks = (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb])) & ~you;
+        attacks = attacks & ~you;
+        while(attacks) {
+            U64 attack = 0;
+            set_bit(attack, pop_LSB(attacks));
+            fLegalMoves.push_back(Move{
+                queen,
+                attack,
+                Piece::Queen,
+                board->GetIsOccupied(attack).second // TODO: Is this needed for every move, maybe only do this when a move is made to save massive overhead?
+            });
+        }
+    }                
+}
+
+bool Engine::GetMoveIsLegal(Move* move) {
+    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
+        Move* legalMove = &fLegalMoves[iMove];
+        if((legalMove->origin & move->origin) && (legalMove->target & move->target)) {
+            move->WasCastling = legalMove->WasCastling;
+            move->WasEnPassant = legalMove->WasEnPassant;
+            move->takenPiece = legalMove->takenPiece;
+            return true;
+        }
+    }
+    return false;
 }
 
 float Engine::Evaluate(Board board) {
     float eval = GetMaterialEvaluation(board);
     return eval; // Return in centipawns rather than pawns
-}
-
-float Engine::GetPositionalEvaluation(U64 position, Piece piece, Color pieceColor) {
-    float base_value = 0.;
-    switch (piece) {
-    case Piece::Pawn:
-        base_value = VALUE_PAWN;
-        break;
-    case Piece::Bishop:
-        base_value = VALUE_BISHOP;
-        break;
-    case Piece::Knight:
-        base_value = VALUE_KNIGHT;
-        break;
-    case Piece::Rook:
-        base_value = VALUE_ROOK;
-        break;
-    case Piece::Queen:
-        base_value = VALUE_QUEEN;
-        break;
-    case Piece::King:
-        base_value = VALUE_KING;
-        break;
-    default:
-        std::cout << "[Warning] Something went wrong searching for a piece value\n";
-        break;
-    }
-    float positionTotal = 0.;
-    while(position) {
-        U64 singlePiece = pop_LSB(position);
-        positionTotal += (GetPositionValue(get_LSB(singlePiece), piece, pieceColor) * base_value);
-    }
-
-    return positionTotal;
-}
-
-float Engine::GetPositionValue(int index, Piece piece, Color color) {
-    switch (piece) {
-    case Piece::Pawn:
-        return color == Color::White ? fWhitePawnPos[index] : fBlackPawnPos[index];
-        break;
-    case Piece::Knight:
-        return color == Color::White ? fWhiteKnightPos[index] : fBlackKnightPos[index];
-        break;
-    case Piece::Bishop:
-        return color == Color::White ? fWhiteBishopPos[index] : fBlackBishopPos[index];
-        break;
-    case Piece::Rook:
-        return color == Color::White ? fWhiteRookPos[index] : fBlackRookPos[index];
-        break;
-    case Piece::Queen:
-        return color == Color::White ? fWhiteQueenPos[index] : fBlackQueenPos[index];
-        break;
-    case Piece::King:
-        return color == Color::White ? fWhiteKingPos[index] : fBlackKingPos[index];
-        break;
-    default:
-        std::cout << "[Warning] Invalid piece searched in GetPositionValue\n";
-        return 0.;
-        break;
-    }
 }
 
 float Engine::GetMaterialEvaluation(Board board) {
@@ -205,16 +530,16 @@ float Engine::GetMaterialEvaluation(Board board) {
 float Engine::Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer) {
     // Working on a copy of the board object
     // Returns the maximum / minimum evaluation of a given position
-    if(depth > fMaxDepth)
+    /*if(depth > fMaxDepth)
         depth = fMaxDepth;
-    if(board.GetGameIsOver() || depth == 0)
+    if(board.GetState() != State::Play || depth == 0)
         return Evaluate(board); // Return static evaluation of the current board
     if(maximisingPlayer == Color::White) {
         float maxEval = -99999.;
         board.GenerateLegalMoves();
         for(Move move : board.GetLegalMoves()) { // iterate through all possible moves for white in current position
             // Make the move, send a copy of the board down
-            board.MakeMove(move);
+            board.MakeMove(&move);
             float eval = Minimax(board, depth - 1, alpha, beta, Color::Black); // child is board after the move is made
             maxEval = std::max(maxEval, eval);
             alpha = std::max(alpha, eval);
@@ -227,7 +552,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
         float minEval = 99999.;
         board.GenerateLegalMoves();
         for(Move move : board.GetLegalMoves()) {
-            board.MakeMove(move);
+            board.MakeMove(&move);
             float eval = Minimax(board, depth - 1, alpha, beta, Color::White);
             minEval = std::min(minEval, eval);
             beta = std::min(beta, eval);
@@ -236,11 +561,12 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
             board.UndoMove();
         }
         return minEval;
-    }   
+    }*/
+    return 0.;
 }
 
 Move Engine::GetBestMove(Board board) {
-    board.GenerateLegalMoves();
+    /*board.GenerateLegalMoves();
     std::mt19937 rng(fRandomDevice());
     std::uniform_int_distribution<std::mt19937::result_type> dist2(0,1); // distribution in range [0, 1]
 
@@ -261,4 +587,6 @@ Move Engine::GetBestMove(Board board) {
         }
     }
     return bestMove;
+    */
+   return Move{U64{0}, U64{0}, Piece::Null};
 }

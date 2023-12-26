@@ -4,14 +4,35 @@
 #include <iostream>
 #include <string>
 
+/**
+ * @file Constants.hpp
+ * @brief Lots of useful constants and bit manipulation functions.
+ */
+
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
 #define clear_bit(b, i) ((b) &= ~(1ULL << i))
 #define get_LSB(b) (__builtin_ctzll(b))
 #define get_MSB(b) (__builtin_clzll(b))
 
+/**
+ * @brief Typedef for U64 using unsigned long long.
+ *
+ * Using unsigned long long provides a 64-bit integer. Each bit can be considered a square on the chess board.
+ */
 typedef unsigned long long U64;
-const int SQUARES = 64;
+
+const int NSQUARES = 64;
+const int BITS_PER_FILE = 8;
+const int MIN_MOVES_FOR_CASTLING = 6;
+const int MIN_MOVES_FOR_ENPASSANT = 3;
+
+const float VALUE_PAWN = 100; // centi-pawn value
+const float VALUE_BISHOP = 300;
+const float VALUE_KNIGHT = 300;
+const float VALUE_ROOK = 500;
+const float VALUE_QUEEN = 900;
+const float VALUE_KING = 99999;
 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);
@@ -45,8 +66,6 @@ inline int PrintBitset(U64 b) {
     return 0;
 }
 
-const int BITS_PER_FILE = 8;
-
 const U64 RANK_1 = 0x00000000000000FFULL;
 const U64 RANK_2 = 0x000000000000FF00ULL;
 const U64 RANK_3 = 0x0000000000FF0000ULL;
@@ -76,10 +95,8 @@ const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_G & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_H & (RANK_1 | RANK_3 | RANK_5 | RANK_7));
 const U64 BLACK_SQUARES = ~WHITE_SQUARES;
-
 const U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
 const U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
-
 const U64 EDGES = RANK_1 | RANK_8 | FILE_A | FILE_H;
 
 constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; };
@@ -92,11 +109,19 @@ constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; };
 constexpr U64 south_west(U64 b) { return (b & ~FILE_A) >> 7; };
 constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; };
 
-const int MIN_MOVES_FOR_CASTLING = 6;
 const U64 KING_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_F | FILE_G);
-const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_B | FILE_C | FILE_D);
+const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_C | FILE_D);
 const U64 KING_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_F | FILE_G);
-const U64 QUEEN_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_B | FILE_C | FILE_D);
+const U64 QUEEN_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_C | FILE_D);
+
+inline int CountSetBits(U64 number) {
+    int count = 0;
+    while (number) {
+        count += number & 1;
+        number >>= 1;
+    }
+    return count;
+}
 
 inline U64 get_rank(U64 position) {
     if(position & RANK_1) {
@@ -230,19 +255,74 @@ inline U64 get_file_from_number(int n) {
     }
 }
 
-enum class Color {
-    White,
-    Black
+
+/**
+ * @brief Enumeration describing different states of the chess game.
+ *
+ * Represents all possible game states: in-play, stalemate, draw or checkmate.
+ */
+enum class State {
+    Play,      ///< Game is in play.
+    Stalemate, ///< Game is stalemate.
+    Draw,      ///< Game is draw.
+    Checkmate  ///< Game is checkmate.
 };
 
+/**
+ * @brief Enumeration describing the compass directions of the board (North defined as increasing rank)
+*/
+enum class Direction {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest
+};
+
+const std::vector<Direction> DIRECTIONS = {Direction::North, Direction::East, Direction::South, Direction::West, Direction::SouthEast, Direction::SouthWest, Direction::NorthEast, Direction::NorthWest};
+
+/**
+ * @brief Enumeration describing different piece colors.
+ *
+ * This enum class represents white and black colors.
+ */
+enum class Color {
+    White, ///< White color.
+    Black  ///< Black color.
+};
+
+/**
+ * @brief Enumeration for all different types of chess piece.
+ *
+ * Represents all possible chess pieces: pawn, bishop, knight, rook, queen and king. Also includes a Null piece to represent emptiness.
+ */
 enum class Piece {
-    Pawn,   // 0
-    Bishop, // 1
-    Knight, // 2
-    Rook,   // 3
-    Queen,  // 4
-    King,   // 5
-    Null,   // 6
+    Pawn,   ///< Pawn piece.
+    Bishop, ///< Bishop piece.
+    Knight, ///< Knight piece.
+    Rook,   ///< Rook piece.
+    Queen,  ///< Queen piece.
+    King,   ///< King piece.
+    Null,   ///< Null piece.
+};
+
+/**
+ * @struct Move
+ * @brief Represents a move.
+ * 
+ * The Move struct provides a representation and grouping of all parameters required to specify a chess move.
+ * It includes information about the piece being moved, from where, to where and whether it was a special move. For example en-passant or castling.
+ */
+struct Move {
+    U64 origin;
+    U64 target;
+    Piece piece;
+    Piece takenPiece{ Piece::Null };
+    bool WasEnPassant{ false };
+    bool WasCastling{ false };
 };
 
 inline std::string GetPieceString(Piece piece) {
@@ -271,13 +351,25 @@ inline std::string GetPieceString(Piece piece) {
     }
 }
 
-const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King};
+inline Piece GetPieceFromChar(char c) {
+    c = toupper(c);
+    if(c == 'N') {
+        return Piece::Knight;
+    } else if(c == 'K') {
+        return Piece::King;
+    } else if(c == 'P') { 
+        return Piece::Pawn;
+    } else if(c == 'Q') {
+        return Piece::Queen;
+    } else if(c == 'R') {
+        return Piece::Rook;
+    } else if(c == 'B') {
+        return Piece::Bishop;
+    } else {
+        return Piece::Null;
+    }
+}
 
-const float VALUE_PAWN = 100; // centi-pawn value
-const float VALUE_BISHOP = 300;
-const float VALUE_KNIGHT = 300;
-const float VALUE_ROOK = 500;
-const float VALUE_QUEEN = 900;
-const float VALUE_KING = 99999;
+const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King}; ///< Vector of all the piece types for easy iterations
 
 #endif
