@@ -16,6 +16,11 @@ int main() {
     U64 pieceTile = 0;
     U64 selectedTile = 0;
 
+    bool makeLegalMove = false;
+    Move userMove;
+    
+    gui->Update(b); // Draw board initially
+
     while(gui->GetWindowIsOpen()) {
         sf::Event event;
         while(gui->PollEvent(event)) {
@@ -31,10 +36,9 @@ int main() {
                 } else { // User clicked on an empty square/enemy piece
                     if(selectedPiece.second != Piece::Null) {
                         engine->GenerateLegalMoves(b);
-                        Move userMove = Move{pieceTile, selectedTile, selectedPiece.second};
+                        userMove = Move{pieceTile, selectedTile, selectedPiece.second};
                         if(engine->GetMoveIsLegal(&userMove)) {
-                            // TODO: Castling seems to just crash the program currently
-                            b->MakeMove(&userMove);
+                            makeLegalMove = true;
                         } else {
                             std::cout << "Move was found to be illegal!\n";
                         }
@@ -44,12 +48,27 @@ int main() {
                 }
                 // Find which piece (if any) the user clicked on
                 // or if already clicked a piece drop this piece at the tile clicked on
-            } else if(event.type == sf::Event::MouseButtonReleased) {
-                // Do something
-            } else if(event.type == sf::Event::MouseMoved) {
-                // Do something
+            } else if(event.type == sf::Event::KeyPressed) {
+                // TODO: Actually set UserMove promotional piece
+                    if(event.key.code == sf::Keyboard::B) {
+                        std::cout << "promting to bishop\n";
+                    } else if(event.key.code == sf::Keyboard::R) {
+                        std::cout << "promting to rook\n";
+                    } else if(event.key.code == sf::Keyboard::N) {
+                        std::cout << "promting to knight\n";
+                    } else { // Default to queen promotion
+                        std::cout << "promting to queen\n";
+                    }
             }
-            gui->Update(b);
+
+            if(makeLegalMove) {
+                b->MakeMove(&userMove);
+                gui->Update(b); // Only update GUI when a move was actually made
+
+                // Clear variables
+                makeLegalMove = false;
+                userMove = Move{U64(0), U64(0), Piece::Null};
+            }
         }
     }
 
