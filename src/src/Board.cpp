@@ -139,7 +139,7 @@ void Board::MakeMove(Move *move) {
         }
     }
 
-    if(move->piece == Piece::Rook) { // TODO: Implement this properly
+    if(move->piece == Piece::Rook) {
         if(fColorToMove == Color::White) {
             if(move->origin & FILE_A) {
                 fWhiteQueensideRookMoved = true;
@@ -152,6 +152,15 @@ void Board::MakeMove(Move *move) {
             } else if(move->origin & FILE_H) {
                 fBlackKingsideRookMoved = true;
             }
+        }
+    }
+
+    if(move->piece == Piece::Pawn) { // potential promotion
+        U64 rankMask = (fColorToMove == Color::White) ? RANK_8 : RANK_1;
+        if(move->target & rankMask) {
+            clear_bit(*origin, get_LSB(move->target)); // Undo the setting that already happened
+            U64 *targBoard = GetBoardPointer(fColorToMove, Piece::Queen); // TODO: Be able to pick a piece to promote to
+            set_bit(*targBoard, get_LSB(move->target));
         }
     }
 
