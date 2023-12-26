@@ -29,24 +29,11 @@ int main() {
                     selectedPiece = clickedPosition;
                     pieceTile = selectedTile;
                 } else { // User clicked on an empty square/enemy piece
-                    std::cout << "Clicked on an empty square\n";
-                    std::cout << "Selected piece type = " << (int)selectedPiece.second << "\n";
-
                     if(selectedPiece.second != Piece::Null) {
-                        std::cout << "Generating legal moves\n";
                         engine->GenerateLegalMoves(b);
-                        std::cout << "Building user move\n";
                         Move userMove = Move{pieceTile, selectedTile, selectedPiece.second};
-                        std::cout << "Moving piece " << GetPieceString(userMove.piece) << "\n";
-
-                        if(userMove.piece == Piece::King) {
-                            PrintBitset(userMove.origin);
-                            PrintBitset(userMove.target);
-                        }
-
                         if(engine->GetMoveIsLegal(&userMove)) {
                             // TODO: Castling seems to just crash the program currently
-                            std::cout << "Make move was called\n";
                             b->MakeMove(&userMove);
                         } else {
                             std::cout << "Move was found to be illegal!\n";

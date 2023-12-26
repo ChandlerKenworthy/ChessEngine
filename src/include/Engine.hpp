@@ -35,7 +35,14 @@ class Engine {
         /**
          * @brief True if the provided move is a legal one otherwise false.
         */
-       bool GetMoveIsLegal(Move* move);
+        bool GetMoveIsLegal(Move* move);
+        /**
+        * @brief Remove illegal moves from the fLegalMoves vector. This does a thorough check for pins, self-checks etc.
+        * @param board The current board configuration.
+        */
+        void StripIllegalMoves(const std::unique_ptr<Board> &board);
+
+        U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
 
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
@@ -128,6 +135,12 @@ class Engine {
          * @param board The board for which pseudo-legal moves will be generated.
         */
         void GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Add absolutely pinned pieces of the colour to move to a provided vector.
+         * @param v Vector of pairs of the pinned piece and piece pinning that piece in that order.
+         * @param d Direction of the ray to check.
+        */
+       void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
 
         // TODO: Doc these functions!
         void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);

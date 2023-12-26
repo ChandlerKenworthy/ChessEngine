@@ -9,6 +9,8 @@
 #include <vector>
 #include <string>
 #include <cctype>
+#include <numeric>
+#include <algorithm>
 #include <utility>
 
 #include "Constants.hpp"
@@ -57,6 +59,10 @@ class Board {
          * @return U64, the bitboard containing the abstract representation of all pieces of color. Empty board if no piece found at occupiedPosition.
          */
         U64 GetBoard(Color color, U64 occupiedPosition);
+        /**
+         * @brief Return all occupied bits on the chess board as a bitboard.
+        */
+       U64 GetOccupancy() { return std::accumulate(std::begin(fBoards), std::end(fBoards), U64(0), std::bit_or<U64>()); };
         /**
          * @brief Get the colour of the player whose turn it is to move.
          */

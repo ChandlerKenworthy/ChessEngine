@@ -110,9 +110,18 @@ constexpr U64 south_west(U64 b) { return (b & ~FILE_A) >> 7; };
 constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; };
 
 const U64 KING_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_F | FILE_G);
-const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_B | FILE_C | FILE_D);
+const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_C | FILE_D);
 const U64 KING_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_F | FILE_G);
-const U64 QUEEN_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_B | FILE_C | FILE_D);
+const U64 QUEEN_SIDE_CASTLING_MASK_BLACK = RANK_8 & (FILE_C | FILE_D);
+
+inline int CountSetBits(U64 number) {
+    int count = 0;
+    while (number) {
+        count += number & 1;
+        number >>= 1;
+    }
+    return count;
+}
 
 inline U64 get_rank(U64 position) {
     if(position & RANK_1) {
@@ -258,6 +267,22 @@ enum class State {
     Draw,      ///< Game is draw.
     Checkmate  ///< Game is checkmate.
 };
+
+/**
+ * @brief Enumeration describing the compass directions of the board (North defined as increasing rank)
+*/
+enum class Direction {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest
+};
+
+const std::vector<Direction> DIRECTIONS = {Direction::North, Direction::East, Direction::South, Direction::West, Direction::SouthEast, Direction::SouthWest, Direction::NorthEast, Direction::NorthWest};
 
 /**
  * @brief Enumeration describing different piece colors.
