@@ -49,8 +49,8 @@ int main() {
             } else if(event.type == sf::Event::MouseMoved) {
                 // Do something
             }
+            gui->Update(b);
         }
-        gui->Update(b);
     }
 
     return 0;
