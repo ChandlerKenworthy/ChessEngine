@@ -82,21 +82,18 @@ void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
     GenerateEnPassantMoves(board);
-    // TODO: Prune out the illegal moves, e.g. leaving your own king in check
     StripIllegalMoves(board);
     fLastUnique = board->GetUnique();
 }
 
 void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
-    // IsUnderAttack(mask, attackingColor, board);
-    // Check all the illegal moves, do they result in your own king being in check?
-
+    // Check all the illegal moves, e.g. do they result in your own king being in check?
     const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
     const U64 underAttack = GetAttacks(board, otherColor); // TODO: Doesn't take into account pinning of other pieces
-    // by your current pieces
+    // by your current pieces?
     const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
     
-    std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and attacking piece (so check for capture else prune the move)
+    std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and all squares (including the attacking piece) on the pinning ray (as all moves on this ray of the pinned position are of course legal)
     for(Direction d : DIRECTIONS) {
         AddAbolsutePins(board, &pinnedPieces, d);
     }
@@ -198,7 +195,7 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
         // Note that rayAndEnemy is actually the position of the attacking piece on the ray
         U64 potentialPin = ray & ownPieces; // All your pieces that exist on the ray (between king and attacking piece)
         if(CountSetBits(potentialPin) == 1) { // A single piece is on the ray and so absolutely pinned
-            v->push_back(std::make_pair(potentialPin, rayAndEnemy));
+            v->push_back(std::make_pair(potentialPin, ray));
         } else {
             // None of your pieces in the way so the king is in check from attacker
         }
