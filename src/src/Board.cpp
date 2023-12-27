@@ -156,7 +156,7 @@ void Board::MakeMove(U32 move) {
 
     if(GetMoveIsPromotion(move)) {
         clear_bit(*origin, get_LSB(GetMoveTarget(move))); // Undo the setting that already happened
-        U64 *targBoard = GetBoardPointer(fColorToMove, GetMovePromotionPiece(move));
+        U64 *targBoard = GetBoardPointer(fColorToMove, GetMovePromotionPiece(move) == Piece::Null ? Piece::Queen : GetMovePromotionPiece(move));
         set_bit(*targBoard, get_LSB(GetMoveTarget(move)));
     }
 

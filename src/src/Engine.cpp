@@ -365,6 +365,7 @@ void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
     U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
     U64 enemy = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
     U64 occ = enemy | board->GetBoard(board->GetColorToMove());
+    U64 promotionRank = board->GetColorToMove() == Color::White ? RANK_8 : RANK_1;
     while(pawns) {
         U64 pawn = 0;
         uint8_t lsb = pop_LSB(pawns);
@@ -383,6 +384,8 @@ void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
             SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack).second);
+            if(attack & promotionRank)
+                SetMoveIsPromotion(move, true);
             fLegalMoves.push_back(move);
         }
     }
