@@ -291,7 +291,7 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
         SetMove(
             move, 
             pawn, 
-            board->GetColorToMove() == Color::White ? north(GetMoveTarget(lastMove)) : south(GetMoveTarget(lastMove)), Piece::Rook, 
+            board->GetColorToMove() == Color::White ? north(GetMoveTarget(lastMove)) : south(GetMoveTarget(lastMove)), Piece::Pawn, 
             Piece::Pawn
         );
         SetMoveIsEnPassant(move, true);

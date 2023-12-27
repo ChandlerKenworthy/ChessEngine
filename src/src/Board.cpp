@@ -54,27 +54,41 @@ void Board::UndoMove() {
     // Last move in the stack will be from player of opposing colour
     Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
     U32 m = fMadeMoves.back();
-    U64 movedPieceBoard = GetBoard(movingColor, GetMovePiece(m));
-    clear_bit(movedPieceBoard, get_LSB(GetMoveTarget(m))); // clear target bit on the relevant board
-    set_bit(movedPieceBoard, get_LSB(GetMoveOrigin(m))); // set the origin bit on relevant board
-    SetBoard(movingColor, GetMovePiece(m), movedPieceBoard);
+
+    U64 *movedPieceBoard = GetBoardPointer(movingColor, GetMovePiece(m));
+    clear_bit(*movedPieceBoard, get_LSB(GetMoveTarget(m))); // clear target bit on the relevant board
+    set_bit(*movedPieceBoard, get_LSB(GetMoveOrigin(m))); // set the origin bit on relevant board
+
     if(GetMoveTakenPiece(m) != Piece::Null) {
-        Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
-        U64 b = GetBoard(otherColor, GetMoveTakenPiece(m));
+        U64 b = GetBoard(fColorToMove, GetMoveTakenPiece(m));
         if(GetMoveIsEnPassant(m)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
             // crossing of the origin RANK and target FILE = taken piece position 
             set_bit(b, get_LSB(get_rank(GetMoveOrigin(m)) & get_file(GetMoveTarget(m))));
-
         } else {
             set_bit(b, get_LSB(GetMoveTarget(m)));
         }
-        SetBoard(otherColor, GetMoveTakenPiece(m), b);
-        // TODO: king is in check etc
-        fMadeMoves.pop_back();
-        movingColor = movingColor == Color::White ? Color::Black : Color::White;
+    } else if(GetMoveIsCastling(m)) {
+        // Put the rook back on the appropriate tile
+        U64 *rooks = GetBoardPointer(movingColor, Piece::Rook);
+        if(GetMoveTarget(m) & FILE_C) { // Queenside castle
+            U64 rank = get_rank(GetMoveTarget(m));
+            clear_bit(*rooks, get_LSB(rank & FILE_D));
+            set_bit(*rooks, get_LSB(rank & FILE_A));
+        } else { // Kingside castle
+            U64 rank = get_rank(GetMoveTarget(m));
+            clear_bit(*rooks, get_LSB(rank & FILE_F));
+            set_bit(*rooks, get_LSB(rank & FILE_H));
+        }
+    } else if(GetMoveIsPromotion(m)) {
+        // Clear bit from promotional bitboard
+        U64 *promotionBoard = GetBoardPointer(movingColor, GetMovePromotionPiece(m));
+        clear_bit(*promotionBoard, get_LSB(GetMoveTarget(m)));
     }
+
     fColorToMove = movingColor == Color::White ? Color::Black : Color::White;
+    fMadeMoves.pop_back();
+    fUnique--;
 }
 
 void Board::MakeMove(U32 move) {

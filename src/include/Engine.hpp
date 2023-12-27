@@ -46,6 +46,10 @@ class Engine {
          * @brief Get the number of legal moves for a board given the current position.
         */
        int GetNLegalMoves(const std::unique_ptr<Board> &board);
+       /**
+        * @brief Get all the legal moves.
+       */
+      std::vector<U32>* GetLegalMoves() { return &fLegalMoves; };
 
         U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
 
