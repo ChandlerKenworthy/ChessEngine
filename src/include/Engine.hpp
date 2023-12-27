@@ -13,6 +13,7 @@
 
 #include "Constants.hpp"
 #include "Board.hpp"
+#include "Move.hpp"
 
 /**
  * @class Engine
@@ -35,7 +36,7 @@ class Engine {
         /**
          * @brief True if the provided move is a legal one otherwise false.
         */
-        bool GetMoveIsLegal(Move* move);
+        bool GetMoveIsLegal(U32 *move);
         /**
         * @brief Remove illegal moves from the fLegalMoves vector. This does a thorough check for pins, self-checks etc.
         * @param board The current board configuration.
@@ -47,7 +48,7 @@ class Engine {
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        Move GetBestMove(Board board);
+        U32 GetBestMove(Board board);
     private:
         std::random_device fRandomDevice;
         int fMaxDepth;
@@ -65,7 +66,7 @@ class Engine {
         U64 fSecondaryDiagonalAttacks[64]; ///< Secondary diagonal attacks for a sliding diagonal piece at LSB.
         U64 fPrimaryStraightAttacks[64]; ///< Primary straight attacks (rank) for a sliding straight piece at LSB.
         U64 fSecondaryStraightAttacks[64]; ///< Primary straight attacks (file) for a sliding straight piece at LSB.
-        std::vector<Move> fLegalMoves; ///< All possible legal moves for a position for which this vector was filled.
+        std::vector<U32> fLegalMoves; ///< All possible legal moves for a position for which this vector was filled.
 
         float Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer);
         float GetMaterialEvaluation(Board board);

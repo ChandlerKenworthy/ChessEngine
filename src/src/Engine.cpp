@@ -108,18 +108,18 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     );
     
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
-        Move* m = &fLegalMoves[iMove];
+        U32 m = fLegalMoves[iMove];
         bool isIllegal = false;
 
         // King cant move to squares the opponent attacks
-        if((m->piece == Piece::King) && (m->target & underAttack)) {
+        if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
             isIllegal = true;
         // Absolutely pinned pieces may not move, unless it is a capture of that piece
-        } else if(pinnedPositions & m->origin) { 
+        } else if(pinnedPositions & GetMoveOrigin(m)) { 
             // Piece originates from a pinned position
             bool isLegal = false;
             for(auto pins : pinnedPieces) {
-                if(m->target & pins.second)
+                if(GetMoveTarget(m) & pins.second)
                     isLegal = true; // Pieces move was to capture pinning piece
             }
             isIllegal = !isLegal;
@@ -273,32 +273,34 @@ void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
 void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     if(board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT) // Protect against seg fault + faster returns
         return;
-    Move *lastMove = board->GetLastMove();
+    U32 lastMove = board->GetLastMove();
     // Faster return if you know en-passant will not be possible
-    if(lastMove->piece != Piece::Pawn || lastMove->WasEnPassant || lastMove->WasCastling)
+    if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
         return;
 
     U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
     U64 enPassantPawns = 0;
 
-    if(board->GetColorToMove() == Color::White && (lastMove->origin & RANK_7) && (lastMove->target & RANK_5)) {
+    if(board->GetColorToMove() == Color::White && (GetMoveOrigin(lastMove) & RANK_7) && (GetMoveTarget(lastMove) & RANK_5)) {
         // Was a double-move forward with a pawn by black last turn
         // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 5
-        enPassantPawns = (east(lastMove->target) | west(lastMove->target)) & pawns;
-    } else if(board->GetColorToMove() == Color::Black && (lastMove->origin & RANK_2) && (lastMove->target & RANK_4)) {
+        enPassantPawns = (east(GetMoveTarget(lastMove)) | west(GetMoveTarget(lastMove))) & pawns;
+    } else if(board->GetColorToMove() == Color::Black && (GetMoveOrigin(lastMove) & RANK_2) && (GetMoveTarget(lastMove) & RANK_4)) {
         // Was a double-move forward with a pawn by white last turn
-        enPassantPawns = (east(lastMove->target) | west(lastMove->target)) & pawns;
+        enPassantPawns = (east(GetMoveTarget(lastMove)) | west(GetMoveTarget(lastMove))) & pawns;
     }
     while(enPassantPawns) {
         U64 pawn = 0;
         set_bit(pawn, pop_LSB(enPassantPawns));
-        fLegalMoves.push_back(Move{
+        U32 move = 0;
+        SetMove(
+            move, 
             pawn, 
-            board->GetColorToMove() == Color::White ? north(lastMove->target) : south(lastMove->target), 
-            Piece::Pawn, 
-            Piece::Pawn,
-            true
-        });
+            board->GetColorToMove() == Color::White ? north(GetMoveTarget(lastMove)) : south(GetMoveTarget(lastMove)), Piece::Rook, 
+            Piece::Pawn
+        );
+        SetMoveIsEnPassant(move, true);
+        fLegalMoves.push_back(move);
     }
 }
 
@@ -310,27 +312,36 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     U64 origin = board->GetBoard(board->GetColorToMove(), Piece::King);
 
     // Castling conditions for white
+    U32 move = 0;
     if(board->GetColorToMove() == Color::White && !board->GetWhiteKingMoved()) {
         if(!board->GetWhiteKingsideRookMoved() && 
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, board)) 
         {
-            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
+            SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
         }
         if(!board->GetWhiteQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, board)) {
-            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
+            SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
         }
     // Castling conditions for black
     } else if(board->GetColorToMove() == Color::Black && !board->GetBlackKingMoved()) {
         if (board->GetBlackKingsideRookMoved() &&
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, board)) 
         {
-            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_G, Piece::King, Piece::Null, false, true});
+            SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
         }
         if (board->GetBlackQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, board)) 
         {
-            fLegalMoves.push_back(Move{origin, RANK_1 & FILE_C, Piece::King, Piece::Null, false, true});
+            SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
         }
     }
 }
@@ -370,12 +381,9 @@ void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fLegalMoves.push_back(Move{
-                pawn,
-                attack,
-                Piece::Pawn,
-                board->GetIsOccupied(attack).second,
-            });
+            U32 move = 0;
+            SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack).second);
+            fLegalMoves.push_back(move);
         }
     }
 }
@@ -385,14 +393,10 @@ void Engine::GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board) {
     U64 attacks = fKingAttacks[get_LSB(king)] & ~board->GetBoard(board->GetColorToMove());
     while(attacks) {
         U64 attack = 0;
-        set_bit(attack, pop_LSB(attacks));
-        Piece takenPiece = board->GetIsOccupied(attack).second;
-        fLegalMoves.push_back(Move{
-            king, 
-            attack, 
-            Piece::King, 
-            takenPiece
-        });
+            set_bit(attack, pop_LSB(attacks));
+            U32 move = 0;
+            SetMove(move, king, attack, Piece::King, board->GetIsOccupied(attack).second);
+            fLegalMoves.push_back(move);
     }
 }
 
@@ -406,13 +410,9 @@ void Engine::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board)
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            Piece takenPiece = board->GetIsOccupied(attack).second;
-            fLegalMoves.push_back(Move{
-                knight, 
-                attack, 
-                Piece::Knight, 
-                takenPiece
-            });
+            U32 move = 0;
+            SetMove(move, knight, attack, Piece::Knight, board->GetIsOccupied(attack).second);
+            fLegalMoves.push_back(move);
         }
     }
 }
@@ -429,12 +429,9 @@ void Engine::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board)
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fLegalMoves.push_back(Move{
-                bishop,
-                attack,
-                Piece::Bishop,
-                board->GetIsOccupied(attack).second
-            });
+            U32 move = 0;
+            SetMove(move, bishop, attack, Piece::Bishop, board->GetIsOccupied(attack).second);
+            fLegalMoves.push_back(move);
         }
     }
 }
@@ -451,12 +448,9 @@ void Engine::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fLegalMoves.push_back(Move{
-                rook,
-                attack,
-                Piece::Rook,
-                board->GetIsOccupied(attack).second
-            });
+            U32 move = 0;
+            SetMove(move, rook, attack, Piece::Rook, board->GetIsOccupied(attack).second);
+            fLegalMoves.push_back(move);
         }
     }
 }
@@ -474,23 +468,18 @@ void Engine::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board) 
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
-            fLegalMoves.push_back(Move{
-                queen,
-                attack,
-                Piece::Queen,
-                board->GetIsOccupied(attack).second // TODO: Is this needed for every move, maybe only do this when a move is made to save massive overhead?
-            });
+            U32 move = 0;
+            SetMove(move, queen, attack, Piece::Queen, board->GetIsOccupied(attack).second);
+            fLegalMoves.push_back(move);
         }
     }                
 }
 
-bool Engine::GetMoveIsLegal(Move* move) {
+bool Engine::GetMoveIsLegal(U32* move) {
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
-        Move* legalMove = &fLegalMoves[iMove];
-        if((legalMove->origin & move->origin) && (legalMove->target & move->target)) {
-            move->WasCastling = legalMove->WasCastling;
-            move->WasEnPassant = legalMove->WasEnPassant;
-            move->takenPiece = legalMove->takenPiece;
+        U32 legalMove = fLegalMoves[iMove];
+        if((GetMoveOrigin(legalMove) & GetMoveOrigin(*move)) && (GetMoveTarget(legalMove) & GetMoveTarget(*move))) {
+            *move = legalMove;
             return true;
         }
     }
@@ -565,7 +554,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
     return 0.;
 }
 
-Move Engine::GetBestMove(Board board) {
+U32 Engine::GetBestMove(Board board) {
     /*board.GenerateLegalMoves();
     std::mt19937 rng(fRandomDevice());
     std::uniform_int_distribution<std::mt19937::result_type> dist2(0,1); // distribution in range [0, 1]
@@ -588,5 +577,5 @@ Move Engine::GetBestMove(Board board) {
     }
     return bestMove;
     */
-   return Move{U64{0}, U64{0}, Piece::Null};
+   return U32(0);
 }

@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "Constants.hpp"
+#include "Move.hpp"
 
 /**
  * @class Board
@@ -73,7 +74,7 @@ class Board {
          * 
          * Updates all the bit boards and required game state variables to make the requested move.
          */
-        void MakeMove(Move *move);
+        void MakeMove(U32 move);
         /**
          * @brief Undoes the actions of the last move.
          */
@@ -123,7 +124,7 @@ class Board {
         /**
          * @brief Get a pointer to the last move made on the board.
         */
-        Move* GetLastMove() { return fMadeMoves.size() > 0 ? &fMadeMoves.back() : nullptr; }
+        U32 GetLastMove() { return fMadeMoves.size() > 0 ? fMadeMoves.back() : U32(0); }
         /**
          * @brief Overwrite the bitboard for the specified piece and colour with a new bitboard.
          * @param color The color of the piece.
@@ -141,8 +142,8 @@ class Board {
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
 
         // Move tracking
-        std::vector<Move> fLegalMoves;
-        std::vector<Move> fMadeMoves; // Tracks each move made in the game
+        std::vector<U32> fLegalMoves;
+        std::vector<U32> fMadeMoves; // Tracks each move made in the game
 
         // Game state variables
         State fGameState; ///< Current state of play in the game e.g. stalemate

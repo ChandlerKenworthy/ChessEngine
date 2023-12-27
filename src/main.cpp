@@ -1,14 +1,12 @@
 #include <memory>
 
+#include "Move.hpp"
 #include "Board.hpp"
 #include "Renderer.hpp"
 #include "Engine.hpp"
 
 int main() {
-    //Game myGame = Game(true, 4); // use false to toggle off the GUI, max depth = 10
-    //myGame.Play(Color::White);
-
-    const std::unique_ptr<Board> b = std::make_unique<Board>();
+    /*const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();
     const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
 
@@ -70,7 +68,7 @@ int main() {
                 userMove = Move{U64(0), U64(0), Piece::Null};
             }
         }
-    }
+    }*/
 
     return 0;
 }
