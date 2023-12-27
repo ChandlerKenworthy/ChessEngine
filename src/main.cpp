@@ -56,7 +56,8 @@ int main() {
                 } else { // Default to queen promotion
                     SetMovePromotionPiece(userMove, Piece::Queen);
                 }
-            }
+            } // TODO: When pressing a key after a legal move is ready it tries to make a null move then swithces possession. 
+            // Still getting the "We got a keyboard without any keys." issue as well currently...
 
             if(makeLegalMove) {
                 b->MakeMove(userMove);
