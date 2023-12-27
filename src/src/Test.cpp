@@ -21,35 +21,37 @@ Test::Test() {
 
 int Test::MoveGeneration(int depth, bool useGUI) {
     if(useGUI) {
-        int maxDepth = depth;
         while(fGUI->GetWindowIsOpen()) {
-            sf::Event event;
-            while(fGUI->PollEvent(event)) {
-                if(event.type == sf::Event::Closed) {
-                    fGUI->CloseWindow();
-                }
-            }
 
-
+            int numPositions = 0;
             if(depth == 0)
                 return 1;
 
             fEngine->GenerateLegalMoves(fBoard);
-            int numPositions = 0;
             std::string uIn = "";
+            std::vector<U32> moves = fEngine->GetLegalMoves();
 
-            std::vector<U32> *moves = fEngine->GetLegalMoves();
+            for(int iMove = 0; iMove < moves.size(); iMove++) {
+                U32 move = moves.at(iMove);
 
-            for(int iMove = 0; iMove < moves->size(); iMove++) {
-                U32 move = moves->at(iMove);
-                fBoard->MakeMove(move);
-                fGUI->Update(fBoard);
                 if(depth == 1) {
-                    while(uIn.compare("next")) {
-                        std::cout << "Awaiting 'next' command to continue: ";
+                    while(uIn.compare("n")) {
+                        std::cout << "Awaiting 'n' command to continue: ";
                         std::getline(std::cin, uIn);
                     }
                 }
+
+                if(depth == 2) {
+
+                }
+
+                fBoard->MakeMove(move);
+
+                //std::cout << "Depth = " << 4 - depth << " Nodes = " << numPositions << " ";
+                //PrintMove(move);
+                fGUI->Update(fBoard);
+
+                
 
                 numPositions += MoveGeneration(depth - 1, true);
                 fBoard->UndoMove();
@@ -62,13 +64,28 @@ int Test::MoveGeneration(int depth, bool useGUI) {
 
         fEngine->GenerateLegalMoves(fBoard);
         int numPositions = 0;
+        int subPositions = 0;
 
-        std::vector<U32> *moves = fEngine->GetLegalMoves();
+        std::vector<U32> moves = fEngine->GetLegalMoves();
+        //if(depth == 2)
+        //    std::cout << "Initial call total moves = " << moves.size() << "\n";
 
-        for(int iMove = 0; iMove < moves->size(); iMove++) {
-            U32 move = moves->at(iMove);
+        for(int iMove = 0; iMove < moves.size(); iMove++) {
+            U32 move = moves.at(iMove);
+            if(depth == 2) {
+                PrintMove(move); 
+                subPositions = numPositions;
+            }
+
+            //if(depth == 1) {
+            //    std::cout << "Depth 1 move = ";
+            //    PrintMove(move);
+            //}
             fBoard->MakeMove(move);
             numPositions += MoveGeneration(depth - 1, false);
+            //if(depth == 2) {
+            //    std::cout << "Moves for this node = " << numPositions - subPositions << "\n";
+            //}
             fBoard->UndoMove();
         }
 

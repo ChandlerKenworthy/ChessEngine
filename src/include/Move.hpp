@@ -167,4 +167,11 @@ inline void SetMoveIsCheck(U32 &move, bool isCheck) {
     }
 }
 
+inline void PrintMove(U32 m) {
+    std::cout << GetPieceString(GetMovePiece(m));
+    std::cout << " from " << GetStringPosition(GetMoveOrigin(m));
+    std::cout << " to " << GetStringPosition(GetMoveTarget(m)) << std::endl;
+    
+}
+
 #endif

@@ -315,6 +315,47 @@ inline U64 get_file_from_number(int n) {
     }
 }
 
+inline std::string GetStringPosition(U64 pos) {
+    std::string sPos = "";
+    if(pos & FILE_A) {
+        sPos += "A";
+    } else if(pos & FILE_B) {
+        sPos += "B";
+    } else if(pos & FILE_C) {
+        sPos += "C";
+    } else if(pos & FILE_D) {
+        sPos += "D";
+    } else if(pos & FILE_E) {
+        sPos += "E";
+    } else if(pos & FILE_F) {
+        sPos += "F";
+    } else if(pos & FILE_G) {
+        sPos += "G";
+    } else if(pos & FILE_H) {
+        sPos += "H";
+    }
+
+    if(pos & RANK_1) {
+        sPos += "1";
+    } else if(pos & RANK_2) {
+        sPos += "2";
+    } else if(pos & RANK_3) {
+        sPos += "3";
+    } else if(pos & RANK_4) {
+        sPos += "4";
+    } else if(pos & RANK_5) {
+        sPos += "5";
+    } else if(pos & RANK_6) {
+        sPos += "6";
+    } else if(pos & RANK_7) {
+        sPos += "7";
+    } else if(pos & RANK_8) {
+        sPos += "8";
+    }
+
+    return sPos;
+}
+
 inline std::string GetPieceString(Piece piece) {
     switch(piece) {
     case Piece::Pawn:

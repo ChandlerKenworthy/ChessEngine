@@ -49,7 +49,7 @@ class Engine {
        /**
         * @brief Get all the legal moves.
        */
-      std::vector<U32>* GetLegalMoves() { return &fLegalMoves; };
+      std::vector<U32> GetLegalMoves() { return fLegalMoves; };
 
         U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
 

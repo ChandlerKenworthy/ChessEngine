@@ -10,8 +10,11 @@ int main() {
 
     Test t = Test();
 
-    int depth = 3;
+    //U32 move = 0;
+    //SetMove(move, RANK_2 & FILE_A, RANK_3 & FILE_A, Piece::Pawn, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
 
+    int depth = 3;
     int nMoves = t.MoveGeneration(depth, false);
     std::cout << "Number of generated moves after depth " << depth << " = " << nMoves << " (correct = " << t.GetExpectedGeneration(depth) << ")\n";
 

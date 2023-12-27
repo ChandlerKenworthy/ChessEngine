@@ -74,9 +74,9 @@ void Engine::BuildKingAttackTable(const U64 pos) {
 
 void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     // Legal moves have already been calculated for this board configuration, don't recalculate
-    if(fLastUnique == board->GetUnique()) {
-        return;
-    }
+    //if(fLastUnique == board->GetUnique()) {
+    //    return;
+    //}
     fLegalMoves.clear();
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
@@ -355,8 +355,9 @@ bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr
 void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
     U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
     U64 enemy = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
-    U64 occ = enemy | board->GetBoard(board->GetColorToMove());
+    U64 occ = board->GetOccupancy();
     U64 promotionRank = board->GetColorToMove() == Color::White ? RANK_8 : RANK_1;
+    U64 startRank = board->GetColorToMove() == Color::White ? RANK_2 : RANK_7;
     while(pawns) {
         U64 pawn = 0;
         uint8_t lsb = pop_LSB(pawns);
@@ -368,7 +369,7 @@ void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
         // Get rid of 2-square attack if 1st or 2nd square is occupied, add single square attacks
         U64 oneSquareForward = (board->GetColorToMove() == Color::White ? north(pawn) : south(pawn)) & ~occ;
         attacks |= oneSquareForward;
-        if(oneSquareForward)
+        if(oneSquareForward && (pawn & startRank))
             attacks |= (board->GetColorToMove() == Color::White ? north(north(pawn)) : south(south(pawn))) & ~occ;
         while(attacks) {
             U64 attack = 0;
