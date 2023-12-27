@@ -10,20 +10,11 @@ int main() {
 
     Test t = Test();
 
-    int nMoves = t.MoveGeneration(0);
-    std::cout << "Number of generated moves after depth 0 = " << nMoves << " (correct = " << t.GetExpectedGeneration(0) << "\n";
+    int depth = 3;
 
-    nMoves = t.MoveGeneration(1);
-    std::cout << "Number of generated moves after depth 1 = " << nMoves << " (correct = " << t.GetExpectedGeneration(1) << "\n";
+    int nMoves = t.MoveGeneration(depth, false);
+    std::cout << "Number of generated moves after depth " << depth << " = " << nMoves << " (correct = " << t.GetExpectedGeneration(depth) << ")\n";
 
-    nMoves = t.MoveGeneration(2);
-    std::cout << "Number of generated moves after depth 2 = " << nMoves << " (correct = " << t.GetExpectedGeneration(2) << "\n";
-
-    nMoves = t.MoveGeneration(3);
-    std::cout << "Number of generated moves after depth 3 = " << nMoves << " (correct = " << t.GetExpectedGeneration(3) << "\n";
-
-    nMoves = t.MoveGeneration(4);
-    std::cout << "Number of generated moves after depth 4 = " << nMoves << " (correct = " << t.GetExpectedGeneration(4) << "\n";
 
     /*const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();

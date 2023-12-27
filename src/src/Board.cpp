@@ -60,13 +60,13 @@ void Board::UndoMove() {
     set_bit(*movedPieceBoard, get_LSB(GetMoveOrigin(m))); // set the origin bit on relevant board
 
     if(GetMoveTakenPiece(m) != Piece::Null) {
-        U64 b = GetBoard(fColorToMove, GetMoveTakenPiece(m));
+        U64 *b = GetBoardPointer(fColorToMove, GetMoveTakenPiece(m));
         if(GetMoveIsEnPassant(m)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
             // crossing of the origin RANK and target FILE = taken piece position 
-            set_bit(b, get_LSB(get_rank(GetMoveOrigin(m)) & get_file(GetMoveTarget(m))));
+            set_bit(*b, get_LSB(get_rank(GetMoveOrigin(m)) & get_file(GetMoveTarget(m))));
         } else {
-            set_bit(b, get_LSB(GetMoveTarget(m)));
+            set_bit(*b, get_LSB(GetMoveTarget(m)));
         }
     } else if(GetMoveIsCastling(m)) {
         // Put the rook back on the appropriate tile
@@ -86,7 +86,7 @@ void Board::UndoMove() {
         clear_bit(*promotionBoard, get_LSB(GetMoveTarget(m)));
     }
 
-    fColorToMove = movingColor == Color::White ? Color::Black : Color::White;
+    fColorToMove = movingColor;
     fMadeMoves.pop_back();
     fUnique--;
 }
