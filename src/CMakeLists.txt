@@ -10,7 +10,6 @@ find_package(SFML COMPONENTS graphics window system REQUIRED)
 # Add your source files
 add_executable(ChessEngine 
     main.cpp
-    #src/Game.cpp
     src/Board.cpp
     src/Engine.cpp
     src/Renderer.cpp
