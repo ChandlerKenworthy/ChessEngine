@@ -42,6 +42,10 @@ class Engine {
         * @param board The current board configuration.
         */
         void StripIllegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Get the number of legal moves for a board given the current position.
+        */
+       int GetNLegalMoves(const std::unique_ptr<Board> &board);
 
         U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
 

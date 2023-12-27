@@ -155,4 +155,16 @@ inline void SetMove(U32 &move, U64 origin, U64 target, Piece piece, Piece takenP
     SetMovePieceWasTaken(move, takenPiece != Piece::Null);
 }
 
+inline bool GetMoveIsCheck(U32 &move) {
+    return move & 0b100000000000000000000000000;
+}
+
+inline void SetMoveIsCheck(U32 &move, bool isCheck) {
+    if(isCheck) {
+        move |= (1 << 26);
+    } else {
+        move &= ~(1 << 26);
+    }
+}
+
 #endif

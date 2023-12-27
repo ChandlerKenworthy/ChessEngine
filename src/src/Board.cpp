@@ -160,11 +160,11 @@ void Board::MakeMove(U32 move) {
         set_bit(*targBoard, get_LSB(GetMoveTarget(move)));
     }
 
+    // TODO: Move now "made", see if opposing king is now in check
+
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(move);
     fUnique++;
-
-    // TODO: Check if game is over or not
 }
 
 U64 Board::GetBoard(Color color, U64 occupiedPosition) {

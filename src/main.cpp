@@ -34,11 +34,15 @@ int main() {
                 } else { // User clicked on an empty square/enemy piece
                     if(selectedPiece.second != Piece::Null) {
                         engine->GenerateLegalMoves(b);
-                        SetMove(userMove, pieceTile, selectedTile, selectedPiece.second, Piece::Null);
-                        if(engine->GetMoveIsLegal(&userMove)) {
-                            makeLegalMove = true;
+                        if(engine->GetNLegalMoves(b) == 0) { // Game is either a stalemate or checkmate
+                            std::cout << "Game ending condition met\n";
                         } else {
-                            std::cout << "Move was found to be illegal!\n";
+                            SetMove(userMove, pieceTile, selectedTile, selectedPiece.second, Piece::Null);
+                            if(engine->GetMoveIsLegal(&userMove)) {
+                                makeLegalMove = true;
+                            } else {
+                                std::cout << "Move was found to be illegal!\n";
+                            }
                         }
                     }
                     selectedPiece = std::make_pair(Color::White, Piece::Null);

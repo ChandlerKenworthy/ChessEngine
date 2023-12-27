@@ -573,3 +573,7 @@ U32 Engine::GetBestMove(Board board) {
     */
    return U32(0);
 }
+
+int Engine::GetNLegalMoves(const std::unique_ptr<Board> &board) {
+    return fLegalMoves.size();
+};
