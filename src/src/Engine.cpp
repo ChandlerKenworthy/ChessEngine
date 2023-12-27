@@ -439,7 +439,7 @@ void Engine::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
         U64 rook = 0;
         uint8_t lsb = pop_LSB(rooks);
         set_bit(rook, lsb);
-        U64 attacks = (hypQuint(rook, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb])) & ~you;
+        U64 attacks = (hypQuint(rook, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb])) & ~you;
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
