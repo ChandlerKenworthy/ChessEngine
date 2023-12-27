@@ -6,7 +6,7 @@
 #include "Engine.hpp"
 
 int main() {
-    /*const std::unique_ptr<Board> b = std::make_unique<Board>();
+    const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();
     const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
 
@@ -15,7 +15,7 @@ int main() {
     U64 selectedTile = 0;
 
     bool makeLegalMove = false;
-    Move userMove;
+    U32 userMove;
     
     gui->Update(b); // Draw board initially
 
@@ -34,7 +34,7 @@ int main() {
                 } else { // User clicked on an empty square/enemy piece
                     if(selectedPiece.second != Piece::Null) {
                         engine->GenerateLegalMoves(b);
-                        userMove = Move{pieceTile, selectedTile, selectedPiece.second};
+                        SetMove(userMove, pieceTile, selectedTile, selectedPiece.second, Piece::Null);
                         if(engine->GetMoveIsLegal(&userMove)) {
                             makeLegalMove = true;
                         } else {
@@ -47,28 +47,27 @@ int main() {
                 // Find which piece (if any) the user clicked on
                 // or if already clicked a piece drop this piece at the tile clicked on
             } else if(event.type == sf::Event::KeyPressed) {
-                // TODO: Actually set UserMove promotional piece
-                    if(event.key.code == sf::Keyboard::B) {
-                        std::cout << "promting to bishop\n";
-                    } else if(event.key.code == sf::Keyboard::R) {
-                        std::cout << "promting to rook\n";
-                    } else if(event.key.code == sf::Keyboard::N) {
-                        std::cout << "promting to knight\n";
-                    } else { // Default to queen promotion
-                        std::cout << "promting to queen\n";
-                    }
+                if(event.key.code == sf::Keyboard::B) {
+                    SetMovePromotionPiece(userMove, Piece::Bishop);
+                } else if(event.key.code == sf::Keyboard::R) {
+                    SetMovePromotionPiece(userMove, Piece::Rook);
+                } else if(event.key.code == sf::Keyboard::N) {
+                    SetMovePromotionPiece(userMove, Piece::Knight);
+                } else { // Default to queen promotion
+                    SetMovePromotionPiece(userMove, Piece::Queen);
+                }
             }
 
             if(makeLegalMove) {
-                b->MakeMove(&userMove);
+                b->MakeMove(userMove);
                 gui->Update(b); // Only update GUI when a move was actually made
 
                 // Clear variables
                 makeLegalMove = false;
-                userMove = Move{U64(0), U64(0), Piece::Null};
+                userMove = 0;
             }
         }
-    }*/
+    }
 
     return 0;
 }
