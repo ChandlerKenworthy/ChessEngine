@@ -168,9 +168,9 @@ void Board::MakeMove(U32 move) {
 }
 
 U64 Board::GetBoard(Color color, U64 occupiedPosition) {
-    int adj = 0;
+    int adj = -1;
     if(color == Color::Black)
-        adj = 6;
+        adj = 5;
     for(Piece p : PIECES) {
         if(fBoards[(int)p + adj] & occupiedPosition)
             return fBoards[(int)p + adj];
@@ -188,14 +188,14 @@ U64 Board::GetBoard(Color color) {
 
 U64 Board::GetBoard(Color color, Piece piece) {
     if(color == Color::White)
-        return fBoards[(int)piece];
-    return fBoards[(int)piece + 6];
+        return fBoards[(int)piece - 1];
+    return fBoards[(int)piece + 5];
 }
 
 U64* Board::GetBoardPointer(Color color, Piece piece) {
     if(color == Color::White)
-        return &fBoards[(int)piece];
-    return &fBoards[(int)piece + 6];
+        return &fBoards[(int)piece - 1];
+    return &fBoards[(int)piece + 5];
 }
 
 void Board::SetBoard(Color color, Piece piece, U64 board) {
