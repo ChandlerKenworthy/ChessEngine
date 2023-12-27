@@ -44,7 +44,6 @@ void Engine::BuildPawnAttackTables(const U64 pos) {
 }
 
 void Engine::BuildKnightAttackTable(const U64 pos) {
-    // TODO: Check pos has exactly 1 on bit
     fKnightAttacks[get_LSB(pos)] = north(north_east(pos)) | north(north_west(pos)) | south(south_east(pos)) | south(south_west(pos)) | east(north_east(pos)) | east(south_east(pos)) | west(north_west(pos)) | west(south_west(pos));
 }
 
@@ -89,8 +88,7 @@ void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
 void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
-    const U64 underAttack = GetAttacks(board, otherColor); // TODO: Doesn't take into account pinning of other pieces
-    // by your current pieces?
+    const U64 underAttack = GetAttacks(board, otherColor);
     const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
     
     std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and all squares (including the attacking piece) on the pinning ray (as all moves on this ray of the pinned position are of course legal)
@@ -348,11 +346,7 @@ bool Engine::IsCastlingPossible(U64 castlingMask, const std::unique_ptr<Board> &
     return !(occ & castlingMask) && !IsUnderAttack(castlingMask, board->GetColorToMove() == Color::White ? Color::Black : Color::White, board);
 }
 
-bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board) {
-    // TODO: This will have to calculate pins at some point I expect...e.g. rook might not have all the moves
-    // e.g. attackingColor might not be able to move rook because it is pinned
-        // check for pins by calculating sliding piece attakcs but take out the piece that wants to move in the occupancy??
-    
+bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board) {    
     U64 attacker = board->GetBoard(attackingColor);
     U64 attacks = GetAttacks(board, attackingColor);
     return attacks & mask & ~attacker;
