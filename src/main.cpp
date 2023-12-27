@@ -1,13 +1,11 @@
 #include <memory>
 
+#include "Move.hpp"
 #include "Board.hpp"
 #include "Renderer.hpp"
 #include "Engine.hpp"
 
 int main() {
-    //Game myGame = Game(true, 4); // use false to toggle off the GUI, max depth = 10
-    //myGame.Play(Color::White);
-
     const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();
     const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
@@ -15,6 +13,11 @@ int main() {
     std::pair<Color, Piece> selectedPiece = std::make_pair(Color::White, Piece::Null);
     U64 pieceTile = 0;
     U64 selectedTile = 0;
+
+    bool makeLegalMove = false;
+    U32 userMove;
+    
+    gui->Update(b); // Draw board initially
 
     while(gui->GetWindowIsOpen()) {
         sf::Event event;
@@ -31,10 +34,9 @@ int main() {
                 } else { // User clicked on an empty square/enemy piece
                     if(selectedPiece.second != Piece::Null) {
                         engine->GenerateLegalMoves(b);
-                        Move userMove = Move{pieceTile, selectedTile, selectedPiece.second};
+                        SetMove(userMove, pieceTile, selectedTile, selectedPiece.second, Piece::Null);
                         if(engine->GetMoveIsLegal(&userMove)) {
-                            // TODO: Castling seems to just crash the program currently
-                            b->MakeMove(&userMove);
+                            makeLegalMove = true;
                         } else {
                             std::cout << "Move was found to be illegal!\n";
                         }
@@ -44,13 +46,28 @@ int main() {
                 }
                 // Find which piece (if any) the user clicked on
                 // or if already clicked a piece drop this piece at the tile clicked on
-            } else if(event.type == sf::Event::MouseButtonReleased) {
-                // Do something
-            } else if(event.type == sf::Event::MouseMoved) {
-                // Do something
+            } else if(event.type == sf::Event::KeyPressed) {
+                if(event.key.code == sf::Keyboard::B) {
+                    SetMovePromotionPiece(userMove, Piece::Bishop);
+                } else if(event.key.code == sf::Keyboard::R) {
+                    SetMovePromotionPiece(userMove, Piece::Rook);
+                } else if(event.key.code == sf::Keyboard::N) {
+                    SetMovePromotionPiece(userMove, Piece::Knight);
+                } else { // Default to queen promotion
+                    SetMovePromotionPiece(userMove, Piece::Queen);
+                }
+            } // TODO: When pressing a key after a legal move is ready it tries to make a null move then swithces possession. 
+            // Still getting the "We got a keyboard without any keys." issue as well currently...
+
+            if(makeLegalMove) {
+                b->MakeMove(userMove);
+                gui->Update(b); // Only update GUI when a move was actually made
+
+                // Clear variables
+                makeLegalMove = false;
+                userMove = 0;
             }
         }
-        gui->Update(b);
     }
 
     return 0;

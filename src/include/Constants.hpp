@@ -22,6 +22,66 @@
  */
 typedef unsigned long long U64;
 
+/**
+ * @brief Use a 32-bit unsigned integer to represent a Move.
+ *
+ * 32-bit word representing a move. The first 6-bits (0-5) represent an integer [0,63] representing the least significant bit to set for the origin of the move. Bits (6-11) represent the LSB of the target. Bit 12 is whether the move took a piece (1 if it did). Bit 13 is the colour of the moving piece (1 for white). Bits 14-16 represent the type of the taken piece. Bit 17, 18 and 19 represent whether the move was en-passant, castling or promotion (1 for true, 0 for false). The last 3 bits (20-22) specify the promotional piece type. The last 9 bits are unused.
+ */
+typedef uint32_t U32;
+
+/**
+ * @brief Enumeration describing different piece colors.
+ *
+ * This enum class represents white and black colors.
+ */
+enum class Color {
+    White, ///< White color.
+    Black  ///< Black color.
+};
+
+/**
+ * @brief Enumeration describing different states of the chess game.
+ *
+ * Represents all possible game states: in-play, stalemate, draw or checkmate.
+ */
+enum class State {
+    Play,      ///< Game is in play.
+    Stalemate, ///< Game is stalemate.
+    Draw,      ///< Game is draw.
+    Checkmate  ///< Game is checkmate.
+};
+
+/**
+ * @brief Enumeration describing the compass directions of the board (North defined as increasing rank)
+*/
+enum class Direction {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest
+};
+
+const std::vector<Direction> DIRECTIONS = {Direction::North, Direction::East, Direction::South, Direction::West, Direction::SouthEast, Direction::SouthWest, Direction::NorthEast, Direction::NorthWest};
+
+/**
+ * @brief Enumeration for all different types of chess piece.
+ *
+ * Represents all possible chess pieces: pawn, bishop, knight, rook, queen and king. Also includes a Null piece to represent emptiness.
+ */
+enum class Piece {
+    Null,   ///< Null piece.
+    Pawn,   ///< Pawn piece.
+    Bishop, ///< Bishop piece.
+    Knight, ///< Knight piece.
+    Rook,   ///< Rook piece.
+    Queen,  ///< Queen piece.
+    King,   ///< King piece.
+};
+
 const int NSQUARES = 64;
 const int BITS_PER_FILE = 8;
 const int MIN_MOVES_FOR_CASTLING = 6;
@@ -254,76 +314,6 @@ inline U64 get_file_from_number(int n) {
         return U64{0};
     }
 }
-
-
-/**
- * @brief Enumeration describing different states of the chess game.
- *
- * Represents all possible game states: in-play, stalemate, draw or checkmate.
- */
-enum class State {
-    Play,      ///< Game is in play.
-    Stalemate, ///< Game is stalemate.
-    Draw,      ///< Game is draw.
-    Checkmate  ///< Game is checkmate.
-};
-
-/**
- * @brief Enumeration describing the compass directions of the board (North defined as increasing rank)
-*/
-enum class Direction {
-    North,
-    NorthEast,
-    East,
-    SouthEast,
-    South,
-    SouthWest,
-    West,
-    NorthWest
-};
-
-const std::vector<Direction> DIRECTIONS = {Direction::North, Direction::East, Direction::South, Direction::West, Direction::SouthEast, Direction::SouthWest, Direction::NorthEast, Direction::NorthWest};
-
-/**
- * @brief Enumeration describing different piece colors.
- *
- * This enum class represents white and black colors.
- */
-enum class Color {
-    White, ///< White color.
-    Black  ///< Black color.
-};
-
-/**
- * @brief Enumeration for all different types of chess piece.
- *
- * Represents all possible chess pieces: pawn, bishop, knight, rook, queen and king. Also includes a Null piece to represent emptiness.
- */
-enum class Piece {
-    Pawn,   ///< Pawn piece.
-    Bishop, ///< Bishop piece.
-    Knight, ///< Knight piece.
-    Rook,   ///< Rook piece.
-    Queen,  ///< Queen piece.
-    King,   ///< King piece.
-    Null,   ///< Null piece.
-};
-
-/**
- * @struct Move
- * @brief Represents a move.
- * 
- * The Move struct provides a representation and grouping of all parameters required to specify a chess move.
- * It includes information about the piece being moved, from where, to where and whether it was a special move. For example en-passant or castling.
- */
-struct Move {
-    U64 origin;
-    U64 target;
-    Piece piece;
-    Piece takenPiece{ Piece::Null };
-    bool WasEnPassant{ false };
-    bool WasCastling{ false };
-};
 
 inline std::string GetPieceString(Piece piece) {
     switch(piece) {
