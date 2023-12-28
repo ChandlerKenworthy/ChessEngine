@@ -49,8 +49,16 @@ class Engine {
        /**
         * @brief Get all the legal moves.
        */
-      std::vector<U32> GetLegalMoves() { return fLegalMoves; };
-
+        std::vector<U32> GetLegalMoves() { return fLegalMoves; };
+        /**
+         * @brief Get a vector containing the position and type of pieces currently delivering a check to the player to move.
+         * 
+         * Modifies the passed vector v in place.
+        */
+        void PruneCheckMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Get all squares attacked by the specified color as a single bitboard.
+        */
         U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
 
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead

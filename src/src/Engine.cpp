@@ -73,10 +73,13 @@ void Engine::BuildKingAttackTable(const U64 pos) {
 }
 
 void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
-    // Legal moves have already been calculated for this board configuration, don't recalculate
-    //if(fLastUnique == board->GetUnique()) {
-    //    return;
-    //}
+    /* // TODO: Uncomment this breaks the move generation
+        // Legal moves have already been calculated for this board configuration, don't recalculate
+    if(fLastUnique == board->GetUnique()) {
+        return;
+    }
+    */
+
     fLegalMoves.clear();
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
@@ -90,7 +93,10 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
     const U64 underAttack = GetAttacks(board, otherColor);
     const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
-    
+
+    if(king & underAttack) // Player to move is in check, only moves resolving the check can be permitted
+        PruneCheckMoves(board);
+
     std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and all squares (including the attacking piece) on the pinning ray (as all moves on this ray of the pinned position are of course legal)
     for(Direction d : DIRECTIONS) {
         AddAbolsutePins(board, &pinnedPieces, d);
@@ -105,7 +111,6 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
         U32 m = fLegalMoves[iMove];
         bool isIllegal = false;
-
         // King cant move to squares the opponent attacks
         if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
             isIllegal = true;
@@ -124,6 +129,21 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         }
+    }
+}
+
+void Engine::PruneCheckMoves(const std::unique_ptr<Board> &board) {
+    // TODO: Make this quicker i.e. don't make/undo every move as that is slow
+    U64 king = board->GetBoard(board->GetColorToMove(), Piece::King);
+    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
+        U32 move = fLegalMoves[iMove];
+        board->MakeMove(move);
+        U64 underAttack = GetAttacks(board, board->GetColorToMove());
+        if(underAttack & king) { // Move was illegal so remove it
+            fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+            iMove--;
+        }
+        board->UndoMove();
     }
 }
 
