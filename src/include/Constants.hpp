@@ -318,21 +318,21 @@ inline U64 get_file_from_number(int n) {
 inline std::string GetStringPosition(U64 pos) {
     std::string sPos = "";
     if(pos & FILE_A) {
-        sPos += "A";
+        sPos += "a";
     } else if(pos & FILE_B) {
-        sPos += "B";
+        sPos += "b";
     } else if(pos & FILE_C) {
-        sPos += "C";
+        sPos += "c";
     } else if(pos & FILE_D) {
-        sPos += "D";
+        sPos += "d";
     } else if(pos & FILE_E) {
-        sPos += "E";
+        sPos += "e";
     } else if(pos & FILE_F) {
-        sPos += "F";
+        sPos += "f";
     } else if(pos & FILE_G) {
-        sPos += "G";
+        sPos += "g";
     } else if(pos & FILE_H) {
-        sPos += "H";
+        sPos += "h";
     }
 
     if(pos & RANK_1) {

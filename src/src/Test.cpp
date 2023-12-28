@@ -66,26 +66,28 @@ int Test::MoveGeneration(int depth, bool useGUI) {
         int numPositions = 0;
         int subPositions = 0;
 
+        const int printDepth = 5;
+
         std::vector<U32> moves = fEngine->GetLegalMoves();
-        //if(depth == 2)
-        //    std::cout << "Initial call total moves = " << moves.size() << "\n";
+        if(depth == printDepth)
+            std::cout << "Parent nodes to search = " << moves.size() << "\n";
 
         for(int iMove = 0; iMove < moves.size(); iMove++) {
             U32 move = moves.at(iMove);
-            if(depth == 2) {
+            if(depth == printDepth) {
                 PrintMove(move); 
                 subPositions = numPositions;
             }
 
             //if(depth == 1) {
-            //    std::cout << "Depth 1 move = ";
+            //    std::cout << "\n depth 1 move = ";
             //    PrintMove(move);
             //}
             fBoard->MakeMove(move);
             numPositions += MoveGeneration(depth - 1, false);
-            //if(depth == 2) {
-            //    std::cout << "Moves for this node = " << numPositions - subPositions << "\n";
-            //}
+            if(depth == printDepth) {
+                std::cout << ": " << numPositions - subPositions << "\n";
+            }
             fBoard->UndoMove();
         }
 
