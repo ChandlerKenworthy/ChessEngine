@@ -24,10 +24,10 @@ void Board::Reset() {
     fGameState = State::Play;
     fWhiteKingMoved = false;
     fBlackKingMoved = false;
-    fWhiteKingsideRookMoved = false;
-    fWhiteQueensideRookMoved = false;
-    fBlackKingsideRookMoved = false;
-    fBlackQueensideRookMoved = false;
+    fWhiteKingsideRookMoved = 0;
+    fWhiteQueensideRookMoved = 0;
+    fBlackKingsideRookMoved = 0;
+    fBlackQueensideRookMoved = 0;
     fWasLoadedFromFEN = false;
     fColorToMove = Color::White;
 
@@ -59,7 +59,7 @@ void Board::UndoMove() {
     clear_bit(*movedPieceBoard, get_LSB(GetMoveTarget(m))); // clear target bit on the relevant board
     set_bit(*movedPieceBoard, get_LSB(GetMoveOrigin(m))); // set the origin bit on relevant board
 
-    if(GetMoveTakenPiece(m) != Piece::Null) {
+    if(GetMoveTakenPiece(m) != Piece::Null) { // TODO: Handle rook being taken on last move to update castling availability
         U64 *b = GetBoardPointer(fColorToMove, GetMoveTakenPiece(m));
         if(GetMoveIsEnPassant(m)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
@@ -67,6 +67,17 @@ void Board::UndoMove() {
             set_bit(*b, get_LSB(get_rank(GetMoveOrigin(m)) & get_file(GetMoveTarget(m))));
         } else {
             set_bit(*b, get_LSB(GetMoveTarget(m)));
+            if(GetMoveTakenPiece(m) == Piece::Rook) {
+                if(GetMoveTarget(m) & RANK_1 & FILE_H) {
+                    fWhiteKingsideRookMoved--;
+                } else if(GetMoveTarget(m) & RANK_1 & FILE_A) {
+                    fWhiteQueensideRookMoved--;
+                } else if(GetMoveTarget(m) & RANK_8 & FILE_H) {
+                    fBlackKingsideRookMoved--;
+                } else if(GetMoveTarget(m) & RANK_8 & FILE_A) {
+                    fBlackKingsideRookMoved--;
+                }
+            }
         }
     } else if(GetMoveIsCastling(m)) {
         // Put the rook back on the appropriate tile
@@ -114,6 +125,17 @@ void Board::MakeMove(U32 move) {
             clear_bit(*targ, get_LSB(get_rank(GetMoveOrigin(move)) & get_file(GetMoveTarget(move))));
         } else {
             clear_bit(*targ, get_LSB(GetMoveTarget(move)));
+            if(GetMoveTakenPiece(move) == Piece::Rook) {
+                if(GetMoveTarget(move) & RANK_1 & FILE_H) {
+                    fWhiteKingsideRookMoved++;
+                } else if(GetMoveTarget(move) & RANK_1 & FILE_A) {
+                    fWhiteQueensideRookMoved++;
+                } else if(GetMoveTarget(move) & RANK_8 & FILE_H) {
+                    fBlackKingsideRookMoved++;
+                } else if(GetMoveTarget(move) & RANK_8 & FILE_A) {
+                    fBlackKingsideRookMoved++;
+                }
+            }
         }
     }
 
@@ -123,19 +145,19 @@ void Board::MakeMove(U32 move) {
         if(GetMoveTarget(move) & RANK_1 & FILE_G) { // Kingside white castling (rook h1 -> f1)
             clear_bit(*rook, get_LSB(RANK_1 & FILE_H));
             set_bit(*rook, get_LSB(RANK_1 & FILE_F));
-            fWhiteKingsideRookMoved = true;
+            fWhiteKingsideRookMoved++;
         } else if(GetMoveTarget(move) & RANK_1 & FILE_C) {  // Queenside white castling (rook a1 -> d1)
             clear_bit(*rook, get_LSB(RANK_1 & FILE_A));
             set_bit(*rook, get_LSB(RANK_1 & FILE_D));
-            fWhiteQueensideRookMoved = true;
+            fWhiteQueensideRookMoved++;
         } else if(GetMoveTarget(move) & RANK_8 & FILE_G) { // Kingside black castling
             clear_bit(*rook, get_LSB(RANK_8 & FILE_H));
             set_bit(*rook, get_LSB(RANK_8 & FILE_F));
-            fBlackKingsideRookMoved = true;
+            fBlackKingsideRookMoved++;
         } else if(GetMoveTarget(move) & RANK_8 & FILE_C) { // Queenside black castling
             clear_bit(*rook, get_LSB(RANK_8 & FILE_A));
             set_bit(*rook, get_LSB(RANK_8 & FILE_D));
-            fBlackQueensideRookMoved = true;
+            fBlackQueensideRookMoved++;
         }
         if(fColorToMove == Color::White) {
             fWhiteKingMoved = true;
@@ -155,15 +177,15 @@ void Board::MakeMove(U32 move) {
     if(GetMovePiece(move) == Piece::Rook) {
         if(fColorToMove == Color::White) {
             if(GetMoveOrigin(move) & FILE_A) {
-                fWhiteQueensideRookMoved = true;
+                fWhiteQueensideRookMoved++;
             } else if(GetMoveOrigin(move) & FILE_H) {
-                fWhiteKingsideRookMoved = true;
+                fWhiteKingsideRookMoved++;
             }
         } else {
             if(GetMoveOrigin(move) & FILE_A) {
-                fBlackQueensideRookMoved = true;
+                fBlackQueensideRookMoved++;
             } else if(GetMoveOrigin(move) & FILE_H) {
-                fBlackKingsideRookMoved = true;
+                fBlackKingsideRookMoved++;
             }
         }
     }
@@ -174,7 +196,7 @@ void Board::MakeMove(U32 move) {
         set_bit(*targBoard, get_LSB(GetMoveTarget(move)));
     }
 
-    // TODO: Move now "made", see if opposing king is now in check
+    // TODO: Move now "made", see if opposing king is now in check?
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(move);

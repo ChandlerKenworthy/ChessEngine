@@ -104,19 +104,19 @@ class Board {
         /**
          * @brief True if the white kingside rook has moved
         */
-        bool GetWhiteKingsideRookMoved() { return fWhiteKingsideRookMoved; };
+        unsigned short GetWhiteKingsideRookMoved() { return fWhiteKingsideRookMoved; };
         /**
          * @brief True if the white queenside rook has moved
         */
-        bool GetWhiteQueensideRookMoved() { return fWhiteQueensideRookMoved; };
+        unsigned short GetWhiteQueensideRookMoved() { return fWhiteQueensideRookMoved; };
         /**
          * @brief True if the black kingside rook has moved
         */
-        bool GetBlackKingsideRookMoved() { return fBlackKingsideRookMoved; };
+        unsigned short GetBlackKingsideRookMoved() { return fBlackKingsideRookMoved; };
         /**
          * @brief True if the black queenside rook has moved
         */
-        bool GetBlackQueensideRookMoved() { return fBlackQueensideRookMoved; };
+        unsigned short GetBlackQueensideRookMoved() { return fBlackQueensideRookMoved; };
         /**
          * @brief Get the integer incremented everytime the board changes (+1 even for undo)
         */
@@ -149,10 +149,10 @@ class Board {
         State fGameState; ///< Current state of play in the game e.g. stalemate
         bool fWhiteKingMoved; ///< True if the white king has moved
         bool fBlackKingMoved; ///< True if the black king has moved
-        bool fWhiteKingsideRookMoved; ///< True if the white kingside rook has moved
-        bool fWhiteQueensideRookMoved; ///< True if the white queenside rook has moved
-        bool fBlackKingsideRookMoved; ///< True if the black kingside rook has moved
-        bool fBlackQueensideRookMoved; ///< True if the black queenside rook has moved
+        unsigned short fWhiteKingsideRookMoved; ///< >0 if the white kingside rook has moved
+        unsigned short fWhiteQueensideRookMoved; ///< >0 if the white queenside rook has moved
+        unsigned short fBlackKingsideRookMoved; ///< >0 if the black kingside rook has moved
+        unsigned short fBlackQueensideRookMoved; ///< >0 if the black queenside rook has moved
         Color fColorToMove; ///< Current colour to make a move
 
         // Skipping functions

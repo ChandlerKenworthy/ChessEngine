@@ -159,46 +159,47 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
     const U64 ownPieces = board->GetBoard(board->GetColorToMove());
     U64 rayMask = 0;
     U64 enemies = defendingQueen;
+    U64 kingShift = 0;
 
     switch(d) {
         case Direction::North:
-            rayOccupancy |= south(king);
-            rayMask = fPrimaryStraightAttacks[lsb];
+            kingShift |= south(king);
+            rayMask = fSecondaryStraightAttacks[lsb];
             enemies |= defendingRook;
             break;
         case Direction::East:
-            rayOccupancy |= west(king);
-            rayMask = fSecondaryStraightAttacks[lsb];
-            enemies |= defendingRook;
-            break;
-        case Direction::West:
-            rayOccupancy |= east(king);
-            rayMask = fSecondaryStraightAttacks[lsb];
-            enemies |= defendingRook;
-            break;
-        case Direction::South:
-            rayOccupancy |= north(king);
+            kingShift |= west(king);
             rayMask = fPrimaryStraightAttacks[lsb];
             enemies |= defendingRook;
             break;
+        case Direction::West:
+            kingShift |= east(king);
+            rayMask = fPrimaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::South:
+            kingShift |= north(king);
+            rayMask = fSecondaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
         case Direction::NorthEast:
-            rayOccupancy |= south_west(king);
-            rayMask = fPrimaryDiagonalAttacks[lsb];
+            kingShift |= south_west(king);
+            rayMask = fSecondaryDiagonalAttacks[lsb];
             enemies |= defendingBishop;
             break;
         case Direction::NorthWest:
-            rayOccupancy |= south_east(king);
-            rayMask = fSecondaryDiagonalAttacks[lsb];
+            kingShift |= south_east(king);
+            rayMask = fPrimaryDiagonalAttacks[lsb];
             enemies |= defendingBishop;
             break;
         case Direction::SouthEast:
-            rayOccupancy |= north_west(king);
-            rayMask = fSecondaryDiagonalAttacks[lsb];
+            kingShift |= north_west(king);
+            rayMask = fPrimaryDiagonalAttacks[lsb];
             enemies |= defendingBishop;
             break;
         case Direction::SouthWest:
-            rayOccupancy |= north_east(king);
-            rayMask = fPrimaryDiagonalAttacks[lsb];
+            kingShift |= north_east(king);
+            rayMask = fSecondaryDiagonalAttacks[lsb];
             enemies |= defendingBishop;
             break;
         default:
@@ -206,7 +207,8 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
             break;
     }
 
-    U64 ray = hypQuint(king, rayOccupancy, rayMask);
+    rayOccupancy |= kingShift;
+    U64 ray = hypQuint(king, rayOccupancy, rayMask) ^ kingShift;
     U64 rayAndEnemy = ray & enemies;
 
     if(rayAndEnemy) { // Enemy piece on the ray pointing at the king (that could attack king, if not blocked)
