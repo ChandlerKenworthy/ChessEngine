@@ -136,14 +136,19 @@ void Engine::PruneCheckMoves(const std::unique_ptr<Board> &board) {
     // TODO: Make this quicker i.e. don't make/undo every move as that is slow
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
         U32 move = fLegalMoves[iMove];
-        board->MakeMove(move);
-        U64 underAttack = GetAttacks(board, board->GetColorToMove());
-        U64 king = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::King);
-        if(underAttack & king) { // Move was illegal so remove it
+        if(GetMoveIsCastling(move)) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
+        } else {
+            board->MakeMove(move);
+            U64 underAttack = GetAttacks(board, board->GetColorToMove());
+            U64 king = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::King);
+            if(underAttack & king) { // Move was illegal so remove it
+                fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+                iMove--;
+            }
+            board->UndoMove();
         }
-        board->UndoMove();
     }
 }
 
