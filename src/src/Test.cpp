@@ -19,11 +19,11 @@ Test::Test() {
     };
 }
 
-int Test::MoveGeneration(int depth, bool useGUI) {
+unsigned long int Test::MoveGeneration(int depth, bool useGUI) {
     if(useGUI) {
         while(fGUI->GetWindowIsOpen()) {
 
-            int numPositions = 0;
+            unsigned long int numPositions = 0;
             if(depth == 0)
                 return 1;
 
@@ -63,10 +63,10 @@ int Test::MoveGeneration(int depth, bool useGUI) {
             return 1;
 
         fEngine->GenerateLegalMoves(fBoard);
-        int numPositions = 0;
-        int subPositions = 0;
+        unsigned long int numPositions = 0;
+        unsigned long int subPositions = 0;
 
-        const int printDepth = 5;
+        const int printDepth = 7;
 
         std::vector<U32> moves = fEngine->GetLegalMoves();
         if(depth == printDepth)

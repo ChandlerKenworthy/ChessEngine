@@ -28,7 +28,7 @@ class Test {
          *
          * If operating with useGUI on then each move will be made the GUI updated and the loop paused until the user enters N in the console ("next") thereby checking each moves validity slowly.
         */
-        int MoveGeneration(int depth, bool useGUI);
+        unsigned long int MoveGeneration(int depth, bool useGUI);
         unsigned long int GetExpectedGeneration(int depth) { return depth < fExpectedGeneration.size() ? fExpectedGeneration[depth] : 0; };
         const std::unique_ptr<Board>& GetBoard() { return fBoard; };
     private:
