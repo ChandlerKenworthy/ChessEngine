@@ -31,7 +31,9 @@ class Test {
         unsigned long int MoveGeneration(int depth, bool useGUI);
         unsigned long int GetExpectedGeneration(int depth) { return depth < fExpectedGeneration.size() ? fExpectedGeneration[depth] : 0; };
         const std::unique_ptr<Board>& GetBoard() { return fBoard; };
+        void SetPrintDepth(int depth) { fPrintDepth = depth; };
     private:
+        int fPrintDepth;
         std::unique_ptr<Board> fBoard;
         std::unique_ptr<Engine> fEngine;
         std::unique_ptr<Renderer> fGUI;

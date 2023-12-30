@@ -11,10 +11,31 @@ int main() {
     Test t = Test();
 
     //U32 move = 0;
-    //SetMove(move, RANK_2 & FILE_A, RANK_3 & FILE_A, Piece::Pawn, Piece::Null);
+    //SetMove(move, RANK_2 & FILE_G, RANK_3 & FILE_G, Piece::Pawn, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
+
+    //move = 0;
+    //SetMove(move, RANK_7 & FILE_G, RANK_6 & FILE_G, Piece::Pawn, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
+
+    //move = 0;
+    //SetMove(move, RANK_1 & FILE_G, RANK_3 & FILE_H, Piece::Knight, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
+
+    //move = 0;
+    //SetMove(move, RANK_8 & FILE_F, RANK_6 & FILE_H, Piece::Bishop, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
+
+    //move = 0;
+    //SetMove(move, RANK_1 & FILE_F, RANK_2 & FILE_G, Piece::Bishop, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
+
+    //move = 0;
+    //SetMove(move, RANK_6 & FILE_H, RANK_2 & FILE_D, Piece::Bishop, Piece::Null);
     //t.GetBoard()->MakeMove(move);
 
     int depth = 7;
+    t.SetPrintDepth(depth);
     unsigned long int nMoves = t.MoveGeneration(depth, false);
     std::cout << "Number of generated moves after depth " << depth << " = " << nMoves << " (correct = " << t.GetExpectedGeneration(depth) << ")\n";
 

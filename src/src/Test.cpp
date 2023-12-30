@@ -4,6 +4,7 @@ Test::Test() {
     fBoard = std::make_unique<Board>();
     fEngine = std::make_unique<Engine>(true);
     fGUI = std::make_unique<Renderer>();
+    fPrintDepth = 999;
 
     fExpectedGeneration = {
         1,
@@ -66,15 +67,13 @@ unsigned long int Test::MoveGeneration(int depth, bool useGUI) {
         unsigned long int numPositions = 0;
         unsigned long int subPositions = 0;
 
-        const int printDepth = 7;
-
         std::vector<U32> moves = fEngine->GetLegalMoves();
-        if(depth == printDepth)
+        if(depth == fPrintDepth)
             std::cout << "Parent nodes to search = " << moves.size() << "\n";
 
         for(int iMove = 0; iMove < moves.size(); iMove++) {
             U32 move = moves.at(iMove);
-            if(depth == printDepth) {
+            if(depth == fPrintDepth) {
                 PrintMove(move); 
                 subPositions = numPositions;
             }
@@ -85,7 +84,7 @@ unsigned long int Test::MoveGeneration(int depth, bool useGUI) {
             //}
             fBoard->MakeMove(move);
             numPositions += MoveGeneration(depth - 1, false);
-            if(depth == printDepth) {
+            if(depth == fPrintDepth) {
                 std::cout << ": " << numPositions - subPositions << "\n";
             }
             fBoard->UndoMove();
