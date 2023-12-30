@@ -96,27 +96,27 @@ class Board {
         /**
          * @brief True if the white king has moved
         */
-        bool GetWhiteKingMoved() { return fWhiteKingMoved; };
+        bool GetWhiteKingMoved() { return fWhiteKingMoved > 0; };
         /**
          * @brief True if the black king has moved
         */
-        bool GetBlackKingMoved() { return fBlackKingMoved; };
+        bool GetBlackKingMoved() { return fBlackKingMoved > 0; };
         /**
          * @brief True if the white kingside rook has moved
         */
-        unsigned short GetWhiteKingsideRookMoved() { return fWhiteKingsideRookMoved; };
+        bool GetWhiteKingsideRookMoved() { return fWhiteKingsideRookMoved > 0; };
         /**
          * @brief True if the white queenside rook has moved
         */
-        unsigned short GetWhiteQueensideRookMoved() { return fWhiteQueensideRookMoved; };
+        bool GetWhiteQueensideRookMoved() { return fWhiteQueensideRookMoved > 0; };
         /**
          * @brief True if the black kingside rook has moved
         */
-        unsigned short GetBlackKingsideRookMoved() { return fBlackKingsideRookMoved; };
+        bool GetBlackKingsideRookMoved() { return fBlackKingsideRookMoved > 0; };
         /**
          * @brief True if the black queenside rook has moved
         */
-        unsigned short GetBlackQueensideRookMoved() { return fBlackQueensideRookMoved; };
+        bool GetBlackQueensideRookMoved() { return fBlackQueensideRookMoved > 0; };
         /**
          * @brief Get the integer incremented everytime the board changes (+1 even for undo)
         */
@@ -147,8 +147,8 @@ class Board {
 
         // Game state variables
         State fGameState; ///< Current state of play in the game e.g. stalemate
-        bool fWhiteKingMoved; ///< True if the white king has moved
-        bool fBlackKingMoved; ///< True if the black king has moved
+        unsigned short fWhiteKingMoved; ///< True if the white king has moved
+        unsigned short fBlackKingMoved; ///< True if the black king has moved
         unsigned short fWhiteKingsideRookMoved; ///< >0 if the white kingside rook has moved
         unsigned short fWhiteQueensideRookMoved; ///< >0 if the white queenside rook has moved
         unsigned short fBlackKingsideRookMoved; ///< >0 if the black kingside rook has moved

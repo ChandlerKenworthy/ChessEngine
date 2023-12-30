@@ -337,12 +337,14 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
+            move = 0;
         }
         if(!board->GetWhiteQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, board)) {
             SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
+            move = 0;
         }
     // Castling conditions for black
     } else if(board->GetColorToMove() == Color::Black && !board->GetBlackKingMoved()) {
@@ -352,6 +354,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
+            move = 0;
         }
         if (board->GetBlackQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, board)) 
@@ -359,6 +362,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
+            move = 0;
         }
     }
 }
