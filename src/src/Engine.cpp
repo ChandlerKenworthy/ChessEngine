@@ -110,24 +110,20 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
         U32 m = fLegalMoves[iMove];
-        bool isIllegal = false;
         // King cant move to squares the opponent attacks
         if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
-            isIllegal = true;
-        // Absolutely pinned pieces may not move, unless it is a capture of that piece
-        } else if(pinnedPositions & GetMoveOrigin(m)) { 
-            // Piece originates from a pinned position
-            bool isLegal = false;
-            for(auto pins : pinnedPieces) {
-                if(GetMoveTarget(m) & pins.second)
-                    isLegal = true; // Pieces move was to capture pinning piece
-            }
-            isIllegal = !isLegal;
-        }
-        
-        if(isIllegal) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
+        // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
+        } else if(pinnedPositions & GetMoveOrigin(m)) { // Piece originates from a pinned position
+            for(auto pins : pinnedPieces) {
+                // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
+                if((GetMoveOrigin(m) & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                    // Moving to somewhere off the absolutely pinning ray (illegal)
+                    fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+                    iMove--;
+                }
+            }
         }
     }
 }
