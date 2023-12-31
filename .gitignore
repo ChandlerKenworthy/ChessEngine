@@ -12,3 +12,6 @@ doc/html/*.svg
 *.html
 *.tex
 *.js
+
+# Directory with perft results files
+perft/
