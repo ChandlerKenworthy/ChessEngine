@@ -28,7 +28,7 @@ class Test {
          *
          * If operating with useGUI on then each move will be made the GUI updated and the loop paused until the user enters N in the console ("next") thereby checking each moves validity slowly.
         */
-        unsigned long int MoveGeneration(int depth, bool useGUI);
+        unsigned long int MoveGeneration(int depth);
         /**
          * @brief Get the number of moves that are possible from the start position up to a speicifed depth (values from Stockfish 16)
         */

@@ -11,32 +11,38 @@ int main() {
     Test t = Test();
 
     //U32 move = 0;
-    //SetMove(move, RANK_2 & FILE_G, RANK_3 & FILE_G, Piece::Pawn, Piece::Null);
+    //SetMove(move, RANK_2 & FILE_E, RANK_4 & FILE_E, Piece::Pawn, Piece::Null);
     //t.GetBoard()->MakeMove(move);
 
     //move = 0;
-    //SetMove(move, RANK_7 & FILE_G, RANK_6 & FILE_G, Piece::Pawn, Piece::Null);
+    //SetMove(move, RANK_7 & FILE_D, RANK_5 & FILE_D, Piece::Pawn, Piece::Null);
     //t.GetBoard()->MakeMove(move);
 
     //move = 0;
-    //SetMove(move, RANK_1 & FILE_G, RANK_3 & FILE_H, Piece::Knight, Piece::Null);
+    //SetMove(move, RANK_1 & FILE_D, RANK_2 & FILE_E, Piece::Queen, Piece::Null);
     //t.GetBoard()->MakeMove(move);
 
     //move = 0;
-    //SetMove(move, RANK_8 & FILE_F, RANK_6 & FILE_H, Piece::Bishop, Piece::Null);
+    //SetMove(move, RANK_5 & FILE_D, RANK_4 & FILE_E, Piece::Pawn, Piece::Null);
+    //SetMoveTakenPiece(move, Piece::Pawn);
+    //SetMovePieceWasTaken(move, true);
     //t.GetBoard()->MakeMove(move);
 
     //move = 0;
-    //SetMove(move, RANK_1 & FILE_F, RANK_2 & FILE_G, Piece::Bishop, Piece::Null);
+    //SetMove(move, RANK_1 & FILE_E, RANK_1 & FILE_D, Piece::King, Piece::Null);
+    //t.GetBoard()->MakeMove(move);
+
+    //move = 0;
+    //SetMove(move, RANK_8 & FILE_C, RANK_4 & FILE_G, Piece::Bishop, Piece::Null);
     //t.GetBoard()->MakeMove(move);
 
     //move = 0;
     //SetMove(move, RANK_6 & FILE_H, RANK_2 & FILE_D, Piece::Bishop, Piece::Null);
     //t.GetBoard()->MakeMove(move);
 
-    int depth = 7;
+    int depth = 6;
     t.SetPrintDepth(depth);
-    unsigned long int nMoves = t.MoveGeneration(depth, false);
+    unsigned long int nMoves = t.MoveGeneration(depth);
     std::cout << "Number of generated moves after depth " << depth << " = " << nMoves << " (correct = " << t.GetExpectedGeneration(depth) << ")\n";
 
 
