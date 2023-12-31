@@ -349,18 +349,18 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         }
     // Castling conditions for black
     } else if(board->GetColorToMove() == Color::Black && !board->GetBlackKingMoved()) {
-        if (board->GetBlackKingsideRookMoved() &&
+        if (!board->GetBlackKingsideRookMoved() &&
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, board)) 
         {
-            SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
+            SetMove(move, origin, RANK_8 & FILE_G, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
         }
-        if (board->GetBlackQueensideRookMoved() &&
+        if (!board->GetBlackQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, board)) 
         {
-            SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
+            SetMove(move, origin, RANK_8 & FILE_C, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
