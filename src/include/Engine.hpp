@@ -153,11 +153,15 @@ class Engine {
         */
         void GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board);
         /**
+         * @brief Finds any pawn promotion moves and splits into separate moves for each type of piece it is possible to promote to.
+        */
+        void UpdatePromotionMoves();
+        /**
          * @brief Add absolutely pinned pieces of the colour to move to a provided vector.
          * @param v Vector of pairs of the pinned piece and piece pinning that piece in that order.
          * @param d Direction of the ray to check.
         */
-       void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
+        void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
 
         // TODO: Doc these functions!
         void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);

@@ -169,6 +169,20 @@ inline void SetMoveIsCheck(U32 &move, bool isCheck) {
 
 inline void PrintMove(U32 m) {
     std::cout << GetStringPosition(GetMoveOrigin(m)) << GetStringPosition(GetMoveTarget(m));
+    if(GetMoveIsPromotion(m)) {
+        Piece p = GetMovePromotionPiece(m);
+        if(p == Piece::Queen) {
+            std::cout << "q";
+        } else if(p == Piece::Bishop) {
+            std::cout << "b";
+        } else if(p == Piece::Rook) {
+            std::cout << "r";
+        } else if(p == Piece::Knight) {
+            std::cout << "n";
+        } else {
+            std::cout << "Something went wrong when printing a promotional move with promo piece " << (int)p;
+        }
+    }
     
 }
 
