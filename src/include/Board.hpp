@@ -136,6 +136,10 @@ class Board {
          * @brief Clears all game state variables and put pieces in starting position.
          */
         void Reset();
+        /**
+         * @brief Get whether the board has been loaded from a FEN to prevent castling and en-passant move skipping
+        */
+        bool GetWasLoadedFromFEN() { return fWasLoadedFromFEN; };
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
 

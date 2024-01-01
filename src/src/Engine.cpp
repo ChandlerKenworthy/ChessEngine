@@ -92,6 +92,8 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
     const U64 underAttack = GetAttacks(board, otherColor);
+    //std::cout << "\nPrinting whites attacks:\n";
+    //PrintBitset(underAttack);
     const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
 
     if(king & underAttack) // Player to move is in check, only moves resolving the check can be permitted
@@ -289,7 +291,7 @@ void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
-    if(board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT) // Protect against seg fault + faster returns
+    if(board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT && !board->GetWasLoadedFromFEN()) // Protect against seg fault + faster returns
         return;
     U32 lastMove = board->GetLastMove();
     // Faster return if you know en-passant will not be possible
@@ -323,7 +325,7 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
-    if(board->GetNMovesMade() < MIN_MOVES_FOR_CASTLING)
+    if(board->GetNMovesMade() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
         return;
 
     U64 occupancy = board->GetOccupancy();
@@ -333,7 +335,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     U32 move = 0;
     if(board->GetColorToMove() == Color::White && !board->GetWhiteKingMoved()) {
         if(!board->GetWhiteKingsideRookMoved() && 
-            IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, board)) 
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, KING_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) 
         {
             SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
@@ -341,7 +343,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             move = 0;
         }
         if(!board->GetWhiteQueensideRookMoved() &&
-            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, board)) {
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) {
             SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
@@ -350,7 +352,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     // Castling conditions for black
     } else if(board->GetColorToMove() == Color::Black && !board->GetBlackKingMoved()) {
         if (!board->GetBlackKingsideRookMoved() &&
-            IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, board)) 
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
         {
             SetMove(move, origin, RANK_8 & FILE_G, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
@@ -358,7 +360,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             move = 0;
         }
         if (!board->GetBlackQueensideRookMoved() &&
-            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, board)) 
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
         {
             SetMove(move, origin, RANK_8 & FILE_C, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
@@ -368,9 +370,9 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-bool Engine::IsCastlingPossible(U64 castlingMask, const std::unique_ptr<Board> &board) {
+bool Engine::IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board) {
     U64 occ = board->GetOccupancy();
-    return !(occ & castlingMask) && !IsUnderAttack(castlingMask, board->GetColorToMove() == Color::White ? Color::Black : Color::White, board);
+    return !(occ & occupancyMask) && !IsUnderAttack(castlingMask, board->GetColorToMove() == Color::White ? Color::Black : Color::White, board);
 }
 
 bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board) {    

@@ -162,7 +162,7 @@ class Engine {
         // TODO: Doc these functions!
         void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);
         void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
-        bool IsCastlingPossible(U64 castlingMask, const std::unique_ptr<Board> &board);
+        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
         bool IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board);
 };
 

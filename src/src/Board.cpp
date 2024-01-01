@@ -326,7 +326,7 @@ void Board::LoadFEN(const std::string &fen) {
                     } else if(pos & RANK_1 & FILE_H) {
                         whiteKingsideRookMoved = false;
                     }
-                } else {
+                } else if(pieceColor == Color::Black && pieceType == Piece::Rook) {
                     if(pos & RANK_8 & FILE_A) {
                         blackQueensideRookMoved = false;
                     } else if(pos & RANK_8 & FILE_H) {
