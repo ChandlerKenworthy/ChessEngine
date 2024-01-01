@@ -81,7 +81,7 @@ void Board::UndoMove() {
                 } else if(GetMoveTarget(move) & RANK_8 & FILE_H) {
                     fBlackKingsideRookMoved--;
                 } else if(GetMoveTarget(move) & RANK_8 & FILE_A) {
-                    fBlackKingsideRookMoved--;
+                    fBlackQueensideRookMoved--;
                 }
             }
         }
@@ -175,7 +175,7 @@ void Board::MakeMove(U32 move) {
                 } else if(GetMoveTarget(move) & RANK_8 & FILE_H) {
                     fBlackKingsideRookMoved++;
                 } else if(GetMoveTarget(move) & RANK_8 & FILE_A) {
-                    fBlackKingsideRookMoved++;
+                    fBlackQueensideRookMoved++;
                 }
             }
         }
