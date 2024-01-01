@@ -33,6 +33,12 @@ class Test {
          * @brief Get the number of moves that are possible from the start position up to a speicifed depth (values from Stockfish 16)
         */
         unsigned long int GetExpectedGeneration(int depth) { return depth < fExpectedGeneration.size() ? fExpectedGeneration[depth] : 0; };
+        /**
+         * @brief Get the number of moves that are possible from the specified FEN position up to a specified depth.
+        */
+       unsigned long int GetNodes(int depth, std::string fen);
+
+       
         const std::unique_ptr<Board>& GetBoard() { return fBoard; };
         void SetPrintDepth(int depth) { fPrintDepth = depth; };
     private:

@@ -271,9 +271,9 @@ U64* Board::GetBoardPointer(Color color, Piece piece) {
 
 void Board::SetBoard(Color color, Piece piece, U64 board) {
     if(color == Color::White) {
-        fBoards[(int)piece] = board;
+        fBoards[(int)piece - 1] = board;
     } else {
-        fBoards[(int)piece + 6] = board;
+        fBoards[(int)piece + 5] = board;
     }
 }
 
@@ -292,8 +292,14 @@ void Board::LoadFEN(const std::string &fen) {
     int file = 1;
     int ngaps = 0;
 
-    bool whiteCanCastle = false;
-    bool blackCanCastle = false;
+    // Assume castling not possible
+    bool whiteKingCanCastle = false;
+    bool blackKingCanCastle = false;
+
+    bool whiteKingsideRookMoved = true;
+    bool whiteQueensideRookMoved = true;
+    bool blackKingsideRookMoved = true;
+    bool blackQueensideRookMoved = true;
 
     for (char c : fen) {
         if (file > 8) {
@@ -307,13 +313,27 @@ void Board::LoadFEN(const std::string &fen) {
             if (ngaps == 1) {
                 fColorToMove = (toupper(c) == 'B') ? Color::Black : Color::White;
             } else if (ngaps == 2) {
-                whiteCanCastle |= (c == 'K' || c == 'Q');
-                blackCanCastle |= (c == 'k' || c == 'q');
+                whiteKingCanCastle |= (c == 'K' || c == 'Q');
+                blackKingCanCastle |= (c == 'k' || c == 'q');
             } else {
                 U64 pos = get_rank_from_number(rank) & get_file_from_number(file);
                 Color pieceColor = (isupper(c)) ? Color::White : Color::Black;
-                U64 board = GetBoard(pieceColor, GetPieceFromChar(c)) | pos;
-                SetBoard(pieceColor, GetPieceFromChar(c), board);
+                Piece pieceType = GetPieceFromChar(c);
+                U64 board = GetBoard(pieceColor, pieceType) | pos;
+                if(pieceColor == Color::White && pieceType == Piece::Rook) {
+                    if(pos & RANK_1 & FILE_A) {
+                        whiteQueensideRookMoved = false;
+                    } else if(pos & RANK_1 & FILE_H) {
+                        whiteKingsideRookMoved = false;
+                    }
+                } else {
+                    if(pos & RANK_8 & FILE_A) {
+                        blackQueensideRookMoved = false;
+                    } else if(pos & RANK_8 & FILE_H) {
+                        blackKingsideRookMoved = false;
+                    }
+                }
+                SetBoard(pieceColor, pieceType, board);
                 file++;
             }
         } else if (c == ' ') {
@@ -321,9 +341,13 @@ void Board::LoadFEN(const std::string &fen) {
         }
     }
 
-    //fWhiteHasCastled = !whiteCanCastle;
-    //fBlackHasCastled = !blackCanCastle;
     fWasLoadedFromFEN = true;
+    fWhiteKingMoved = !whiteKingCanCastle;
+    fBlackKingMoved = !blackKingCanCastle;
+    fWhiteKingsideRookMoved = whiteKingsideRookMoved;
+    fWhiteQueensideRookMoved = whiteQueensideRookMoved;
+    fBlackKingsideRookMoved = blackKingsideRookMoved;
+    fBlackQueensideRookMoved = blackQueensideRookMoved;
 }
 
 std::pair<Color, Piece> Board::GetIsOccupied(U64 pos) {

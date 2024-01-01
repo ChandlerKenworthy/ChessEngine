@@ -20,6 +20,24 @@ Test::Test() {
     };
 }
 
+unsigned long int Test::GetNodes(int depth, std::string fen) {
+    fBoard->LoadFEN(fen);
+    SetPrintDepth(depth);
+    // Display board to user and await confirmation that is looks okay 
+    // TODO: Properly test my FEN loading code
+    fGUI->Update(fBoard);
+    while(fGUI->GetWindowIsOpen()) {
+        sf::Event event;
+        while(fGUI->PollEvent(event)) {
+            fGUI->Update(fBoard);
+            if(event.type == sf::Event::Closed) {
+                fGUI->CloseWindow();
+            }
+        }
+    } // User closing the window means they are "happy" with the position
+    return MoveGeneration(depth);
+}
+
 unsigned long int Test::MoveGeneration(int depth) {
     if(depth == 0)
         return 1;
