@@ -83,7 +83,7 @@ void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     fLegalMoves.clear();
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
-    GenerateEnPassantMoves(board);
+    GenerateEnPassantMoves(board); // Note that en-passant moves could leave the king in check (see FEN 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - then make the move c7c5 for black)
     UpdatePromotionMoves();
     StripIllegalMoves(board);
     fLastUnique = board->GetUnique();
@@ -146,6 +146,14 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
                     iMove--;
                 }
             }
+        } else if(GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
+            board->MakeMove(m);
+            Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
+            if(GetAttacks(board, board->GetColorToMove()) & board->GetBoard(otherColor, Piece::King)) {
+                fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+                iMove--;
+            }
+            board->UndoMove();
         }
     }
 }
@@ -311,9 +319,40 @@ void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
-    if(board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT && !board->GetWasLoadedFromFEN()) // Protect against seg fault + faster returns
+    // En-passant not possible so throw away early
+    if((!board->GetWasLoadedFromFEN() && board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT) || 
+        board->GetWasLoadedFromFEN() && board->GetNMovesMade() < 1)
         return;
+
+    // FEN loaded position with en-passant move immediately available
+    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN()) {
+        U64 attackSquares = 0;
+        U64 target = board->GetEnPassantFEN();
+        if(board->GetColorToMove() == Color::White) {
+            attackSquares = (south_east(target) | south_west(target)) & board->GetBoard(Color::White, Piece::Pawn);
+        } else {
+            attackSquares = (north_east(target) | north_west(target)) & board->GetBoard(Color::Black, Piece::Pawn);
+        }
+
+        while(attackSquares) {
+            U64 pawn = 0;
+            set_bit(pawn, pop_LSB(attackSquares));
+            U32 move = 0;
+            SetMove(
+                move, 
+                pawn, 
+                target, 
+                Piece::Pawn, 
+                Piece::Pawn
+            );
+            SetMoveIsEnPassant(move, true);
+            fLegalMoves.push_back(move);
+        }        
+    }
+
+    // Now run the usual code
     U32 lastMove = board->GetLastMove();
+
     // Faster return if you know en-passant will not be possible
     if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
         return;

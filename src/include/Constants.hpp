@@ -320,6 +320,29 @@ inline U64 get_file_from_number(int n) {
     }
 }
 
+inline U64 get_file_from_char(char c) {
+    c = toupper(c);
+    if(c == 'A') {
+        return FILE_A;
+    } else if(c == 'B') {
+        return FILE_B;
+    } else if(c == 'C') {
+        return FILE_C;
+    } else if(c == 'D') {
+        return FILE_D;
+    } else if(c == 'E') {
+        return FILE_E;
+    } else if(c == 'F') {
+        return FILE_F;
+    } else if(c == 'G') {
+        return FILE_G;
+    } else if(c == 'H') {
+        return FILE_H;
+    } else {
+        return U64(0);
+    }
+}
+
 inline std::string GetStringPosition(U64 pos) {
     std::string sPos = "";
     if(pos & FILE_A) {

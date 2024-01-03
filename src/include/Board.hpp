@@ -140,6 +140,10 @@ class Board {
          * @brief Get whether the board has been loaded from a FEN to prevent castling and en-passant move skipping
         */
         bool GetWasLoadedFromFEN() { return fWasLoadedFromFEN; };
+        /**
+        * @brief Get the tile (or empty bitboard) that is available for en-passant capture 
+        */
+        U64 GetEnPassantFEN() { return fEnPassantFENTarget; };
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
 
@@ -157,6 +161,7 @@ class Board {
         unsigned short fWhiteQueensideRookMoved; ///< >0 if the white queenside rook has moved
         unsigned short fBlackKingsideRookMoved; ///< >0 if the black kingside rook has moved
         unsigned short fBlackQueensideRookMoved; ///< >0 if the black queenside rook has moved
+        U64 fEnPassantFENTarget;
         Color fColorToMove; ///< Current colour to make a move
 
         // Skipping functions

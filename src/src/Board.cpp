@@ -29,6 +29,7 @@ void Board::Reset() {
     fBlackKingsideRookMoved = 0;
     fBlackQueensideRookMoved = 0;
     fWasLoadedFromFEN = false;
+    fEnPassantFENTarget = 0;
     fColorToMove = Color::White;
 
     fLegalMoves.clear();
@@ -301,6 +302,7 @@ void Board::LoadFEN(const std::string &fen) {
     bool blackKingsideRookMoved = true;
     bool blackQueensideRookMoved = true;
 
+    int iChar = 0;
     for (char c : fen) {
         if (file > 8) {
             file = 1;
@@ -312,9 +314,12 @@ void Board::LoadFEN(const std::string &fen) {
         } else if(isalpha(c)) {
             if (ngaps == 1) {
                 fColorToMove = (toupper(c) == 'B') ? Color::Black : Color::White;
-            } else if (ngaps == 2) {
+            } else if (ngaps == 2) { // Castling terms
                 whiteKingCanCastle |= (c == 'K' || c == 'Q');
                 blackKingCanCastle |= (c == 'k' || c == 'q');
+            } else if(ngaps == 3 && !fEnPassantFENTarget) { // En-passant possibilities
+                int rankNo = fen.at(iChar + 1) - '0';
+                fEnPassantFENTarget = get_file_from_char(c) & get_rank_from_number(rankNo);
             } else {
                 U64 pos = get_rank_from_number(rank) & get_file_from_number(file);
                 Color pieceColor = (isupper(c)) ? Color::White : Color::Black;
@@ -339,6 +344,7 @@ void Board::LoadFEN(const std::string &fen) {
         } else if (c == ' ') {
             ngaps++;
         }
+        iChar++;
     }
 
     fWasLoadedFromFEN = true;
