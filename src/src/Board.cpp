@@ -146,7 +146,7 @@ void Board::UndoMove() {
     fUnique--;
 }
 
-void Board::MakeMove(U32 move) {
+void Board::MakeMove(const U32 move) {
     if(fGameState != State::Play)
         return;
 
@@ -241,7 +241,7 @@ void Board::MakeMove(U32 move) {
     fUnique++;
 }
 
-U64 Board::GetBoard(Color color, U64 occupiedPosition) {
+U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
     int adj = -1;
     if(color == Color::Black)
         adj = 5;
@@ -252,7 +252,7 @@ U64 Board::GetBoard(Color color, U64 occupiedPosition) {
     return U64{0};
 }
 
-U64 Board::GetBoard(Color color) {
+U64 Board::GetBoard(const Color color) {
     U64 board = 0;
     for(Piece p : PIECES) {
         board |= GetBoard(color, p);
@@ -260,19 +260,19 @@ U64 Board::GetBoard(Color color) {
     return board;
 }
 
-U64 Board::GetBoard(Color color, Piece piece) {
+U64 Board::GetBoard(const Color color, const Piece piece) {
     if(color == Color::White)
         return fBoards[(int)piece - 1];
     return fBoards[(int)piece + 5];
 }
 
-U64* Board::GetBoardPointer(Color color, Piece piece) {
+U64* Board::GetBoardPointer(const Color color, const Piece piece) {
     if(color == Color::White)
         return &fBoards[(int)piece - 1];
     return &fBoards[(int)piece + 5];
 }
 
-void Board::SetBoard(Color color, Piece piece, U64 board) {
+void Board::SetBoard(const Color color, const Piece piece, const U64 board) {
     if(color == Color::White) {
         fBoards[(int)piece - 1] = board;
     } else {
@@ -370,7 +370,7 @@ void Board::LoadFEN(const std::string &fen) {
     fBlackQueensideRookMoved = blackQueensideRookMoved;
 }
 
-std::pair<Color, Piece> Board::GetIsOccupied(U64 pos) {
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     for(int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
             Piece pieceType = Piece::Null;

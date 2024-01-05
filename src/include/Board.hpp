@@ -33,7 +33,7 @@ class Board {
          * @brief Get the current state of the game can either be in play, stalemate or checkmate.
          * @return State, the enumeration for the current game state.
          */
-        State GetState() { return fGameState; };
+        State GetState() const { return fGameState; };
         /**
          * @brief Set the play state of the game. 
         */
@@ -44,42 +44,42 @@ class Board {
          * @param piece The type of the piece.
          * @return U64, the bitboard containing the abstract representation of the piece positions.
          */
-        U64 GetBoard(Color color, Piece piece);
+        U64 GetBoard(const Color color, const Piece piece);
         /**
          * @brief Get a pointer to the bitboard associated with a particular colour and type of piece.
          * @param color The color of the piece(s).
          * @param piece The type of the piece.
          * @return U64*, pointer to the bitboard containing the abstract representation of the piece positions.
         */
-        U64* GetBoardPointer(Color color, Piece piece);
+        U64* GetBoardPointer(const Color color, const Piece piece);
         /**
          * @brief Get occupation bitboard for all pieces of specified colour.
          * @param color The color whose logical or of bitboards is required.
          * @return U64, the bitboard containing the abstract representation of all pieces of color.
          */
-        U64 GetBoard(Color color);
+        U64 GetBoard(const Color color);
         /**
          * @brief Get occupation bitboard for all pieces with the specified colour and type found at the given position.
          * @param color The color of the pieces to search.
          * @param occupiedPosition The position of the piece on the board to check.
          * @return U64, the bitboard containing the abstract representation of all pieces of color. Empty board if no piece found at occupiedPosition.
          */
-        U64 GetBoard(Color color, U64 occupiedPosition);
+        U64 GetBoard(const Color color, const U64 occupiedPosition);
         /**
          * @brief Return all occupied bits on the chess board as a bitboard.
         */
-       U64 GetOccupancy() { return std::accumulate(std::begin(fBoards), std::end(fBoards), U64(0), std::bit_or<U64>()); };
+       U64 GetOccupancy() const { return std::accumulate(std::begin(fBoards), std::end(fBoards), U64(0), std::bit_or<U64>()); };
         /**
          * @brief Get the colour of the player whose turn it is to move.
          */
-        Color GetColorToMove() { return fColorToMove; };
+        Color GetColorToMove() const { return fColorToMove; };
         /**
          * @brief Make the move on the board.
          * @param move The move to be made
          * 
          * Updates all the bit boards and required game state variables to make the requested move.
          */
-        void MakeMove(U32 move);
+        void MakeMove(const U32 move);
         /**
          * @brief Undoes the actions of the last move.
          */
@@ -93,7 +93,7 @@ class Board {
          * @param pos The position on the board to check.
          * @return The color and piece of the occupying piece (if any) else Null piece is given.
         */
-        std::pair<Color, Piece> GetIsOccupied(U64 pos);
+        std::pair<Color, Piece> GetIsOccupied(const U64 pos);
         /**
             * @brief Get the number of completed moves full moves (e.g. both black and white have had a turn)
         */
@@ -140,7 +140,7 @@ class Board {
          * @param piece The type of the piece.
          * @param board The bit-board to overwrite the existing bitboard
          */
-        void SetBoard(Color color, Piece piece, U64 board);
+        void SetBoard(const Color color, const Piece piece, const U64 board);
         /**
          * @brief Clears all game state variables and put pieces in starting position.
          */
