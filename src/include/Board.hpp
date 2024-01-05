@@ -175,22 +175,16 @@ class Board {
         unsigned short fWhiteQueensideRookMoved; ///< >0 if the white queenside rook has moved
         unsigned short fBlackKingsideRookMoved; ///< >0 if the black kingside rook has moved
         unsigned short fBlackQueensideRookMoved; ///< >0 if the black queenside rook has moved
-        U64 fEnPassantFENTarget;
+        U64 fEnPassantFENTarget; ///< The tile in which an en-passant move is now available (as read from a FEN string)
         Color fColorToMove; ///< Current colour to make a move
 
         // Skipping functions
-        bool fWasLoadedFromFEN;
+        bool fWasLoadedFromFEN; ///< Get if the board was loaded from FEN
 
         /**
          * @brief Set all internal bitboards describing the chess board to zero (empty boards)
         */
         void EmptyBoards();
-
-        // Undocumented/to be moved
-        Piece GetPiece(Color color, U64 position);
-        void RemoveIllegalMoves();
-        bool GetBoardIsLegal();
-        
 };
 
 #endif

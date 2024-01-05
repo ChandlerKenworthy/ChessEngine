@@ -128,8 +128,6 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
     const U64 underAttack = GetAttacks(board, otherColor);
-    //std::cout << "\nPrinting whites attacks:\n";
-    //PrintBitset(underAttack);
     const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
 
     if(king & underAttack) // Player to move is in check, only moves resolving the check can be permitted

@@ -170,11 +170,21 @@ class Engine {
          * @param d Direction of the ray to check.
         */
         void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
-
-        // TODO: Doc these functions!
+        /**
+         * @brief Generates the en-passant moves, if any exist, and adds them to the legal moves vector.
+        */
         void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generates castling moves, if any exist, and adds them to the legal moves vector.
+        */
         void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Determines if castling is possible on a particular side on the current board. 
+        */
         bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        /**
+         * @brief True if any of the positions in mask and attacked by the specified colour on the current board.
+        */
         bool IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board);
 };
 

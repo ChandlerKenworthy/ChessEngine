@@ -37,18 +37,6 @@ void Board::Reset() {
     fMadeMoves.clear();
 }
 
-Piece Board::GetPiece(Color color, U64 pos) {
-    // Returns the type of piece, if any, at the specified position with the color given
-    int adj = 0;
-    if(color == Color::Black)
-        adj = 6;
-    for(Piece p : PIECES) {
-        if(GetBoard(color, p) & pos)
-            return p;
-    }
-    return Piece::Null;
-}
-
 void Board::UndoMove() {
     // Essentially just does the inverse of MakeMove
     if(fMadeMoves.size() < 1)
