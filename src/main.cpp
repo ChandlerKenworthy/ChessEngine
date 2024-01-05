@@ -6,45 +6,71 @@
 #include "Engine.hpp"
 #include "Test.hpp"
 
-int main() {
+const std::string VERSION = "v1.6.1";
 
-    Test t = Test();
+bool ProcessCommandLineArgs(const std::vector<std::string>& args,
+                            bool &useGUI,
+                            bool &doGame,
+                            bool &helpRequested,
+                            int &perftDepth,
+                            std::string &fenString) {
+    for(int i = 0; i < args.size(); i++) {
+        std::string arg = args[i];
+        if(!arg.compare("--no-gui")) {
+            useGUI = false;
+        } else if(!arg.compare("--perft")) {
+            perftDepth = std::stoi(args[i+1]); // TODO: Catch if this is not a valid digit
+        } else if(!arg.compare("--help")) {
+            helpRequested = true;
+        } else if(!arg.compare("--fen")) {
+            fenString = args[i+1];
+        } else if(!arg.compare("--play")) {
+            doGame = true;
+        }
+    }
 
-    //U32 move = 0;
-    //SetMove(move, RANK_2 & FILE_E, RANK_4 & FILE_E, Piece::Pawn, Piece::Null);
-    //t.GetBoard()->MakeMove(move);
+    return true;
+}
 
-    //move = 0;
-    //SetMove(move, RANK_7 & FILE_D, RANK_5 & FILE_D, Piece::Pawn, Piece::Null);
-    //t.GetBoard()->MakeMove(move);
+void DisplayHelp() {
+    std::cout << "Usage: ChessEngine [options]\n\n"
+              << "Description:\n"
+              << "  A static evaluation based chess engine. You can play against the computer or get the best moves from given positions.\n\n"
+              << "Options:\n"
+              << "  --no-gui            Run the program without a graphical user interface.\n"
+              << "  --perft <depth>     Perform a perft test up to the specified depth. Depths >= 7 can take a significant time to compute depending on the positions complexity.\n"
+              << "  --fen <fen>         Specify an initial position for the engine to perform perft tests or play against using the standard FEN notation.\n"
+              << "  --play              Play a game of user versus the computer. The engine will play the best move.\n\n"
+              << "Examples:\n"
+              << "  ChessEngine --perft 5 --fen \"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1\" --no-gui\n"
+              << "  ChessEngine --play\n";
+}
 
-    //move = 0;
-    //SetMove(move, RANK_1 & FILE_D, RANK_2 & FILE_E, Piece::Queen, Piece::Null);
-    //t.GetBoard()->MakeMove(move);
+void Play(const std::string &fen) {
+    // TODO: Not yet implemented
+    std::cout << "Sorry, the feature you requested has not yet been implemented.\n";
+}
 
-    //move = 0;
-    //SetMove(move, RANK_5 & FILE_D, RANK_4 & FILE_E, Piece::Pawn, Piece::Null);
-    //SetMoveTakenPiece(move, Piece::Pawn);
-    //SetMovePieceWasTaken(move, true);
-    //t.GetBoard()->MakeMove(move);
+int main(int argc, char* argv[]) {
 
-    //move = 0;
-    //SetMove(move, RANK_1 & FILE_E, RANK_1 & FILE_D, Piece::King, Piece::Null);
-    //t.GetBoard()->MakeMove(move);
+    bool useGUI = true; 
+    bool doGame = false;
+    bool helpRequested = false;
+    int perftDepth = 0;
+    std::string fenString = "";
 
-    //move = 0;
-    //SetMove(move, RANK_8 & FILE_C, RANK_4 & FILE_G, Piece::Bishop, Piece::Null);
-    //t.GetBoard()->MakeMove(move);
+    std::vector<std::string> args(argv, argv + argc);
+    bool success = ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, fenString);
 
-    //move = 0;
-    //SetMove(move, RANK_6 & FILE_H, RANK_2 & FILE_D, Piece::Bishop, Piece::Null);
-    //t.GetBoard()->MakeMove(move);
-
-    int depth = 6;
-    t.SetPrintDepth(depth);
-    unsigned long int nMoves = t.MoveGeneration(depth);
-    std::cout << "Number of generated moves after depth " << depth << " = " << nMoves << " (correct = " << t.GetExpectedGeneration(depth) << ")\n";
-
+    if(helpRequested) {
+        DisplayHelp();
+    } else if(perftDepth > 0) {
+        Test myTest = Test();
+        unsigned long int result = myTest.GetNodes(perftDepth, fenString);
+        std::cout << "\nNodes searched: " << result << "\n";
+    } else if(doGame) {
+        Play(fenString);
+    }
 
     /*const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();

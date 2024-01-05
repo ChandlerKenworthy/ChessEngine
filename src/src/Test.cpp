@@ -21,10 +21,10 @@ Test::Test() {
 }
 
 unsigned long int Test::GetNodes(int depth, std::string fen) {
-    fBoard->LoadFEN(fen);
+    if(fen.length() > 0)
+        fBoard->LoadFEN(fen);
     SetPrintDepth(depth);
     // Display board to user and await confirmation that is looks okay 
-    // TODO: Properly test my FEN loading code
     fGUI->Update(fBoard);
     while(fGUI->GetWindowIsOpen()) {
         sf::Event event;
@@ -48,7 +48,7 @@ unsigned long int Test::MoveGeneration(int depth) {
 
     std::vector<U32> moves = fEngine->GetLegalMoves();
     if(depth == fPrintDepth)
-        std::cout << "Parent nodes to search = " << moves.size() << "\n";
+        std::cout << "Parent nodes searched: " << moves.size() << "\n";
 
     for(int iMove = 0; iMove < moves.size(); iMove++) {
         U32 move = moves.at(iMove);
