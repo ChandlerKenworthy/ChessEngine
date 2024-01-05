@@ -49,31 +49,8 @@ void DisplayHelp() {
 void Play(const std::string &fen) {
     // TODO: Not yet implemented
     std::cout << "Sorry, the feature you requested has not yet been implemented.\n";
-}
 
-int main(int argc, char* argv[]) {
-
-    bool useGUI = true; 
-    bool doGame = false;
-    bool helpRequested = false;
-    int perftDepth = 0;
-    std::string fenString = "";
-
-    std::vector<std::string> args(argv, argv + argc);
-    bool success = ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, fenString);
-
-    if(helpRequested) {
-        DisplayHelp();
-    } else if(perftDepth > 0) {
-        Test myTest = Test();
-        myTest.SetUseGUI(useGUI);
-        unsigned long int result = myTest.GetNodes(perftDepth, fenString);
-        std::cout << "\nNodes searched: " << result << "\n";
-    } else if(doGame) {
-        Play(fenString);
-    }
-
-    /*const std::unique_ptr<Board> b = std::make_unique<Board>();
+    const std::unique_ptr<Board> b = std::make_unique<Board>();
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();
     const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
 
@@ -139,7 +116,30 @@ int main(int argc, char* argv[]) {
                 userMove = 0;
             }
         }
-    }*/
+    }
+}
+
+int main(int argc, char* argv[]) {
+
+    bool useGUI = true; 
+    bool doGame = false;
+    bool helpRequested = false;
+    int perftDepth = 0;
+    std::string fenString = "";
+
+    std::vector<std::string> args(argv, argv + argc);
+    bool success = ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, fenString);
+
+    if(helpRequested) {
+        DisplayHelp();
+    } else if(perftDepth > 0) {
+        Test myTest = Test();
+        myTest.SetUseGUI(useGUI);
+        unsigned long int result = myTest.GetNodes(perftDepth, fenString);
+        std::cout << "\nNodes searched: " << result << "\n";
+    } else if(doGame) {
+        Play(fenString);
+    }
 
     return 0;
 }
