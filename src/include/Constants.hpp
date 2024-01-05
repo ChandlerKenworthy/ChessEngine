@@ -9,6 +9,7 @@
  * @brief Lots of useful constants and bit manipulation functions.
  */
 
+// TODO: Stop using macros and switch to proper functions following modern C++ standards
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
 #define clear_bit(b, i) ((b) &= ~(1ULL << i))
@@ -47,7 +48,9 @@ enum class Color {
 enum class State {
     Play,      ///< Game is in play.
     Stalemate, ///< Game is stalemate.
-    Draw,      ///< Game is draw.
+    InSufficientMaterial, ///< Game is a draw through insufficient material.
+    MoveRepetition, ///< Game is a draw by repitition.
+    FiftyMoveRule, ///< Game is a draw by the 50 move rule.
     Checkmate  ///< Game is checkmate.
 };
 

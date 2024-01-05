@@ -12,6 +12,7 @@
 #include <numeric>
 #include <algorithm>
 #include <utility>
+#include <sstream>
 
 #include "Constants.hpp"
 #include "Move.hpp"
@@ -33,6 +34,10 @@ class Board {
          * @return State, the enumeration for the current game state.
          */
         State GetState() { return fGameState; };
+        /**
+         * @brief Set the play state of the game. 
+        */
+        void SetState(State state) { fGameState = state; };
         /**
          * @brief Get bitboard associated with a particular colour and type of piece.
          * @param color The color of the piece(s).
@@ -90,9 +95,13 @@ class Board {
         */
         std::pair<Color, Piece> GetIsOccupied(U64 pos);
         /**
-            * @brief Get the number of completed moves (i.e. the ply)
+            * @brief Get the number of completed moves full moves (e.g. both black and white have had a turn)
         */
-        int GetNMovesMade() { return fMadeMoves.size(); };
+        int GetNMovesMade() { return (int)(fMadeMoves.size() / 2); };
+        /**
+         * @brief Get the number of half-moves e.g. white making and move followed by black would be 2 half-moves.
+        */
+        int GetNHalfMoves() { return fMadeMoves.size(); };
         /**
          * @brief True if the white king has moved
         */
@@ -144,6 +153,10 @@ class Board {
         * @brief Get the tile (or empty bitboard) that is available for en-passant capture 
         */
         U64 GetEnPassantFEN() { return fEnPassantFENTarget; };
+        /**
+         * @brief Get the number of half-moves made since the last capture or pawn move.
+        */
+        unsigned short GetHalfMoveClock() { return fHalfMoves; };
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
 
@@ -152,6 +165,7 @@ class Board {
         // Move tracking
         std::vector<U32> fLegalMoves;
         std::vector<U32> fMadeMoves; // Tracks each move made in the game
+        unsigned short fHalfMoves; ///< The half-move clock for enforcing the 50 move rule
 
         // Game state variables
         State fGameState; ///< Current state of play in the game e.g. stalemate

@@ -59,7 +59,7 @@ class Engine {
         /**
          * @brief Get all squares attacked by the specified color as a single bitboard.
         */
-        U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
+        U64 GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor);
 
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };

@@ -21,6 +21,7 @@ void Board::Reset() {
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
     fUnique = 0;
+    fHalfMoves = 0;
     fGameState = State::Play;
     fWhiteKingMoved = 0;
     fBlackKingMoved = 0;
@@ -146,11 +147,8 @@ void Board::UndoMove() {
 }
 
 void Board::MakeMove(U32 move) {
-    // Change position of moved piece
-    // Take away any taken pieces
-    // Move rook if castling was involved
-    // Update king/rook has moved if either of these were moved
-    // Update made moves and unique counters
+    if(fGameState != State::Play)
+        return;
 
     U64 *origin = GetBoardPointer(fColorToMove, GetMovePiece(move));
     
@@ -231,6 +229,9 @@ void Board::MakeMove(U32 move) {
         U64 *targBoard = GetBoardPointer(fColorToMove, GetMovePromotionPiece(move) == Piece::Null ? Piece::Queen : GetMovePromotionPiece(move));
         set_bit(*targBoard, get_LSB(GetMoveTarget(move)));
     }
+
+    if(GetMovePiece(move) == Piece::Pawn || GetMoveTakenPiece(move) != Piece::Null)
+        fHalfMoves++;
 
     // TODO: Move now "made", see if opposing king is now in check?
 
@@ -320,7 +321,19 @@ void Board::LoadFEN(const std::string &fen) {
             } else if(ngaps == 3 && !fEnPassantFENTarget) { // En-passant possibilities
                 int rankNo = fen.at(iChar + 1) - '0';
                 fEnPassantFENTarget = get_file_from_char(c) & get_rank_from_number(rankNo);
-            } else {
+            } else if(ngaps == 4) {
+                char nextChar = fen.at(iChar + 1);
+                if(nextChar == ' ') {
+                    fHalfMoves = c - '0';
+                } else {
+                    // Join two chars into a string using std::stringstream
+                    std::stringstream ss;
+                    ss << c << nextChar;
+                    std::string result = ss.str();
+                    fHalfMoves = std::stoi(result);
+                }
+                
+             } else {
                 U64 pos = get_rank_from_number(rank) & get_file_from_number(file);
                 Color pieceColor = (isupper(c)) ? Color::White : Color::Black;
                 Piece pieceType = GetPieceFromChar(c);

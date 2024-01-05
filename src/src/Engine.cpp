@@ -13,8 +13,7 @@ Engine::Engine(const bool init) {
 
 void Engine::Prepare() {
     for(int iBit = 0; iBit < NSQUARES; iBit++) {
-        U64 pos = 0; // TODO: Must be a better way to do this e.g. a one-liner
-        set_bit(pos, iBit);
+        U64 pos = 1ULL << iBit;
         BuildPawnAttackTables(pos);
         BuildKnightAttackTable(pos);
         BuildKingAttackTable(pos);
@@ -73,17 +72,14 @@ void Engine::BuildKingAttackTable(const U64 pos) {
 }
 
 void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
-    /* // TODO: Uncomment this breaks the move generation
-        // Legal moves have already been calculated for this board configuration, don't recalculate
-    if(fLastUnique == board->GetUnique()) {
-        return;
-    }
-    */
-
     fLegalMoves.clear();
+
+    // TODO: Check the half-move clock, might need to set the game state to breach of 50-move rule
+    // same goes for draw by insufficient material (and all the others)
+
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
-    GenerateEnPassantMoves(board); // Note that en-passant moves could leave the king in check (see FEN 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - then make the move c7c5 for black)
+    GenerateEnPassantMoves(board);
     UpdatePromotionMoves();
     StripIllegalMoves(board);
     fLastUnique = board->GetUnique();
@@ -253,7 +249,7 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
     }
 }
 
-U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor) {
+U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor) {
     U64 attacks = 0;
     U64 defender = board->GetBoard(attackingColor == Color::White ? Color::Black : Color::White);
     U64 attacker = board->GetBoard(attackingColor);
@@ -320,8 +316,8 @@ void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
 
 void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     // En-passant not possible so throw away early
-    if((!board->GetWasLoadedFromFEN() && board->GetNMovesMade() < MIN_MOVES_FOR_ENPASSANT) || 
-        board->GetWasLoadedFromFEN() && board->GetNMovesMade() < 1)
+    if((!board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < MIN_MOVES_FOR_ENPASSANT) || 
+        board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < 1)
         return;
 
     // FEN loaded position with en-passant move immediately available
@@ -384,7 +380,7 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
-    if(board->GetNMovesMade() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
+    if(board->GetNHalfMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
         return;
 
     U64 occupancy = board->GetOccupancy();
