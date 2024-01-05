@@ -71,11 +71,31 @@ void Engine::BuildKingAttackTable(const U64 pos) {
     fKingAttacks[get_LSB(pos)] = north(pos) | east(pos) | west(pos) | south(pos) | north_east(pos) | north_west(pos) | south_east(pos) | south_west(pos);
 }
 
+void Engine::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
+    if(board->GetHalfMoveClock() == 100)
+        board->SetState(State::FiftyMoveRule);
+}
+
+void Engine::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
+    uint8_t nBlackKnights = CountSetBits(board->GetBoard(Color::Black, Piece::Knight));
+    uint8_t nBlackBishops = CountSetBits(board->GetBoard(Color::Black, Piece::Bishop));
+    uint8_t nWhiteKnights = CountSetBits(board->GetBoard(Color::White, Piece::Knight));
+    uint8_t nWhiteBishops = CountSetBits(board->GetBoard(Color::White, Piece::Bishop));
+    uint8_t nBlackPieces = CountSetBits(board->GetBoard(Color::Black));
+    uint8_t nWhitePieces = CountSetBits(board->GetBoard(Color::White));
+
+    if(nBlackPieces == 2 && (nBlackKnights == 1 || nBlackBishops == 1) && nWhitePieces == 1) {
+        board->SetState(State::InSufficientMaterial);
+    } else if(nWhitePieces == 2 && (nWhiteBishops == 1 || nWhiteKnights == 1) && nBlackPieces == 1) {
+        board->SetState(State::InSufficientMaterial);
+    }
+}
+
 void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     fLegalMoves.clear();
-
-    // TODO: Check the half-move clock, might need to set the game state to breach of 50-move rule
-    // same goes for draw by insufficient material (and all the others)
+    
+    CheckFiftyMoveDraw(board);
+    CheckInsufficientMaterial(board); 
 
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);

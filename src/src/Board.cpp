@@ -230,8 +230,9 @@ void Board::MakeMove(U32 move) {
         set_bit(*targBoard, get_LSB(GetMoveTarget(move)));
     }
 
+    fHalfMoves++;
     if(GetMovePiece(move) == Piece::Pawn || GetMoveTakenPiece(move) != Piece::Null)
-        fHalfMoves++;
+        fHalfMoves = 0;
 
     // TODO: Move now "made", see if opposing king is now in check?
 
