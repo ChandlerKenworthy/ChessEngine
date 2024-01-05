@@ -18,10 +18,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y stockfish
 
-      - name: Set up CMake
-        uses: actions/setup-cmake@v2
-        with:
-          cmake-version: 3.27
+      - name: Install CMake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake=3.27.9
 
       - name: Build Chess Engine
         run: |
