@@ -26,6 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake
           export CXX=clang++
+          cd src
           cmake ..
 
       - name: Build Chess Engine
