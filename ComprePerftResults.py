@@ -1,5 +1,40 @@
-import pandas as pd
+import sys
+
+def compare_outputs(engine_output, stockfish_output):
+
+    nEngineNodes = engine_output.split('\n')[-1]
+    nEngineNodes = int(nEngineNodes.split(":")[1])
+
+    nStockfishNodes = stockfish_output.split('\n')[-1]
+    nStockfishNodes = int(nStockfishNodes.split(":")[1])
+    
+    return nStockfishNodes == nEngineNodes
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python compare_outputs.py <engine_output_file> <stockfish_output_file>")
+        sys.exit(1)
+
+    engine_output_file = sys.argv[1]
+    stockfish_output_file = sys.argv[2]
+
+    with open(engine_output_file, 'r') as f:
+        engine_output = f.read()
+
+    with open(stockfish_output_file, 'r') as f:
+        stockfish_output = f.read()
+
+    if compare_outputs(engine_output, stockfish_output):
+        print("Outputs match!")
+        sys.exit(0)
+    else:
+        print("Outputs do not match!")
+        sys.exit(1)
+
+
+"""
 import numpy as np
+import pandas as pd
 
 if __name__ == "__main__":
     stockfish_perft_result_path = "perft/stockfish_perft_7.txt"
@@ -24,3 +59,4 @@ if __name__ == "__main__":
         stockfish_perft["Delta"] = stockfish_perft["Nodes"] - stockfish_perft["NodeEngine"]
 
         print(stockfish_perft)
+"""

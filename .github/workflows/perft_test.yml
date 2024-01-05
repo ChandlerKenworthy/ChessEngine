@@ -1,0 +1,41 @@
+name: Perft Tests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Stockfish
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y stockfish
+
+      - name: Set up CMake
+        uses: actions/setup-cmake@v2
+        with:
+          cmake-version: 3.21
+
+      - name: Build Chess Engine
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make || exit 1 # Fail the action if make fails
+
+      - name: Run Perft Test
+        run: |
+          /usr/games/stockfish
+          position startpos
+          go perft 7 > stockfish_output.txt
+
+          ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
+          python ComprePerftResults.py engine_output.txt stockfish_output.txt
+        
