@@ -21,6 +21,7 @@ void Board::Reset() {
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
     fUnique = 0;
+    fHalfMoves = 0;
     fGameState = State::Play;
     fWhiteKingMoved = 0;
     fBlackKingMoved = 0;
@@ -34,18 +35,6 @@ void Board::Reset() {
 
     fLegalMoves.clear();
     fMadeMoves.clear();
-}
-
-Piece Board::GetPiece(Color color, U64 pos) {
-    // Returns the type of piece, if any, at the specified position with the color given
-    int adj = 0;
-    if(color == Color::Black)
-        adj = 6;
-    for(Piece p : PIECES) {
-        if(GetBoard(color, p) & pos)
-            return p;
-    }
-    return Piece::Null;
 }
 
 void Board::UndoMove() {
@@ -145,12 +134,9 @@ void Board::UndoMove() {
     fUnique--;
 }
 
-void Board::MakeMove(U32 move) {
-    // Change position of moved piece
-    // Take away any taken pieces
-    // Move rook if castling was involved
-    // Update king/rook has moved if either of these were moved
-    // Update made moves and unique counters
+void Board::MakeMove(const U32 move) {
+    if(fGameState != State::Play)
+        return;
 
     U64 *origin = GetBoardPointer(fColorToMove, GetMovePiece(move));
     
@@ -232,6 +218,10 @@ void Board::MakeMove(U32 move) {
         set_bit(*targBoard, get_LSB(GetMoveTarget(move)));
     }
 
+    fHalfMoves++;
+    if(GetMovePiece(move) == Piece::Pawn || GetMoveTakenPiece(move) != Piece::Null)
+        fHalfMoves = 0;
+
     // TODO: Move now "made", see if opposing king is now in check?
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
@@ -239,7 +229,7 @@ void Board::MakeMove(U32 move) {
     fUnique++;
 }
 
-U64 Board::GetBoard(Color color, U64 occupiedPosition) {
+U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
     int adj = -1;
     if(color == Color::Black)
         adj = 5;
@@ -250,7 +240,7 @@ U64 Board::GetBoard(Color color, U64 occupiedPosition) {
     return U64{0};
 }
 
-U64 Board::GetBoard(Color color) {
+U64 Board::GetBoard(const Color color) {
     U64 board = 0;
     for(Piece p : PIECES) {
         board |= GetBoard(color, p);
@@ -258,19 +248,19 @@ U64 Board::GetBoard(Color color) {
     return board;
 }
 
-U64 Board::GetBoard(Color color, Piece piece) {
+U64 Board::GetBoard(const Color color, const Piece piece) {
     if(color == Color::White)
         return fBoards[(int)piece - 1];
     return fBoards[(int)piece + 5];
 }
 
-U64* Board::GetBoardPointer(Color color, Piece piece) {
+U64* Board::GetBoardPointer(const Color color, const Piece piece) {
     if(color == Color::White)
         return &fBoards[(int)piece - 1];
     return &fBoards[(int)piece + 5];
 }
 
-void Board::SetBoard(Color color, Piece piece, U64 board) {
+void Board::SetBoard(const Color color, const Piece piece, const U64 board) {
     if(color == Color::White) {
         fBoards[(int)piece - 1] = board;
     } else {
@@ -320,7 +310,19 @@ void Board::LoadFEN(const std::string &fen) {
             } else if(ngaps == 3 && !fEnPassantFENTarget) { // En-passant possibilities
                 int rankNo = fen.at(iChar + 1) - '0';
                 fEnPassantFENTarget = get_file_from_char(c) & get_rank_from_number(rankNo);
-            } else {
+            } else if(ngaps == 4) {
+                char nextChar = fen.at(iChar + 1);
+                if(nextChar == ' ') {
+                    fHalfMoves = c - '0';
+                } else {
+                    // Join two chars into a string using std::stringstream
+                    std::stringstream ss;
+                    ss << c << nextChar;
+                    std::string result = ss.str();
+                    fHalfMoves = std::stoi(result);
+                }
+                
+             } else {
                 U64 pos = get_rank_from_number(rank) & get_file_from_number(file);
                 Color pieceColor = (isupper(c)) ? Color::White : Color::Black;
                 Piece pieceType = GetPieceFromChar(c);
@@ -356,7 +358,7 @@ void Board::LoadFEN(const std::string &fen) {
     fBlackQueensideRookMoved = blackQueensideRookMoved;
 }
 
-std::pair<Color, Piece> Board::GetIsOccupied(U64 pos) {
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     for(int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
             Piece pieceType = Piece::Null;

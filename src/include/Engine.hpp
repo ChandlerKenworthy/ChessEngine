@@ -59,7 +59,15 @@ class Engine {
         /**
          * @brief Get all squares attacked by the specified color as a single bitboard.
         */
-        U64 GetAttacks(const std::unique_ptr<Board> &board, Color attackingColor);
+        U64 GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor);
+        /**
+         * @brief Check the board to see if the 50 move rule draw has been met. Update internal board state to match.
+        */
+        void CheckFiftyMoveDraw(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Check the board for a draw by insufficient material. Updates internal board state to match.
+        */
+        void CheckInsufficientMaterial(const std::unique_ptr<Board> &board);
 
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
@@ -162,11 +170,21 @@ class Engine {
          * @param d Direction of the ray to check.
         */
         void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
-
-        // TODO: Doc these functions!
+        /**
+         * @brief Generates the en-passant moves, if any exist, and adds them to the legal moves vector.
+        */
         void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generates castling moves, if any exist, and adds them to the legal moves vector.
+        */
         void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Determines if castling is possible on a particular side on the current board. 
+        */
         bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        /**
+         * @brief True if any of the positions in mask and attacked by the specified colour on the current board.
+        */
         bool IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board);
 };
 

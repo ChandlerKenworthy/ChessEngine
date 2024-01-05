@@ -9,6 +9,7 @@
  * @brief Lots of useful constants and bit manipulation functions.
  */
 
+// TODO: Stop using macros and switch to proper functions following modern C++ standards
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
 #define clear_bit(b, i) ((b) &= ~(1ULL << i))
@@ -47,7 +48,9 @@ enum class Color {
 enum class State {
     Play,      ///< Game is in play.
     Stalemate, ///< Game is stalemate.
-    Draw,      ///< Game is draw.
+    InSufficientMaterial, ///< Game is a draw through insufficient material.
+    MoveRepetition, ///< Game is a draw by repitition.
+    FiftyMoveRule, ///< Game is a draw by the 50 move rule.
     Checkmate  ///< Game is checkmate.
 };
 
@@ -82,10 +85,10 @@ enum class Piece {
     King,   ///< King piece.
 };
 
-const int NSQUARES = 64;
-const int BITS_PER_FILE = 8;
-const int MIN_MOVES_FOR_CASTLING = 6;
-const int MIN_MOVES_FOR_ENPASSANT = 3;
+constexpr int NSQUARES = 64;
+constexpr int BITS_PER_FILE = 8;
+constexpr int MIN_MOVES_FOR_CASTLING = 6;
+constexpr int MIN_MOVES_FOR_ENPASSANT = 3;
 
 const float VALUE_PAWN = 100; // centi-pawn value
 const float VALUE_BISHOP = 300;
@@ -126,25 +129,25 @@ inline int PrintBitset(U64 b) {
     return 0;
 }
 
-const U64 RANK_1 = 0x00000000000000FFULL;
-const U64 RANK_2 = 0x000000000000FF00ULL;
-const U64 RANK_3 = 0x0000000000FF0000ULL;
-const U64 RANK_4 = 0x00000000FF000000ULL;
-const U64 RANK_5 = 0x000000FF00000000ULL;
-const U64 RANK_6 = 0x0000FF0000000000ULL;
-const U64 RANK_7 = 0x00FF000000000000ULL;
-const U64 RANK_8 = 0xFF00000000000000ULL;
+constexpr U64 RANK_1 = 0x00000000000000FFULL;
+constexpr U64 RANK_2 = 0x000000000000FF00ULL;
+constexpr U64 RANK_3 = 0x0000000000FF0000ULL;
+constexpr U64 RANK_4 = 0x00000000FF000000ULL;
+constexpr U64 RANK_5 = 0x000000FF00000000ULL;
+constexpr U64 RANK_6 = 0x0000FF0000000000ULL;
+constexpr U64 RANK_7 = 0x00FF000000000000ULL;
+constexpr U64 RANK_8 = 0xFF00000000000000ULL;
 
-const U64 FILE_A = 0x8080808080808080ULL;
-const U64 FILE_B = 0x4040404040404040ULL;
-const U64 FILE_C = 0x2020202020202020ULL;
-const U64 FILE_D = 0x1010101010101010ULL;
-const U64 FILE_E = 0x0808080808080808ULL;
-const U64 FILE_F = 0x0404040404040404ULL;
-const U64 FILE_G = 0x0202020202020202ULL;
-const U64 FILE_H = 0x0101010101010101ULL;
-const U64 FILE_GH = FILE_G | FILE_H;
-const U64 FILE_AB = FILE_A | FILE_B;
+constexpr U64 FILE_A = 0x8080808080808080ULL;
+constexpr U64 FILE_B = 0x4040404040404040ULL;
+constexpr U64 FILE_C = 0x2020202020202020ULL;
+constexpr U64 FILE_D = 0x1010101010101010ULL;
+constexpr U64 FILE_E = 0x0808080808080808ULL;
+constexpr U64 FILE_F = 0x0404040404040404ULL;
+constexpr U64 FILE_G = 0x0202020202020202ULL;
+constexpr U64 FILE_H = 0x0101010101010101ULL;
+constexpr U64 FILE_GH = FILE_G | FILE_H;
+constexpr U64 FILE_AB = FILE_A | FILE_B;
 
 const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_B & (RANK_1 | RANK_3 | RANK_5 | RANK_7)) |
@@ -155,9 +158,9 @@ const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_G & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_H & (RANK_1 | RANK_3 | RANK_5 | RANK_7));
 const U64 BLACK_SQUARES = ~WHITE_SQUARES;
-const U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
-const U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
-const U64 EDGES = RANK_1 | RANK_8 | FILE_A | FILE_H;
+constexpr U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
+constexpr U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
+constexpr U64 EDGES = RANK_1 | RANK_8 | FILE_A | FILE_H;
 
 constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; };
 constexpr U64 east(U64 b) { return (b & ~FILE_H) >> 1; };
