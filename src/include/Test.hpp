@@ -36,12 +36,21 @@ class Test {
         /**
          * @brief Get the number of moves that are possible from the specified FEN position up to a specified depth.
         */
-       unsigned long int GetNodes(int depth, std::string fen);
-
-       
+        unsigned long int GetNodes(int depth, std::string fen);
+        /**
+         * @brief Get the board instance used for the testing
+        */
         const std::unique_ptr<Board>& GetBoard() { return fBoard; };
+        /**
+         * @brief Set the print depth for perft testing
+        */
         void SetPrintDepth(int depth) { fPrintDepth = depth; };
+        /**
+         * @brief Set whether to display the GUI
+        */
+       void SetUseGUI(bool useGUI) { fUseGUI = useGUI; };
     private:
+        bool fUseGUI; ///< If true display GUI to user when performing the tests
         int fPrintDepth;
         std::unique_ptr<Board> fBoard;
         std::unique_ptr<Engine> fEngine;

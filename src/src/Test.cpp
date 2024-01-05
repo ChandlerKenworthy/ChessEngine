@@ -4,6 +4,7 @@ Test::Test() {
     fBoard = std::make_unique<Board>();
     fEngine = std::make_unique<Engine>(true);
     fGUI = std::make_unique<Renderer>();
+    fUseGUI = true;
     fPrintDepth = 999;
 
     fExpectedGeneration = {
@@ -25,16 +26,18 @@ unsigned long int Test::GetNodes(int depth, std::string fen) {
         fBoard->LoadFEN(fen);
     SetPrintDepth(depth);
     // Display board to user and await confirmation that is looks okay 
-    fGUI->Update(fBoard);
-    while(fGUI->GetWindowIsOpen()) {
-        sf::Event event;
-        while(fGUI->PollEvent(event)) {
-            fGUI->Update(fBoard);
-            if(event.type == sf::Event::Closed) {
-                fGUI->CloseWindow();
+    if(fUseGUI) {
+        fGUI->Update(fBoard);
+        while(fGUI->GetWindowIsOpen()) {
+            sf::Event event;
+            while(fGUI->PollEvent(event)) {
+                fGUI->Update(fBoard);
+                if(event.type == sf::Event::Closed) {
+                    fGUI->CloseWindow();
+                }
             }
-        }
-    } // User closing the window means they are "happy" with the position
+        } // User closing the window means they are "happy" with the position
+    }
     return MoveGeneration(depth);
 }
 
