@@ -40,6 +40,6 @@ jobs:
         echo "position startpos" > sf_commands.txt
         echo "go perft 7" >> sf_commands.txt
         /usr/games/stockfish < sf_commands.txt > stockfish_output.txt
-        ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
+        /usr/bin/xvfb-run -a ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
         python ComparePerftResults.py engine_output.txt stockfish_output.txt
         
