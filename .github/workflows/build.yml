@@ -3,7 +3,7 @@ name: C++ Build with CMake
 on:
   push:
     branches:
-      - main # Change this to your main branch
+      - feature/workflows # Change this to your main branch
 
 jobs:
   build:
@@ -17,6 +17,11 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.14
       with:
         cmake-version: '3.27'
+
+     - name: Install SFML
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsfml-dev
 
     - name: Configure and build
       run: |
