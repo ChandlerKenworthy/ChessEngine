@@ -3,39 +3,39 @@ name: Perft Tests
 on:
   push:
     branches:
-      - main
+      - feature/workflows # Change this to your main branch
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest # You can also use macos-latest for macOS
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Install Clang
-        run: sudo apt-get install -y clang
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.27'
 
-      - name: Install Stockfish
+    - name: Install SFML
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsfml-dev
+
+    - name: Configure and build
+      run: |
+        mkdir build
+        cd build
+        cmake ../src
+        make
+
+    - name: Install Stockfish
         run: |
           sudo apt-get update
           sudo apt-get install -y stockfish
 
-      - name: Set up CMake with Clang
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake
-          export CXX=clang++
-          cd src
-          cmake ..
-
-      - name: Build Chess Engine
-        run: |
-          mkdir build
-          cd build
-          make || exit 1  # Fail the action if make fails
-
-      - name: Run Perft Test
+    - name: Run Perft Test
         run: |
           /usr/games/stockfish
           position startpos
