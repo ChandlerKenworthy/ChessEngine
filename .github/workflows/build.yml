@@ -18,7 +18,7 @@ jobs:
       with:
         cmake-version: '3.27'
 
-     - name: Install SFML
+    - name: Install SFML
       run: |
         sudo apt-get update
         sudo apt-get install libsfml-dev
