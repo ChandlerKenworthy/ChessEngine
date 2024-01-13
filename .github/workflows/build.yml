@@ -13,10 +13,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up CMake
-      uses: actions/setup-cmake@v2
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.14
       with:
-        cmake-version: '3.21.3' # Set the version of CMake you want to use
+        cmake-version: '3.27'
 
     - name: Configure and build
       run: |
