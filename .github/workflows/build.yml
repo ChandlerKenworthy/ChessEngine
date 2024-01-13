@@ -1,0 +1,26 @@
+name: C++ Build with CMake
+
+on:
+  push:
+    branches:
+      - main # Change this to your main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # You can also use macos-latest for macOS
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up CMake
+      uses: actions/setup-cmake@v2
+      with:
+        cmake-version: '3.21.3' # Set the version of CMake you want to use
+
+    - name: Configure and build
+      run: |
+        mkdir build
+        cd build
+        cmake ../src
+        make
