@@ -3,46 +3,42 @@ name: Perft Tests
 on:
   push:
     branches:
-      - main
+      - main # Change this to your main branch
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest # You can also use macos-latest for macOS
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Install Clang
-        run: sudo apt-get install -y clang
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.27'
 
-      - name: Install Stockfish
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y stockfish
+    - name: Install SFML
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsfml-dev
 
-      - name: Set up CMake with Clang
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake
-          export CXX=clang++
-          cd src
-          cmake ..
+    - name: Configure and build
+      run: |
+        mkdir build
+        cd build
+        cmake ../src
+        make
 
-      - name: Build Chess Engine
-        run: |
-          mkdir build
-          cd build
-          make || exit 1  # Fail the action if make fails
+    - name: Install Stockfish
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y stockfish
 
-      - name: Run Perft Test
-        run: |
-          /usr/games/stockfish
-          position startpos
-          go perft 7 > stockfish_output.txt
-
-          ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
-          pwd
-          ls
-          python ComprePerftResults.py engine_output.txt stockfish_output.txt
-        
+    - name: Run Perft Test
+      run: |
+        echo "position startpos" > sf_commands.txt
+        echo "go perft 7" >> sf_commands.txt
+        /usr/games/stockfish < sf_commands.txt > stockfish_output.txt
+        /usr/bin/xvfb-run -a ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
+        python ComparePerftResults.py engine_output.txt stockfish_output.txt

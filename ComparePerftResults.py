@@ -2,11 +2,13 @@ import sys
 
 def compare_outputs(engine_output, stockfish_output):
 
-    nEngineNodes = engine_output.split('\n')[-1]
-    nEngineNodes = int(nEngineNodes.split(":")[1])
+    nEngineNodes = engine_output.split('\n')#[-1]
+    nEngineNodes = [i for i in nEngineNodes if len(i) > 0]
+    nEngineNodes = int(nEngineNodes[-1].split(":")[1])
 
-    nStockfishNodes = stockfish_output.split('\n')[-1]
-    nStockfishNodes = int(nStockfishNodes.split(":")[1])
+    nStockfishNodes = stockfish_output.split('\n')#[-1]
+    nStockfishNodes = [i for i in nStockfishNodes if len(i) > 0]
+    nStockfishNodes = int(nStockfishNodes[-1].split(":")[1])
     
     return nStockfishNodes == nEngineNodes
 
