@@ -3,7 +3,7 @@ name: Perft Tests
 on:
   push:
     branches:
-      - feature/workflows # Change this to your main branch
+      - main # Change this to your main branch
 
 jobs:
   build:
@@ -41,7 +41,4 @@ jobs:
         echo "go perft 7" >> sf_commands.txt
         /usr/games/stockfish < sf_commands.txt > stockfish_output.txt
         /usr/bin/xvfb-run -a ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
-        pwd
-        ls
         python ComparePerftResults.py engine_output.txt stockfish_output.txt
-        
