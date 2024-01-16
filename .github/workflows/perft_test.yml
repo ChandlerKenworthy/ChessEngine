@@ -42,5 +42,7 @@ jobs:
           go perft 7 > stockfish_output.txt
 
           ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
+          pwd
+          ls
           python ComprePerftResults.py engine_output.txt stockfish_output.txt
         
