@@ -1,4 +1,4 @@
-name: Perft Tests
+name: Perft Pos2
 
 on:
   push:
