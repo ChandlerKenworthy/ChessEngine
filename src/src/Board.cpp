@@ -350,3 +350,16 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     }
     return std::make_pair(Color::White, Piece::Null);
 }
+
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
+    // Similar to GetIsOccupied(pos) but only searches the boards of the provided color
+    uint8_t offset = color == Color::White ? 0 : 6;
+    for (int iBoard = offset; iBoard < offset + 6; iBoard++) {
+        if(pos & fBoards[iBoard]) {
+            uint8_t pieceIndex = iBoard >= 6 ? iBoard - 5 : iBoard + 1; // Must fall in range 1--6 (inclusive)
+            Piece pieceType = static_cast<Piece>(pieceIndex);
+            return std::make_pair(color, pieceType);
+        }
+    }
+    return std::make_pair(color, Piece::Null);
+}

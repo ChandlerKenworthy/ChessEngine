@@ -449,14 +449,14 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-bool Engine::IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board) {
-    U64 occ = board->GetOccupancy();
+bool Engine::IsCastlingPossible(const U64 castlingMask, const U64 occupancyMask, const std::unique_ptr<Board> &board) {
+    const U64 occ = board->GetOccupancy();
     return !(occ & occupancyMask) && !IsUnderAttack(castlingMask, board->GetColorToMove() == Color::White ? Color::Black : Color::White, board);
 }
 
-bool Engine::IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board) {    
-    U64 attacker = board->GetBoard(attackingColor);
-    U64 attacks = GetAttacks(board, attackingColor);
+bool Engine::IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board) {    
+    const U64 attacker = board->GetBoard(attackingColor);
+    const U64 attacks = GetAttacks(board, attackingColor);
     return attacks & mask & ~attacker;
 }
 
@@ -492,38 +492,44 @@ void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    U64 king = board->GetBoard(board->GetColorToMove(), Piece::King);
-    U64 attacks = fKingAttacks[get_LSB(king)] & ~board->GetBoard(board->GetColorToMove());
+    const Color activeColor = board->GetColorToMove();
+    const Color otherColor = activeColor == Color::White ? Color::Black : Color::White;
+    U64 king = board->GetBoard(activeColor, Piece::King);
+    U64 attacks = fKingAttacks[get_LSB(king)] & ~board->GetBoard(activeColor);
     while(attacks) {
         U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
-            SetMove(move, king, attack, Piece::King, board->GetIsOccupied(attack).second);
+            SetMove(move, king, attack, Piece::King, board->GetIsOccupied(attack, otherColor).second);
             fLegalMoves.push_back(move);
     }
 }
 
 void Engine::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    U64 knights = board->GetBoard(board->GetColorToMove(), Piece::Knight);
+    const Color activeColor = board->GetColorToMove();
+    const Color otherColor = activeColor == Color::White ? Color::Black : Color::White;
+    U64 knights = board->GetBoard(activeColor, Piece::Knight);
     while(knights) {
         U64 knight = 0;
         uint8_t lsb = pop_LSB(knights);
         set_bit(knight, lsb);
-        U64 attacks = fKnightAttacks[lsb] & ~board->GetBoard(board->GetColorToMove());
+        U64 attacks = fKnightAttacks[lsb] & ~board->GetBoard(activeColor);
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
-            SetMove(move, knight, attack, Piece::Knight, board->GetIsOccupied(attack).second);
+            SetMove(move, knight, attack, Piece::Knight, board->GetIsOccupied(attack, otherColor).second);
             fLegalMoves.push_back(move);
         }
     }
 }
 
 void Engine::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    U64 bishops = board->GetBoard(board->GetColorToMove(), Piece::Bishop);
-    U64 you = board->GetBoard(board->GetColorToMove());
-    U64 occ = you | board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    const Color activeColor = board->GetColorToMove();
+    const Color otherColor = activeColor == Color::White ? Color::Black : Color::White;
+    U64 bishops = board->GetBoard(activeColor, Piece::Bishop);
+    U64 you = board->GetBoard(activeColor);
+    U64 occ = you | board->GetBoard(otherColor);
     while(bishops) {
         U64 bishop = 0;
         uint8_t lsb = pop_LSB(bishops);
@@ -533,16 +539,18 @@ void Engine::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board)
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
-            SetMove(move, bishop, attack, Piece::Bishop, board->GetIsOccupied(attack).second);
+            SetMove(move, bishop, attack, Piece::Bishop, board->GetIsOccupied(attack, otherColor).second);
             fLegalMoves.push_back(move);
         }
     }
 }
 
 void Engine::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    U64 rooks = board->GetBoard(board->GetColorToMove(), Piece::Rook);
-    U64 you = board->GetBoard(board->GetColorToMove());
-    U64 occ = you | board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    const Color activeColor = board->GetColorToMove();
+    const Color otherColor = activeColor == Color::White ? Color::Black : Color::White;
+    U64 rooks = board->GetBoard(activeColor, Piece::Rook);
+    U64 you = board->GetBoard(activeColor);
+    U64 occ = you | board->GetBoard(otherColor);
     while(rooks) {
         U64 rook = 0;
         uint8_t lsb = pop_LSB(rooks);
@@ -552,30 +560,31 @@ void Engine::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
-            SetMove(move, rook, attack, Piece::Rook, board->GetIsOccupied(attack).second);
+            SetMove(move, rook, attack, Piece::Rook, board->GetIsOccupied(attack, otherColor).second);
             fLegalMoves.push_back(move);
         }
     }
 }
 
 void Engine::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    U64 queens = board->GetBoard(board->GetColorToMove(), Piece::Queen); // Could have multiple due to promotion
-    U64 you = board->GetBoard(board->GetColorToMove());
-    U64 occ = you | board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    const Color activeColor = board->GetColorToMove();
+    const Color otherColor = activeColor == Color::White ? Color::Black : Color::White;
+    U64 queens = board->GetBoard(activeColor, Piece::Queen); // Could have multiple due to promotion
+    U64 you = board->GetBoard(activeColor);
+    U64 occ = you | board->GetBoard(otherColor);
     while(queens) {
         U64 queen = 0;
         uint8_t lsb = pop_LSB(queens);
         set_bit(queen, lsb);
         U64 attacks = (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb])) & ~you;
-        attacks = attacks & ~you;
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
-            SetMove(move, queen, attack, Piece::Queen, board->GetIsOccupied(attack).second);
+            SetMove(move, queen, attack, Piece::Queen, board->GetIsOccupied(attack, otherColor).second);
             fLegalMoves.push_back(move);
         }
-    }                
+    }
 }
 
 bool Engine::GetMoveIsLegal(U32* move) {

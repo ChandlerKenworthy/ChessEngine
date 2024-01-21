@@ -181,11 +181,11 @@ class Engine {
         /**
          * @brief Determines if castling is possible on a particular side on the current board. 
         */
-        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        bool IsCastlingPossible(const U64 castlingMask, const U64 occupancyMask, const std::unique_ptr<Board> &board);
         /**
          * @brief True if any of the positions in mask and attacked by the specified colour on the current board.
         */
-        bool IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board);
+        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
 };
 
 #endif

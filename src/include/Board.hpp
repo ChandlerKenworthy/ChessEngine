@@ -95,7 +95,13 @@ class Board {
         */
         std::pair<Color, Piece> GetIsOccupied(const U64 pos);
         /**
-            * @brief Get the number of completed moves full moves (e.g. both black and white have had a turn)
+        * @brief Get the Color and type of piece (if any) occupying the position
+        * @param pos The position on the board to check
+        * @return The color and piece of the occupying piece (if any) else Null piece is given.
+       */
+       std::pair<Color, Piece> GetIsOccupied(const U64 pos, const Color color);
+        /**
+        * @brief Get the number of completed moves full moves (e.g. both black and white have had a turn)
         */
         int GetNMovesMade() { return (int)(fMadeMoves.size() / 2); };
         /**
