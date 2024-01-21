@@ -1,0 +1,44 @@
+name: Perft Pos4
+
+on:
+  push:
+    branches:
+      - main # Change this to your main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # You can also use macos-latest for macOS
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.27'
+
+    - name: Install SFML
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsfml-dev
+
+    - name: Configure and build
+      run: |
+        mkdir build
+        cd build
+        cmake ../src
+        make
+
+    - name: Install Stockfish
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y stockfish
+
+    - name: Run Perft Test
+      run: |
+        echo "position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1" > sf_commands.txt
+        echo "go perft 6" >> sf_commands.txt
+        /usr/games/stockfish < sf_commands.txt > stockfish_output.txt
+        /usr/bin/xvfb-run -a ./build/ChessEngine --perft 6 --fen "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1" --no-gui > engine_output.txt
+        python ComparePerftResults.py engine_output.txt stockfish_output.txt
