@@ -8,6 +8,7 @@
 #define TEST_HPP
 
 #include <vector>
+#include <chrono>
 
 #include "Constants.hpp"
 #include "Move.hpp"
