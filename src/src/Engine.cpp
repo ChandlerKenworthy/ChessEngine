@@ -372,6 +372,7 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 
     // Now run the usual code
     U32 lastMove = board->GetLastMove();
+    U64 lastMoveTarget = GetMoveTarget(lastMove);
 
     // Faster return if you know en-passant will not be possible
     if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
@@ -380,13 +381,13 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
     U64 enPassantPawns = 0;
 
-    if(board->GetColorToMove() == Color::White && (GetMoveOrigin(lastMove) & RANK_7) && (GetMoveTarget(lastMove) & RANK_5)) {
+    if(board->GetColorToMove() == Color::White && (GetMoveOrigin(lastMove) & RANK_7) && (lastMoveTarget & RANK_5)) {
         // Was a double-move forward with a pawn by black last turn
         // Check if the move placed the pawn on an adjacent file to any of your pawns on rank 5
-        enPassantPawns = (east(GetMoveTarget(lastMove)) | west(GetMoveTarget(lastMove))) & pawns;
-    } else if(board->GetColorToMove() == Color::Black && (GetMoveOrigin(lastMove) & RANK_2) && (GetMoveTarget(lastMove) & RANK_4)) {
+        enPassantPawns = (east(lastMoveTarget) | west(lastMoveTarget)) & pawns;
+    } else if(board->GetColorToMove() == Color::Black && (GetMoveOrigin(lastMove) & RANK_2) && (lastMoveTarget & RANK_4)) {
         // Was a double-move forward with a pawn by white last turn
-        enPassantPawns = (east(GetMoveTarget(lastMove)) | west(GetMoveTarget(lastMove))) & pawns;
+        enPassantPawns = (east(lastMoveTarget) | west(lastMoveTarget)) & pawns;
     }
     while(enPassantPawns) {
         U64 pawn = 0;
@@ -395,7 +396,7 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
         SetMove(
             move, 
             pawn, 
-            board->GetColorToMove() == Color::White ? north(GetMoveTarget(lastMove)) : south(GetMoveTarget(lastMove)), Piece::Pawn, 
+            board->GetColorToMove() == Color::White ? north(lastMoveTarget) : south(lastMoveTarget), Piece::Pawn, 
             Piece::Pawn
         );
         SetMoveIsEnPassant(move, true);
@@ -416,14 +417,14 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         if(!board->GetWhiteKingsideRookMoved() && 
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, KING_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) 
         {
-            SetMove(move, origin, RANK_1 & FILE_G, Piece::King, Piece::Null);
+            SetMove(move, origin, SQUARE_G1, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
         }
         if(!board->GetWhiteQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) {
-            SetMove(move, origin, RANK_1 & FILE_C, Piece::King, Piece::Null);
+            SetMove(move, origin, SQUARE_C1, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
@@ -433,7 +434,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         if (!board->GetBlackKingsideRookMoved() &&
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
         {
-            SetMove(move, origin, RANK_8 & FILE_G, Piece::King, Piece::Null);
+            SetMove(move, origin, SQUARE_G8, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
@@ -441,7 +442,7 @@ void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         if (!board->GetBlackQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
         {
-            SetMove(move, origin, RANK_8 & FILE_C, Piece::King, Piece::Null);
+            SetMove(move, origin, SQUARE_C8, Piece::King, Piece::Null);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
