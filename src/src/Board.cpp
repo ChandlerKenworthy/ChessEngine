@@ -348,27 +348,11 @@ void Board::LoadFEN(const std::string &fen) {
 }
 
 std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
-    for(int iBoard = 0; iBoard < 12; iBoard++) {
+    for (int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
-            // We already know the mapping e.g. pawn, knight, bishop, rook, queen, king (white, black)
-            Piece pieceType = Piece::Null;
-            int x = iBoard;
-            if(iBoard >= 6)
-                x = iBoard - 6;
-
-            if(x == 0) {
-                pieceType = Piece::Pawn;
-            } else if(x == 1) {
-                pieceType = Piece::Bishop;
-            } else if(x == 2) {
-                pieceType = Piece::Knight;
-            } else if(x == 3) {
-                pieceType = Piece::Rook;
-            } else if(x == 4) {
-                pieceType = Piece::Queen;
-            } else if(x == 5) {
-                pieceType = Piece::King;
-            }
+            // We already know the mapping e.g. 0 = pawn, knight, bishop, rook, queen, king (white, black)
+            uint8_t pieceIndex = iBoard >= 6 ? iBoard - 5 : iBoard + 1; // Must fall in range 0--6 (inclusive)
+            Piece pieceType = static_cast<Piece>(pieceIndex);
             return std::make_pair(iBoard < 6 ? Color::White : Color::Black, pieceType);
         }
     }
