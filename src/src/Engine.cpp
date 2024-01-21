@@ -71,12 +71,15 @@ void Engine::BuildKingAttackTable(const U64 pos) {
     fKingAttacks[get_LSB(pos)] = north(pos) | east(pos) | west(pos) | south(pos) | north_east(pos) | north_west(pos) | south_east(pos) | south_west(pos);
 }
 
-void Engine::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
-    if(board->GetHalfMoveClock() == 100)
+bool Engine::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
+    if(board->GetHalfMoveClock() == 100) {
         board->SetState(State::FiftyMoveRule);
+        return true;
+    }   
+    return false;
 }
 
-void Engine::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
+bool Engine::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
     uint8_t nBlackKnights = CountSetBits(board->GetBoard(Color::Black, Piece::Knight));
     uint8_t nBlackBishops = CountSetBits(board->GetBoard(Color::Black, Piece::Bishop));
     uint8_t nWhiteKnights = CountSetBits(board->GetBoard(Color::White, Piece::Knight));
@@ -86,22 +89,27 @@ void Engine::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
 
     if(nBlackPieces == 2 && (nBlackKnights == 1 || nBlackBishops == 1) && nWhitePieces == 1) {
         board->SetState(State::InSufficientMaterial);
+        return true;
     } else if(nWhitePieces == 2 && (nWhiteBishops == 1 || nWhiteKnights == 1) && nBlackPieces == 1) {
         board->SetState(State::InSufficientMaterial);
+        return true;
     }
+    return false;
 }
 
 void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     fLegalMoves.clear();
     
-    CheckFiftyMoveDraw(board);
-    CheckInsufficientMaterial(board); 
+    if(CheckFiftyMoveDraw(board))
+        return;
+    if(CheckInsufficientMaterial(board))
+        return;
 
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
     GenerateEnPassantMoves(board);
     UpdatePromotionMoves();
-    StripIllegalMoves(board);
+    StripIllegalMoves(board); // TODO: Biggest time hog currently
     fLastUnique = board->GetUnique();
 }
 
@@ -261,9 +269,7 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
         U64 potentialPin = ray & ownPieces; // All your pieces that exist on the ray (between king and attacking piece)
         if(CountSetBits(potentialPin) == 1) { // A single piece is on the ray and so absolutely pinned
             v->push_back(std::make_pair(potentialPin, ray));
-        } else {
-            // None of your pieces in the way so the king is in check from attacker
-        }
+        } // else : None of your pieces in the way so the king is in check from attacker
     }
 }
 
