@@ -230,42 +230,31 @@ void Board::MakeMove(const U32 move) {
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
-    int adj = -1;
-    if(color == Color::Black)
-        adj = 5;
+    uint8_t offset = color == Color::White ? -1 : 5;
     for(Piece p : PIECES) {
-        if(fBoards[(int)p + adj] & occupiedPosition)
-            return fBoards[(int)p + adj];
+        if(fBoards[(int)p + offset] & occupiedPosition)
+            return fBoards[(int)p + offset];
     }
     return U64{0};
 }
 
 U64 Board::GetBoard(const Color color) {
-    U64 board = 0;
-    for(Piece p : PIECES) {
-        board |= GetBoard(color, p);
-    }
-    return board;
+    uint8_t startOffset = color == Color::White ? 0 : 6;
+    uint8_t endOffset = startOffset + 6;
+    return std::accumulate(fBoards + startOffset, fBoards + endOffset, 0ULL, std::bit_or<U64>());
 }
 
 U64 Board::GetBoard(const Color color, const Piece piece) {
-    if(color == Color::White)
-        return fBoards[(int)piece - 1];
-    return fBoards[(int)piece + 5];
+    return color == Color::White ? fBoards[(int)piece - 1] : fBoards[(int)piece + 5];
 }
 
 U64* Board::GetBoardPointer(const Color color, const Piece piece) {
-    if(color == Color::White)
-        return &fBoards[(int)piece - 1];
-    return &fBoards[(int)piece + 5];
+    return color == Color::White ? &fBoards[(int)piece - 1] : &fBoards[(int)piece + 5];
 }
 
 void Board::SetBoard(const Color color, const Piece piece, const U64 board) {
-    if(color == Color::White) {
-        fBoards[(int)piece - 1] = board;
-    } else {
-        fBoards[(int)piece + 5] = board;
-    }
+    uint8_t offset = color == Color::White ? -1 : 5;
+    fBoards[(int)piece + offset] = board;
 }
 
 void Board::EmptyBoards() {
@@ -361,6 +350,7 @@ void Board::LoadFEN(const std::string &fen) {
 std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     for(int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
+            // We already know the mapping e.g. pawn, knight, bishop, rook, queen, king (white, black)
             Piece pieceType = Piece::Null;
             int x = iBoard;
             if(iBoard >= 6)
