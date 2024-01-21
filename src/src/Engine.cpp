@@ -461,29 +461,31 @@ bool Engine::IsUnderAttack(const U64 mask, const Color attackingColor, const std
 }
 
 void Engine::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    U64 pawns = board->GetBoard(board->GetColorToMove(), Piece::Pawn);
-    U64 enemy = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    const Color activeColor = board->GetColorToMove();
+    const Color otherColor = activeColor == Color::White ? Color::Black : Color::White;
+    U64 pawns = board->GetBoard(activeColor, Piece::Pawn);
+    U64 enemy = board->GetBoard(otherColor);
     U64 occ = board->GetOccupancy();
-    U64 promotionRank = board->GetColorToMove() == Color::White ? RANK_8 : RANK_1;
-    U64 startRank = board->GetColorToMove() == Color::White ? RANK_2 : RANK_7;
+    U64 promotionRank = activeColor == Color::White ? RANK_8 : RANK_1;
+    U64 startRank = activeColor == Color::White ? RANK_2 : RANK_7;
     while(pawns) {
         U64 pawn = 0;
         uint8_t lsb = pop_LSB(pawns);
         set_bit(pawn, lsb);
 
         // Only allow diagonal attacks if occupied by enemy piece
-        U64 attacks = (board->GetColorToMove() == Color::White ? fWhitePawnDiagonalAttacks[lsb] : fBlackPawnDiagonalAttacks[lsb]) & enemy;
+        U64 attacks = (activeColor == Color::White ? fWhitePawnDiagonalAttacks[lsb] : fBlackPawnDiagonalAttacks[lsb]) & enemy;
 
         // Get rid of 2-square attack if 1st or 2nd square is occupied, add single square attacks
-        U64 oneSquareForward = (board->GetColorToMove() == Color::White ? north(pawn) : south(pawn)) & ~occ;
+        U64 oneSquareForward = (activeColor == Color::White ? north(pawn) : south(pawn)) & ~occ;
         attacks |= oneSquareForward;
         if(oneSquareForward && (pawn & startRank))
-            attacks |= (board->GetColorToMove() == Color::White ? north(north(pawn)) : south(south(pawn))) & ~occ;
+            attacks |= (activeColor == Color::White ? north(north(pawn)) : south(south(pawn))) & ~occ;
         while(attacks) {
             U64 attack = 0;
             set_bit(attack, pop_LSB(attacks));
             U32 move = 0;
-            SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack).second);
+            SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack, otherColor).second);
             if(attack & promotionRank)
                 SetMoveIsPromotion(move, true);
             fLegalMoves.push_back(move);
