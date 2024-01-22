@@ -114,21 +114,24 @@ void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::UpdatePromotionMoves() {
-    std::vector<U32> promoMoves = {};
+    std::vector<U32> promoMoves;
     const std::vector<Piece> promoPieces = {Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen};
-    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
-        U32 move = fLegalMoves[iMove];
-        if(!GetMoveIsPromotion(move))
+    for (auto it = fLegalMoves.begin(); it != fLegalMoves.end(); ) {
+        U32 move = *it;
+        if (!GetMoveIsPromotion(move)) {
+            ++it;
             continue;
-        fLegalMoves.erase(std::begin(fLegalMoves) + iMove); // Remove the current promotion move with no defined promo piece
-        // Add a unique move for all 4 promotion types (rook, knight, queen and bishop promotions)
+        }
+        // Use the erase-remove idiom to efficiently remove elements
+        it = fLegalMoves.erase(it);
+        // Add a unique move for all 4 promotion types
         for (Piece promotionPiece : promoPieces) {
             U32 promotionMove = move;
             SetMovePromotionPiece(promotionMove, promotionPiece);
             promoMoves.push_back(promotionMove);
         }
-        iMove--;
     }
+    // Append promoMoves to fLegalMoves
     fLegalMoves.insert(fLegalMoves.end(), promoMoves.begin(), promoMoves.end());
 }
 
