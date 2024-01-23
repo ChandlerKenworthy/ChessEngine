@@ -137,9 +137,10 @@ void Engine::UpdatePromotionMoves() {
 
 void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
-    const Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
+    const Color colorToMove = board->GetColorToMove();
+    const Color otherColor = colorToMove == Color::White ? Color::Black : Color::White;
     const U64 underAttack = GetAttacks(board, otherColor);
-    const U64 king = board->GetBoard(board->GetColorToMove(), Piece::King); // The king of the colour about to move
+    const U64 king = board->GetBoard(colorToMove, Piece::King); // The king of the colour about to move
 
     if(king & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board);
@@ -154,7 +155,7 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
             return acc | p.first;
         }
     );
-    
+
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
         U32 m = fLegalMoves[iMove];
         // King cant move to squares the opponent attacks
@@ -184,24 +185,28 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Engine::PruneCheckMoves(const std::unique_ptr<Board> &board) {
-    // TODO: Make this quicker i.e. don't make/undo every move as that is slow
-    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
-        U32 move = fLegalMoves[iMove];
-        if(GetMoveIsCastling(move)) {
-            fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
-            iMove--;
-        } else {
-            board->MakeMove(move);
-            U64 underAttack = GetAttacks(board, board->GetColorToMove());
-            U64 king = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::King);
-            if(underAttack & king) { // Move was illegal so remove it
-                fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
-                iMove--;
-            }
-            board->UndoMove();
+    // TODO: Make this quicker i.e. dont make/undo all the mvoes as that is slooooooow
+    std::vector<U32> validMoves;
+
+    for (U32 move : fLegalMoves) {
+        if (GetMoveIsCastling(move)) {
+            continue; // Skip castling moves
+        }
+
+        board->MakeMove(move);
+        U64 underAttack = GetAttacks(board, board->GetColorToMove());
+        U64 king = board->GetBoard(board->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::King);
+        board->UndoMove();
+
+        if(!(underAttack & king)) {
+            validMoves.push_back(move); // Move is legal, add it to the vector
         }
     }
+
+    // Replace fLegalMoves with validMoves
+    fLegalMoves = std::move(validMoves);
 }
+
 
 void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d) {
     // Make artificial occupancy to block in the king and only get the north ray
