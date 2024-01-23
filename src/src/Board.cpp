@@ -245,8 +245,11 @@ U64* Board::GetBoardPointer(const Color color, const Piece piece) {
 }
 
 void Board::SetBoard(const Color color, const Piece piece, const U64 board) {
-    uint8_t offset = color == Color::White ? -1 : 5;
-    fBoards[(int)piece + offset] = board;
+    if(color == Color::White) {
+        fBoards[(int)piece - 1] = board;
+    } else {
+        fBoards[(int)piece + 5] = board;
+    }
 }
 
 void Board::EmptyBoards() {
