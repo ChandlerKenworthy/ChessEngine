@@ -133,8 +133,7 @@ int main(int argc, char* argv[]) {
     if(helpRequested) {
         DisplayHelp();
     } else if(perftDepth > 0) {
-        Test myTest = Test();
-        myTest.SetUseGUI(useGUI);
+        Test myTest = Test(useGUI);
         unsigned long int result = myTest.GetNodes(perftDepth, fenString);
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {

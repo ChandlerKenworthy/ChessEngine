@@ -158,28 +158,50 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
 
     for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
         U32 m = fLegalMoves[iMove];
+        const U64 moveOrigin = GetMoveOrigin(m);
         // King cant move to squares the opponent attacks
         if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
-        } else if(pinnedPositions & GetMoveOrigin(m)) { // Piece originates from a pinned position
+        } else if(pinnedPositions & moveOrigin) { // Piece originates from a pinned position
             for(auto pins : pinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
-                if((GetMoveOrigin(m) & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
                     fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
                     iMove--;
                 }
             }
         } else if(GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
-            board->MakeMove(m);
-            Color otherColor = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
-            if(GetAttacks(board, board->GetColorToMove()) & board->GetBoard(otherColor, Piece::King)) {
-                fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
-                iMove--;
+            U64 activeRank = get_rank(moveOrigin);
+            U64 kingOnRank = king & activeRank; // King shares the rank with the en-passanting pawn
+            U64 rookOnRank = activeRank & (board->GetBoard(otherColor, Piece::Rook) | board->GetBoard(otherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
+
+            if(kingOnRank && rookOnRank) { // King, two pawns and rook/queen(s) occupy the same rank
+                // Is en-passant so the captured pawn occupies the same rank as well, if we remove our pawn and the
+                // captured pawn does this leave our king on a rank with just itself and the attacking rook/queen
+                U64 occupancy = board->GetOccupancy();
+
+                // MSB is the left-most bit (i.e. that with lowest index)
+                int attackingRookBit = get_MSB(king) < get_MSB(rookOnRank) ? 63 - get_MSB(rookOnRank) : get_LSB(rookOnRank);
+                U64 rook = 0; // Again could be a queen but it doesn't matter, this is the one checking king if move happens
+                set_bit(rook, attackingRookBit);
+                U64 rookShift = get_MSB(king) < get_MSB(rookOnRank) ? east(rook) : west(rook);
+                U64 takenPawn = colorToMove == Color::White ? south(GetMoveTarget(m)) : north(GetMoveTarget(m));
+
+                // Make a custom occupancy mask to cut the rook ray down
+                U64 mask = king | rook | rookShift;
+                U64 rookRay = hypQuint(rook, mask, fPrimaryStraightAttacks[attackingRookBit]);
+
+                // Subtract from the ray our pawns that we know intersect the ray
+                rookRay ^= (moveOrigin | takenPawn | king | rookShift);
+
+                if(!(rookRay & occupancy)) { // No pieces on the ray so if en-passant happens king will be in check
+                    fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+                    iMove--;
+                }
             }
-            board->UndoMove();
         }
     }
 }

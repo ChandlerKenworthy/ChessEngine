@@ -117,7 +117,6 @@ inline U64 hypQuint(U64 piece, U64 occupancy, U64 mask) {
     return (((mask & occupancy) - piece * 2) ^ reverse(reverse(mask & occupancy) - reverse(piece) * 2)) & mask;
 }
 
-// TODO: Delete me this is for testing only
 inline int PrintBitset(U64 b) {
     std::bitset<64> x = b;
     std::string s = x.to_string();

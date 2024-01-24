@@ -23,7 +23,7 @@
  */ 
 class Test {
     public:
-        explicit Test();
+        explicit Test(bool useGUI);
         /**
          * @brief Generate the number of moves possible up to the specified depth. Can compare with literature (fExpectedGeneration).
          *
@@ -49,7 +49,6 @@ class Test {
         /**
          * @brief Set whether to display the GUI
         */
-       void SetUseGUI(bool useGUI) { fUseGUI = useGUI; };
     private:
         bool fUseGUI; ///< If true display GUI to user when performing the tests
         int fPrintDepth;

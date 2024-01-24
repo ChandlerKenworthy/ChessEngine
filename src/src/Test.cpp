@@ -1,10 +1,12 @@
 #include "Test.hpp"
 
-Test::Test() {
+Test::Test(bool useGUI) {
     fBoard = std::make_unique<Board>();
     fEngine = std::make_unique<Engine>(true);
     fGUI = std::make_unique<Renderer>();
-    fUseGUI = true;
+    fUseGUI = useGUI;
+    if(!fUseGUI)
+        fGUI->CloseWindow();
     fPrintDepth = 999;
 
     fExpectedGeneration = {
