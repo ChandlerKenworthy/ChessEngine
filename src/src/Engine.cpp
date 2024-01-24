@@ -165,7 +165,7 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
             iMove--;
         // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
         } else if(pinnedPositions & moveOrigin) { // Piece originates from a pinned position
-            for(auto pins : pinnedPieces) {
+            for(const std::pair<U64, U64> pins : pinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
                 if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
