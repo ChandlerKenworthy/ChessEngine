@@ -43,7 +43,7 @@ unsigned long int Test::GetNodes(int depth, std::string fen) {
     }
     unsigned long moves = MoveGeneration(depth);
     auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = duration_cast<std::chrono::microseconds>(stop - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::cout << "Searched complete node tree in " << duration.count() << " microseconds\n";
     return moves;
 }
