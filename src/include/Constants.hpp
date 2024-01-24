@@ -117,7 +117,6 @@ inline U64 hypQuint(U64 piece, U64 occupancy, U64 mask) {
     return (((mask & occupancy) - piece * 2) ^ reverse(reverse(mask & occupancy) - reverse(piece) * 2)) & mask;
 }
 
-// TODO: Delete me this is for testing only
 inline int PrintBitset(U64 b) {
     std::bitset<64> x = b;
     std::string s = x.to_string();
@@ -150,6 +149,20 @@ constexpr U64 FILE_G = 0x0202020202020202ULL;
 constexpr U64 FILE_H = 0x0101010101010101ULL;
 constexpr U64 FILE_GH = FILE_G | FILE_H;
 constexpr U64 FILE_AB = FILE_A | FILE_B;
+
+// For faster castling calculations
+constexpr U64 SQUARE_H1 = FILE_H & RANK_1;
+constexpr U64 SQUARE_F1 = FILE_F & RANK_1;
+constexpr U64 SQUARE_G1 = FILE_G & RANK_1;
+constexpr U64 SQUARE_C1 = FILE_C & RANK_1;
+constexpr U64 SQUARE_A1 = FILE_A & RANK_1;
+constexpr U64 SQUARE_D1 = FILE_D & RANK_1;
+constexpr U64 SQUARE_H8 = FILE_H & RANK_8;
+constexpr U64 SQUARE_F8 = FILE_F & RANK_8;
+constexpr U64 SQUARE_A8 = FILE_A & RANK_8;
+constexpr U64 SQUARE_D8 = FILE_D & RANK_8;
+constexpr U64 SQUARE_G8 = FILE_G & RANK_8;
+constexpr U64 SQUARE_C8 = FILE_C & RANK_8;
 
 const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_B & (RANK_1 | RANK_3 | RANK_5 | RANK_7)) |

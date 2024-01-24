@@ -1,10 +1,12 @@
 #include "Test.hpp"
 
-Test::Test() {
+Test::Test(bool useGUI) {
     fBoard = std::make_unique<Board>();
     fEngine = std::make_unique<Engine>(true);
     fGUI = std::make_unique<Renderer>();
-    fUseGUI = true;
+    fUseGUI = useGUI;
+    if(!fUseGUI)
+        fGUI->CloseWindow();
     fPrintDepth = 999;
 
     fExpectedGeneration = {
@@ -22,6 +24,7 @@ Test::Test() {
 }
 
 unsigned long int Test::GetNodes(int depth, std::string fen) {
+    auto start = std::chrono::high_resolution_clock::now(); // Time the execution
     if(fen.length() > 0)
         fBoard->LoadFEN(fen);
     SetPrintDepth(depth);
@@ -38,7 +41,11 @@ unsigned long int Test::GetNodes(int depth, std::string fen) {
             }
         } // User closing the window means they are "happy" with the position
     }
-    return MoveGeneration(depth);
+    unsigned long moves = MoveGeneration(depth);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Searched complete node tree in " << duration.count() << " microseconds\n";
+    return moves;
 }
 
 unsigned long int Test::MoveGeneration(int depth) {

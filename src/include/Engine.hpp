@@ -63,11 +63,11 @@ class Engine {
         /**
          * @brief Check the board to see if the 50 move rule draw has been met. Update internal board state to match.
         */
-        void CheckFiftyMoveDraw(const std::unique_ptr<Board> &board);
+        bool CheckFiftyMoveDraw(const std::unique_ptr<Board> &board);
         /**
          * @brief Check the board for a draw by insufficient material. Updates internal board state to match.
         */
-        void CheckInsufficientMaterial(const std::unique_ptr<Board> &board);
+        bool CheckInsufficientMaterial(const std::unique_ptr<Board> &board);
 
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
@@ -181,11 +181,11 @@ class Engine {
         /**
          * @brief Determines if castling is possible on a particular side on the current board. 
         */
-        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        bool IsCastlingPossible(const U64 castlingMask, const U64 occupancyMask, const std::unique_ptr<Board> &board);
         /**
          * @brief True if any of the positions in mask and attacked by the specified colour on the current board.
         */
-        bool IsUnderAttack(U64 mask, Color attackingColor, const std::unique_ptr<Board> &board);
+        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
 };
 
 #endif
