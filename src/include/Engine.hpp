@@ -78,6 +78,11 @@ class Engine {
         int fMaxDepth;
         int fLastUnique;
 
+        Color fColor; ///< The color to move
+        Color fOtherColor; ///< Opposite of the colour to move
+        U64 fOccupancy; ///< Occupancy of the board
+        U64 fActiveKing; ///< Position of the king whose colour it is to move
+
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.
         U64 fKingAttacks[64]; ///< All possible attacks of a king at each position on the board.
 
