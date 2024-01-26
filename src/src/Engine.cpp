@@ -225,11 +225,12 @@ void Engine::PruneCheckMoves(const std::unique_ptr<Board> &board) {
 
         board->MakeMove(move);
         U64 underAttack = GetAttacks(board, fOtherColor);
-        board->UndoMove();
-
-        if(!(underAttack & fActiveKing)) {
+        // King may have moved so can't use fActiveKing
+        U64 newKing = GetMovePiece(move) == Piece::King ? board->GetBoard(fColor, Piece::King) : fActiveKing;
+        if(!(underAttack & newKing)) {
             validMoves.push_back(move); // Move is legal, add it to the vector
         }
+        board->UndoMove();
     }
 
     // Replace fLegalMoves with validMoves
