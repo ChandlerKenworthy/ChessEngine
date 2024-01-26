@@ -313,7 +313,6 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
     U64 attacks = 0;
     U64 defender = board->GetBoard(attackingColor == Color::White ? Color::Black : Color::White);
     U64 attacker = board->GetBoard(attackingColor);
-    U64 occ = defender | attacker;
 
     // Pawns (only diagonal forwards check as only care about attacks)
     U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
@@ -338,7 +337,7 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
         U64 bishop = 0;
         uint8_t lsb = pop_LSB(bishops);
         set_bit(bishop, lsb);
-        attacks |= (hypQuint(bishop, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, occ, fSecondaryDiagonalAttacks[lsb]));
+        attacks |= (hypQuint(bishop, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
     }
 
     // Rooks
@@ -347,7 +346,7 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
         U64 rook = 0;
         uint8_t lsb = pop_LSB(rooks);
         set_bit(rook, lsb);
-        attacks |= (hypQuint(rook, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb]));
+        attacks |= (hypQuint(rook, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, fOccupancy, fSecondaryStraightAttacks[lsb]));
     }
 
     // Queens
@@ -356,13 +355,13 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
         U64 queen = 0;
         uint8_t lsb = pop_LSB(queens);
         set_bit(queen, lsb);
-        attacks |= (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb]));
+        attacks |= (hypQuint(queen, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
     }
 
     // King
     U64 king = board->GetBoard(attackingColor, Piece::King);
     attacks |= fKingAttacks[get_LSB(king)];
-    return attacks;
+    return attacks; // Don't exclude your own pieces since they are protected so king cannot take them
 }
 
 void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
@@ -711,6 +710,15 @@ U32 Engine::GetBestMove(Board board) {
    return U32(0);
 }
 
-int Engine::GetNLegalMoves(const std::unique_ptr<Board> &board) {
+int Engine::GetNLegalMoves() {
     return fLegalMoves.size();
 };
+
+U32 Engine::GetRandomMove() {
+    std::random_device seeder; // (May) use hardware to create seed value
+    std::mt19937 engine(seeder()); // Mersenne Twister, with seed from seeder
+    std::uniform_int_distribution<std::mt19937::result_type> dist2(0, GetNLegalMoves());
+    std::mt19937::result_type random_number = dist2(engine);
+
+    return fLegalMoves[random_number];
+}

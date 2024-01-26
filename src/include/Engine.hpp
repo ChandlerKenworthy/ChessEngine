@@ -45,7 +45,7 @@ class Engine {
         /**
          * @brief Get the number of legal moves for a board given the current position.
         */
-       int GetNLegalMoves(const std::unique_ptr<Board> &board);
+       int GetNLegalMoves();
        /**
         * @brief Get all the legal moves.
        */
@@ -68,6 +68,10 @@ class Engine {
          * @brief Check the board for a draw by insufficient material. Updates internal board state to match.
         */
         bool CheckInsufficientMaterial(const std::unique_ptr<Board> &board);
+        /***
+         * @brief Get a random legal move, testing purposes only. Must generate legal moves first!
+        */
+        U32 GetRandomMove();
 
         float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
