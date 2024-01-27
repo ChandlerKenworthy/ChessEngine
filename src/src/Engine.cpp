@@ -320,6 +320,7 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
 
 U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor) {
     U64 attacks = 0;
+    U64 occ = board->GetOccupancy(); // Cannot replace with fOccupancy
 
     // Pawns (only diagonal forwards check as only care about attacks)
     U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
@@ -344,7 +345,7 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
         U64 bishop = 0;
         uint8_t lsb = pop_LSB(bishops);
         set_bit(bishop, lsb);
-        attacks |= (hypQuint(bishop, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
+        attacks |= (hypQuint(bishop, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, occ, fSecondaryDiagonalAttacks[lsb]));
     }
 
     // Rooks
@@ -353,7 +354,7 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
         U64 rook = 0;
         uint8_t lsb = pop_LSB(rooks);
         set_bit(rook, lsb);
-        attacks |= (hypQuint(rook, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, fOccupancy, fSecondaryStraightAttacks[lsb]));
+        attacks |= (hypQuint(rook, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb]));
     }
 
     // Queens
@@ -362,7 +363,7 @@ U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackin
         U64 queen = 0;
         uint8_t lsb = pop_LSB(queens);
         set_bit(queen, lsb);
-        attacks |= (hypQuint(queen, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
+        attacks |= (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb]));
     }
 
     // King
