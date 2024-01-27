@@ -122,6 +122,15 @@ void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     UpdatePromotionMoves();
     StripIllegalMoves(board); // TODO: Biggest time hog currently
     fLastUnique = board->GetUnique();
+
+    if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
+        bool kingInCheck = IsUnderAttack(fActiveKing, fOtherColor, board);
+        if(kingInCheck) {
+            board->SetState(State::Checkmate);
+        } else {
+            board->SetState(State::Stalemate);
+        }
+    }
 }
 
 void Engine::UpdatePromotionMoves() {
@@ -626,18 +635,6 @@ float Engine::GetMaterialEvaluation(Board board) {
     // E.g. bishops at start are weak but later on are really powerful on clear board
     float material = 0.;
 
-    /*
-    for(Piece p : PIECES) {
-        if(p == Piece::King)
-            continue; // Always kings on the board and king safety evaluated differently
-        float white_value = GetPositionalEvaluation(board->GetBoard(Color::White, p), p, Color::White);
-        float black_value = GetPositionalEvaluation(board->GetBoard(Color::Black, p), p, Color::Black);
-        material += (white_value - black_value);
-    }*/
-
-    // For now use very simple material only heuristic + look-ahead to calculate board position
-    // add heuristics once all mechanics are working correctly
-    
     material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
     material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
     material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;

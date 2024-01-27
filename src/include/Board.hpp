@@ -68,10 +68,10 @@ class Board {
         /**
          * @brief Return all occupied bits on the chess board as a bitboard.
         */
-       U64 GetOccupancy() const { return std::accumulate(std::begin(fBoards), std::end(fBoards), U64(0), std::bit_or<U64>()); };
+        U64 GetOccupancy() const { return std::accumulate(std::begin(fBoards), std::end(fBoards), U64(0), std::bit_or<U64>()); };
         /**
          * @brief Get the colour of the player whose turn it is to move.
-         */
+        */
         Color GetColorToMove() const { return fColorToMove; };
         /**
          * @brief Make the move on the board.
@@ -98,8 +98,8 @@ class Board {
         * @brief Get the Color and type of piece (if any) occupying the position
         * @param pos The position on the board to check
         * @return The color and piece of the occupying piece (if any) else Null piece is given.
-       */
-       std::pair<Color, Piece> GetIsOccupied(const U64 pos, const Color color);
+        */
+        std::pair<Color, Piece> GetIsOccupied(const U64 pos, const Color color);
         /**
         * @brief Get the number of completed moves full moves (e.g. both black and white have had a turn)
         */
@@ -163,6 +163,11 @@ class Board {
          * @brief Get the number of half-moves made since the last capture or pawn move.
         */
         unsigned short GetHalfMoveClock() { return fHalfMoves; };
+        /**
+         * @brief Print to the console the supplied move in the standard notation, assumes move is not yet made.
+         * @param move The move that will be made.
+        */
+        void PrintDetailedMove(U32 move); 
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
 

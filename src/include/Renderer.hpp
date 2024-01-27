@@ -8,6 +8,8 @@
 
 #include <memory>
 #include <vector>
+#include <string>
+#include <iostream>
 
 #include <SFML/Graphics.hpp>
 #include "Constants.hpp"
@@ -37,6 +39,7 @@ class Renderer {
         bool GetWindowIsOpen() { return fWindow->isOpen(); };
         /**
          * @brief Return the bitboard with a set bit at the square the user clicked the mouse in
+         * @return Bitboard with clicked square set to on.
         */
         U64 GetClickedSquare(sf::Event &event);
         /**
@@ -56,6 +59,11 @@ class Renderer {
          * @brief Get the size of each individual tile on the GUI chess board
         */
         float GetSquareSize() const { return (float)fWindowWidth / 8.; };
+        /**
+         * @brief Request and read from the console the user input and translate into a 32-bit move word.
+         * @return 32-bit move word consistent with what the user entered.
+        */
+        U32 ReadUserMove() const;
     private:
         const int fWindowWidth; ///< Width (and height) of the GUI window in pixels
         int fSquareWidth; ///< Width (and height) of each individual chess square in the GUI in pixels.

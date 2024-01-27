@@ -402,6 +402,32 @@ inline std::string GetStringPosition(U64 pos) {
     return sPos;
 }
 
+inline char GetPieceChar(Piece piece) {
+    switch(piece) {
+    case Piece::Pawn:
+        return 'P';
+        break;
+    case Piece::Bishop:
+        return 'B';
+        break;
+    case Piece::Knight:
+        return 'N';
+        break;
+    case Piece::Rook:
+        return 'R';
+        break;
+    case Piece::Queen:
+        return 'Q';
+        break;
+    case Piece::King:
+        return 'K';
+        break;
+    default:
+        return ' ';
+        break;
+    }
+}
+
 inline std::string GetPieceString(Piece piece) {
     switch(piece) {
     case Piece::Pawn:
@@ -426,6 +452,11 @@ inline std::string GetPieceString(Piece piece) {
         return "Error piece does not exist";
         break;
     }
+}
+
+inline char get_file_char(int file) {
+    std::vector<char> fileChars = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+    return fileChars[file - 1];
 }
 
 inline Piece GetPieceFromChar(char c) {

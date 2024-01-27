@@ -13,6 +13,7 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             bool &doGame,
                             bool &helpRequested,
                             int &perftDepth,
+                            Color &userColor,
                             std::string &fenString) {
     for(int i = 0; i < args.size(); i++) {
         std::string arg = args[i];
@@ -26,6 +27,8 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
             fenString = args[i+1];
         } else if(!arg.compare("--play")) {
             doGame = true;
+        } else if(!arg.compare("--color")) {
+            userColor = !args[i+1].compare("black") ? Color::Black : Color::White; // TODO: Catch if this is not a valid
         }
     }
 
@@ -40,20 +43,45 @@ void DisplayHelp() {
               << "  --no-gui            Run the program without a graphical user interface.\n"
               << "  --perft <depth>     Perform a perft test up to the specified depth. Depths >= 7 can take a significant time to compute depending on the positions complexity.\n"
               << "  --fen <fen>         Specify an initial position for the engine to perform perft tests or play against using the standard FEN notation.\n"
-              << "  --play              Play a game of user versus the computer. The engine will play the best move.\n\n"
+              << "  --play              Play a game of user versus the computer. The engine will play the best move.\n"
+              << "  --color <colour>    Specify the colour of the human player e.g. \"white\" or \"black\". If not provided will default to white.\n\n"
               << "Examples:\n"
               << "  ChessEngine --perft 5 --fen \"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1\" --no-gui\n"
               << "  ChessEngine --play\n";
 }
 
-void Play(const std::string &fen) {
-    // TODO: Not yet implemented
-    std::cout << "Sorry, the feature you requested has not yet been implemented.\n";
+void Play(const std::string &fen, Color userColor) {
+    const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initalise the main game board (game state handling)
+    const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(); // For handling the GUI
+    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true); // For handling the chess engine
 
-    const std::unique_ptr<Board> b = std::make_unique<Board>();
-    const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>();
-    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
+    // If the FEN exists load the board with the FEN
+    if(fen.size() > 0)
+        board->LoadFEN(fen);
 
+    // For now, don't use GUI do it all in the command line - later use a GUI
+    while(board->GetState() == State::Play) {
+        engine->GenerateLegalMoves(board);
+        U32 move{0};
+        if(board->GetColorToMove() == userColor) {
+            // Human player chooses a move
+            move = gui->ReadUserMove(); // Reads the users console input and translates into a move
+            while(!engine->GetMoveIsLegal(&move)) { // Protection against illegal user moves
+                std::cout << "[Warning] Illegal move entered. Please enter a valid move.\n";
+                move = gui->ReadUserMove();
+            }
+        } else {
+            // Computer chooses a move
+            move = engine->GetRandomMove();
+            // Print out the move to the console
+            board->PrintDetailedMove(move);
+        }
+        
+        // Make the move
+        board->MakeMove(move);
+    }
+
+    /*
     std::pair<Color, Piece> selectedPiece = std::make_pair(Color::White, Piece::Null);
     U64 pieceTile = 0;
     U64 selectedTile = 0;
@@ -78,7 +106,7 @@ void Play(const std::string &fen) {
                 } else { // User clicked on an empty square/enemy piece
                     if(selectedPiece.second != Piece::Null) {
                         engine->GenerateLegalMoves(b);
-                        if(engine->GetNLegalMoves(b) == 0) { // Game is either a stalemate or checkmate
+                        if(engine->GetNLegalMoves() == 0) { // Game is either a stalemate or checkmate
                             std::cout << "Game ending condition met\n";
                         } else {
                             SetMove(userMove, pieceTile, selectedTile, selectedPiece.second, Piece::Null);
@@ -116,7 +144,7 @@ void Play(const std::string &fen) {
                 userMove = 0;
             }
         }
-    }
+    }*/
 }
 
 int main(int argc, char* argv[]) {
@@ -125,10 +153,11 @@ int main(int argc, char* argv[]) {
     bool doGame = false;
     bool helpRequested = false;
     int perftDepth = 0;
+    Color userColor = Color::White;
     std::string fenString = "";
 
     std::vector<std::string> args(argv, argv + argc);
-    bool success = ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, fenString);
+    bool success = ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, userColor, fenString);
 
     if(helpRequested) {
         DisplayHelp();
@@ -137,7 +166,7 @@ int main(int argc, char* argv[]) {
         unsigned long int result = myTest.GetNodes(perftDepth, fenString);
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {
-        Play(fenString);
+        Play(fenString, userColor);
     }
 
     return 0;

@@ -166,3 +166,41 @@ void Renderer::DrawChessPiece(const Piece piece, const Color color, const int ra
     // Draw the piece on the window
     fWindow->draw(pieceSprite);
 };
+
+U32 Renderer::ReadUserMove() const {
+    // Simply read in user moves in the format "[ORIGIN] [TARGET]" e.g. "c2 h3"
+    U32 move{0};
+    std::string userInput;
+    bool isValid = false;
+    while(!isValid) {
+        std::cout << "Enter move in format \"[ORIGIN] [TARGET]\": ";
+        std::getline(std::cin, userInput);
+
+        if(userInput.size() == 5 && userInput[2] == ' ') {
+            if(std::isalpha(userInput[0]) && std::isalpha(userInput[3])) { // Files are present
+                if(std::isdigit(userInput[1]) && std::isdigit(userInput[4])) {
+                    // Check the rank numbers are in the range [1,8]
+                    int originRank = userInput[1] - '0';
+                    int targetRank = userInput[4] - '0';
+                    if(originRank < 1 || originRank > 8 || targetRank < 1 || targetRank > 8)
+                        continue;
+                    
+                    char originFile = std::toupper(userInput[0]);
+                    char targetFile = std::toupper(userInput[3]);
+
+                    if(originFile < 'A' || originFile > 'H' || targetFile < 'A' || targetFile > 'H')
+                        continue;
+
+                    // Get the origin/target positions add build them into the move
+                    U64 origin = get_rank_from_number(originRank) & get_file_from_char(originFile);
+                    U64 target = get_rank_from_number(targetRank) & get_file_from_char(targetFile);
+                    SetMoveOrigin(move, origin);
+                    SetMoveTarget(move, target);
+
+                    isValid = true;
+                }
+            }
+        }
+    }
+    return move;
+}
