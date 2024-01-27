@@ -15,7 +15,7 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             int &perftDepth,
                             Color &userColor,
                             std::string &fenString) {
-    for(int i = 0; i < args.size(); i++) {
+    for(uint i = 0; i < args.size(); i++) {
         std::string arg = args[i];
         if(!arg.compare("--no-gui")) {
             useGUI = false;
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     std::string fenString = "";
 
     std::vector<std::string> args(argv, argv + argc);
-    bool success = ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, userColor, fenString);
+    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, userColor, fenString);
 
     if(helpRequested) {
         DisplayHelp();

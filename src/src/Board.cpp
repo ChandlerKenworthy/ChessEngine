@@ -368,7 +368,6 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
 }
 
 void Board::PrintDetailedMove(U32 move) {
-    U64 origin = GetMoveOrigin(move);
     U64 target = GetMoveTarget(move);
     Piece piece = GetMovePiece(move);
     Piece takenPiece = GetMoveTakenPiece(move);

@@ -173,7 +173,7 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
         }
     );
 
-    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
+    for(int iMove = 0; iMove < (int)fLegalMoves.size(); iMove++) {
         U32 m = fLegalMoves[iMove];
         const U64 moveOrigin = GetMoveOrigin(m);
         // King cant move to squares the opponent attacks
@@ -182,7 +182,7 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board) {
             iMove--;
         // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
         } else if(pinnedPositions & moveOrigin) { // Piece originates from a pinned position
-            for(const std::pair<U64, U64> pins : pinnedPieces) {
+            for(const std::pair<U64, U64> &pins : pinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
                 if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
@@ -320,8 +320,6 @@ void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<st
 
 U64 Engine::GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor) {
     U64 attacks = 0;
-    U64 defender = board->GetBoard(attackingColor == Color::White ? Color::Black : Color::White);
-    U64 attacker = board->GetBoard(attackingColor);
 
     // Pawns (only diagonal forwards check as only care about attacks)
     U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
@@ -385,7 +383,7 @@ void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
 void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     // En-passant not possible so throw away early
     if((!board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < MIN_MOVES_FOR_ENPASSANT) || 
-        board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < 1)
+        (board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < 1))
         return;
 
     // FEN loaded position with en-passant move immediately available
@@ -615,7 +613,7 @@ void Engine::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board) 
 }
 
 bool Engine::GetMoveIsLegal(U32* move) {
-    for(int iMove = 0; iMove < fLegalMoves.size(); iMove++) {
+    for(int iMove = 0; iMove < (int)fLegalMoves.size(); iMove++) {
         U32 legalMove = fLegalMoves[iMove];
         if((GetMoveOrigin(legalMove) & GetMoveOrigin(*move)) && (GetMoveTarget(legalMove) & GetMoveTarget(*move))) {
             *move = legalMove;
@@ -643,7 +641,7 @@ float Engine::GetMaterialEvaluation(Board board) {
     return material;
 }
 
-float Engine::Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer) {
+float Engine::Minimax(Board /*board*/, int /*depth*/, float /*alpha*/, float /*beta*/, Color /*maximisingPlayer*/) {
     // Working on a copy of the board object
     // Returns the maximum / minimum evaluation of a given position
     /*if(depth > fMaxDepth)
@@ -681,7 +679,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
     return 0.;
 }
 
-U32 Engine::GetBestMove(Board board) {
+U32 Engine::GetBestMove(Board /*board*/) {
     /*board.GenerateLegalMoves();
     std::mt19937 rng(fRandomDevice());
     std::uniform_int_distribution<std::mt19937::result_type> dist2(0,1); // distribution in range [0, 1]

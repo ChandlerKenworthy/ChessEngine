@@ -60,7 +60,7 @@ unsigned long int Test::MoveGeneration(int depth) {
     if(depth == fPrintDepth)
         std::cout << "Parent nodes searched: " << moves.size() << "\n";
 
-    for(int iMove = 0; iMove < moves.size(); iMove++) {
+    for(uint iMove = 0; iMove < moves.size(); iMove++) {
         U32 move = moves.at(iMove);
         if(depth == fPrintDepth) {
             PrintMove(move); 
