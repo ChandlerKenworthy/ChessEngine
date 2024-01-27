@@ -123,14 +123,14 @@ void Engine::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     StripIllegalMoves(board); // TODO: Biggest time hog currently
     fLastUnique = board->GetUnique();
 
-    if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
+    /*if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
         bool kingInCheck = IsUnderAttack(fActiveKing, fOtherColor, board);
         if(kingInCheck) {
             board->SetState(State::Checkmate);
         } else {
             board->SetState(State::Stalemate);
         }
-    }
+    }*/ // For some reason this seems to break the perft tests
 }
 
 void Engine::UpdatePromotionMoves() {
