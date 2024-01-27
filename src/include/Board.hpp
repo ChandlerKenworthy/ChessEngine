@@ -30,6 +30,11 @@ class Board {
          */
         explicit Board();
         /**
+         * @brief Makes a copy of the board object retaining the current game state.
+         * @param other Reference to the board to copy.
+        */
+        Board(const Board& other);
+        /**
          * @brief Get the current state of the game can either be in play, stalemate or checkmate.
          * @return State, the enumeration for the current game state.
          */
@@ -174,7 +179,6 @@ class Board {
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
 
         // Move tracking
-        std::vector<U32> fLegalMoves;
         std::vector<U32> fMadeMoves; // Tracks each move made in the game
         unsigned short fHalfMoves; ///< The half-move clock for enforcing the 50 move rule
 

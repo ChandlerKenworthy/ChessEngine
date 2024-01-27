@@ -6,6 +6,30 @@ Board::Board() {
     Reset();
 }
 
+Board::Board(const Board& other) {
+    // Copy over the bitboards
+    for(int iBoard = 0; iBoard < 12; ++iBoard) {
+        this->fBoards[iBoard] = other.fBoards[iBoard];
+    }
+
+    // Copy over the game state variables
+    this->fUnique = other.fUnique;
+    this->fMadeMoves = other.fMadeMoves;
+    this->fHalfMoves = other.fHalfMoves;
+    this->fGameState = other.fGameState;
+    this->fWhiteKingMoved = other.fWhiteKingMoved;
+    this->fBlackKingMoved = other.fBlackKingMoved;
+    this->fWhiteKingsideRookMoved = other.fWhiteKingsideRookMoved;
+    this->fWhiteQueensideRookMoved = other.fWhiteQueensideRookMoved;
+    this->fBlackKingsideRookMoved = other.fBlackKingsideRookMoved;
+    this->fBlackQueensideRookMoved = other.fBlackQueensideRookMoved;
+    this->fEnPassantFENTarget = other.fEnPassantFENTarget;
+    this->fColorToMove = other.fColorToMove;
+
+    // Copy over how the board was initalised
+    this->fWasLoadedFromFEN = other.fWasLoadedFromFEN;
+}
+
 void Board::Reset() {
     fBoards[0] = RANK_2; // White pawns
     fBoards[1] = RANK_1 & (FILE_C | FILE_F); // White bishops
@@ -33,7 +57,6 @@ void Board::Reset() {
     fEnPassantFENTarget = 0;
     fColorToMove = Color::White;
 
-    fLegalMoves.clear();
     fMadeMoves.clear();
 }
 

@@ -59,27 +59,41 @@ void Play(const std::string &fen, Color userColor) {
     if(fen.size() > 0)
         board->LoadFEN(fen);
 
-    // For now, don't use GUI do it all in the command line - later use a GUI
-    while(board->GetState() == State::Play) {
-        engine->GenerateLegalMoves(board);
-        U32 move{0};
-        if(board->GetColorToMove() == userColor) {
-            // Human player chooses a move
-            move = gui->ReadUserMove(); // Reads the users console input and translates into a move
-            while(!engine->GetMoveIsLegal(&move)) { // Protection against illegal user moves
-                std::cout << "[Warning] Illegal move entered. Please enter a valid move.\n";
-                move = gui->ReadUserMove();
+    gui->Update(board); // Draw board initially
+
+    while(gui->GetWindowIsOpen()) {
+        sf::Event event;
+        while(gui->PollEvent(event)) {
+            if(event.type == sf::Event::Closed) {
+                gui->CloseWindow();
             }
-        } else {
-            // Computer chooses a move
-            move = engine->GetRandomMove();
-            // Print out the move to the console
-            board->PrintDetailedMove(move);
         }
-        
-        // Make the move
-        board->MakeMove(move);
+        // For now, don't use GUI do it all in the command line - later use a GUI
+        while(board->GetState() == State::Play) {
+            engine->GenerateLegalMoves(board);
+            U32 move{0};
+            if(board->GetColorToMove() == userColor) {
+                // Human player chooses a move
+                move = gui->ReadUserMove(); // Reads the users console input and translates into a move
+                while(!engine->GetMoveIsLegal(&move)) { // Protection against illegal user moves
+                    std::cout << "[Warning] Illegal move entered. Please enter a valid move.\n";
+                    move = gui->ReadUserMove();
+                }
+            } else {
+                // Computer chooses a move
+                move = engine->GetRandomMove();
+                // Print out the move to the console
+                board->PrintDetailedMove(move);
+            }
+            
+            // Make the move
+            board->MakeMove(move);
+
+            // Update the GUI
+            gui->Update(board);
+        }
     }
+
 
     /*
     std::pair<Color, Piece> selectedPiece = std::make_pair(Color::White, Piece::Null);
