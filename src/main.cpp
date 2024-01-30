@@ -82,6 +82,7 @@ void Play(const std::string &fen, Color userColor) {
             } else {
                 // Computer chooses a move
                 move = engine->GetRandomMove();
+                // move = engine->GetBestMove();
                 // Print out the move to the console
                 board->PrintDetailedMove(move);
             }
@@ -92,6 +93,9 @@ void Play(const std::string &fen, Color userColor) {
             // Update the GUI
             gui->Update(board);
         }
+
+        std::cout << "Game terminated normally in state " << (int)board->GetState() << "\n";
+        gui->CloseWindow();
     }
 
 

@@ -152,8 +152,8 @@ void Board::UndoMove() {
 }
 
 void Board::MakeMove(const U32 move) {
-    if(fGameState != State::Play)
-        return;
+    //if(fGameState != State::Play)
+    //    return;
 
     const Piece movedPiece = GetMovePiece(move);
     const Piece takenPiece = GetMoveTakenPiece(move);
