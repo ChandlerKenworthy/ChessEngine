@@ -81,8 +81,8 @@ void Play(const std::string &fen, Color userColor) {
                 }
             } else {
                 // Computer chooses a move
-                move = engine->GetRandomMove();
-                // move = engine->GetBestMove();
+                //move = engine->GetRandomMove();
+                move = engine->GetBestMove(board);
                 // Print out the move to the console
                 board->PrintDetailedMove(move);
             }

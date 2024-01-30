@@ -79,10 +79,10 @@ class Engine {
         */
         U32 GetRandomMove();
 
-        float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
+        float Evaluate(Board *board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U32 GetBestMove(Board board);
+        U32 GetBestMove(const std::unique_ptr<Board> &board);
     private:
         std::random_device fRandomDevice;
         int fMaxDepth;
@@ -108,7 +108,7 @@ class Engine {
         std::vector<U32> fLegalMoves; ///< All possible legal moves for a position for which this vector was filled.
 
         float Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer);
-        float GetMaterialEvaluation(Board board);
+        float GetMaterialEvaluation(Board *board);
 
 
         /**

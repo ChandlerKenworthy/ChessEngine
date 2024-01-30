@@ -5,7 +5,7 @@
 #include "Engine.hpp"
 
 Engine::Engine(const bool init) {
-    fMaxDepth = 3;
+    fMaxDepth = 4;
     fLastUnique = -1;
     if(init) 
         Prepare();
@@ -627,21 +627,21 @@ bool Engine::GetMoveIsLegal(U32* move) {
     return false;
 }
 
-float Engine::Evaluate(Board board) {
+float Engine::Evaluate(Board *board) {
     float eval = GetMaterialEvaluation(board);
     return eval; // Return in centipawns rather than pawns
 }
 
-float Engine::GetMaterialEvaluation(Board board) {
+float Engine::GetMaterialEvaluation(Board *board) {
     // TODO: Should value of pieces be functions of number of pieces on board?
     // E.g. bishops at start are weak but later on are really powerful on clear board
     float material = 0.;
 
-    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
-    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
-    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
-    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
-    material += (__builtin_popcountll(board.GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(board.GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
+    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
+    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
+    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
+    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
+    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
     return material;
 }
 
@@ -649,7 +649,7 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
     // Working on a copy of the board object
     // Returns the maximum / minimum evaluation of a given position
     if(board.GetState() != State::Play || depth == 0)
-        return Evaluate(board); // Return static evaluation of the current board
+        return Evaluate(&board); // Return static evaluation of the current board
     std::unique_ptr<Board> boardPtr = std::make_unique<Board>(board);
     if(maximisingPlayer == Color::White) {
         float maxEval = -99999.;
@@ -682,16 +682,23 @@ float Engine::Minimax(Board board, int depth, float alpha, float beta, Color max
     return 0.;
 }
 
-U32 Engine::GetBestMove(Board board) {
+U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
     U32 bestMove{0};
-    Color colorToMove = board.GetColorToMove();
+    Color colorToMove = board->GetColorToMove();
     // If white is playing the worst eval is -999 (i.e. black completely winning)
     float bestEval = colorToMove == Color::White ? -9999. : 9999.;
     int bestMoveIdx = -1;
 
+    // Make a copy of the board to pass down
+    Board boardCopy = *board;
+
     // For each of the moves we want to find the "best" evaluation
     for(std::size_t iMove = 0; iMove < fLegalMoves.size(); ++iMove) {
-        float eval = Minimax(board, fMaxDepth, -99999., 99999., colorToMove); // Seg fault happening in here
+        float eval = Minimax(boardCopy, fMaxDepth, -99999., 99999., colorToMove);
+        std::cout << "Evaluation after move ";
+        PrintMove(fLegalMoves[iMove]);
+        std::cout << " = " << eval << "\n";
+
         if(colorToMove == Color::White && eval >= bestEval) {
             bestEval = eval;
             bestMoveIdx = iMove;
