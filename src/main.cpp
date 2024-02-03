@@ -13,6 +13,7 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             bool &doGame,
                             bool &helpRequested,
                             int &perftDepth,
+                            int &playSelf,
                             Color &userColor,
                             std::string &fenString) {
     for(uint i = 0; i < args.size(); i++) {
@@ -27,6 +28,8 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
             fenString = args[i+1];
         } else if(!arg.compare("--play")) {
             doGame = true;
+        } else if(!arg.compare("--play-self")) {
+            playSelf = std::stoi(args[i+i]);
         } else if(!arg.compare("--color")) {
             userColor = !args[i+1].compare("black") ? Color::Black : Color::White; // TODO: Catch if this is not a valid
         }
@@ -44,10 +47,58 @@ void DisplayHelp() {
               << "  --perft <depth>     Perform a perft test up to the specified depth. Depths >= 7 can take a significant time to compute depending on the positions complexity.\n"
               << "  --fen <fen>         Specify an initial position for the engine to perform perft tests or play against using the standard FEN notation.\n"
               << "  --play              Play a game of user versus the computer. The engine will play the best move.\n"
+              << "  --play-self <n>     Make the computer play against itself n times and print the outcomes.\n"
               << "  --color <colour>    Specify the colour of the human player e.g. \"white\" or \"black\". If not provided will default to white.\n\n"
               << "Examples:\n"
               << "  ChessEngine --perft 5 --fen \"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1\" --no-gui\n"
               << "  ChessEngine --play\n";
+}
+
+void PlaySelf(int nGames) {
+    int whiteWins = 0;
+    int blackWins = 0;
+    int stalemates = 0;
+    int materialDraw = 0;
+    int fiftyMoveDraw = 0;
+
+    const std::unique_ptr<Board> board = std::make_unique<Board>();
+    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(true);
+
+    for(int iGame = 0; iGame < nGames; ++iGame) {
+        board->Reset();
+
+        while(board->GetState() == State::Play) {
+            engine->GenerateLegalMoves(board);
+            if(engine->GetNLegalMoves() == 0)
+                break;
+            U32 move = engine->GetRandomMove(); // For now both agents are random
+            board->MakeMove(move);
+        }
+
+        if(board->GetState() == State::Checkmate) {
+            std::string winningColour = board->GetColorToMove() == Color::White ? "Black" : "White";
+            Color wonColour = board->GetColorToMove() == Color::White ? Color::Black : Color::White;
+            //std::cout << winningColour << " won\n";
+            if(wonColour == Color::White) {
+                whiteWins++;
+            } else {
+                blackWins++;
+            }
+        } else if(board->GetState() == State::Stalemate) {
+            stalemates++;
+        } else if(board->GetState() == State::FiftyMoveRule) {
+            fiftyMoveDraw++;
+        } else if(board->GetState() == State::InSufficientMaterial) {
+            materialDraw++;
+        }
+    }
+
+    std::cout << "========== Summary ==========\n";
+    std::cout << "Checkmates by white:            " << whiteWins << "\n";
+    std::cout << "Checkmates by black:            " << blackWins << "\n";
+    std::cout << "Draws by stalemate:             " << stalemates << "\n";
+    std::cout << "Draws by 50-move rule:          " << fiftyMoveDraw << "\n";
+    std::cout << "Draws by insufficient material: " << materialDraw << "\n";
 }
 
 void Play(const std::string &fen, Color userColor) {
@@ -171,11 +222,12 @@ int main(int argc, char* argv[]) {
     bool doGame = false;
     bool helpRequested = false;
     int perftDepth = 0;
+    int playSelf = 0;
     Color userColor = Color::White;
     std::string fenString = "";
 
     std::vector<std::string> args(argv, argv + argc);
-    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, userColor, fenString);
+    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, playSelf, userColor, fenString);
 
     if(helpRequested) {
         DisplayHelp();
@@ -185,6 +237,8 @@ int main(int argc, char* argv[]) {
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {
         Play(fenString, userColor);
+    } else if(playSelf != 0) {
+        PlaySelf(playSelf);
     }
 
     return 0;

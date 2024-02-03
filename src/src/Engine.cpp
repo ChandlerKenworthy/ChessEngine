@@ -695,10 +695,6 @@ U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
     // For each of the moves we want to find the "best" evaluation
     for(std::size_t iMove = 0; iMove < fLegalMoves.size(); ++iMove) {
         float eval = Minimax(boardCopy, fMaxDepth, -99999., 99999., colorToMove);
-        std::cout << "Evaluation after move ";
-        PrintMove(fLegalMoves[iMove]);
-        std::cout << " = " << eval << "\n";
-
         if(colorToMove == Color::White && eval >= bestEval) {
             bestEval = eval;
             bestMoveIdx = iMove;
@@ -718,10 +714,9 @@ int Engine::GetNLegalMoves() {
 };
 
 U32 Engine::GetRandomMove() {
-    std::random_device seeder; // (May) use hardware to create seed value
-    std::mt19937 engine(seeder()); // Mersenne Twister, with seed from seeder
-    std::uniform_int_distribution<std::mt19937::result_type> dist2(0, GetNLegalMoves());
-    std::mt19937::result_type random_number = dist2(engine);
+    std::random_device seeder;
+    std::mt19937 engine(seeder());
+    std::uniform_int_distribution<U32> dist2(0, GetNLegalMoves() - 1);
 
-    return fLegalMoves[random_number];
+    return fLegalMoves[dist2(engine)];
 }
