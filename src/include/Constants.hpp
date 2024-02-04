@@ -92,12 +92,14 @@ constexpr int BITS_PER_FILE = 8;
 constexpr int MIN_MOVES_FOR_CASTLING = 6;
 constexpr int MIN_MOVES_FOR_ENPASSANT = 3;
 
-const float VALUE_PAWN = 100; // centi-pawn value
-const float VALUE_BISHOP = 300;
-const float VALUE_KNIGHT = 300;
-const float VALUE_ROOK = 500;
-const float VALUE_QUEEN = 900;
-const float VALUE_KING = 99999;
+const float VALUE_PAWN = 100.; // centi-pawn value
+const float VALUE_BISHOP = 300.;
+const float VALUE_KNIGHT = 300.;
+const float VALUE_ROOK = 500.;
+const float VALUE_QUEEN = 900.;
+const float VALUE_KING = 99999.;
+
+const float PIECE_VALUES[7] = {0., VALUE_PAWN, VALUE_BISHOP, VALUE_KNIGHT, VALUE_ROOK, VALUE_QUEEN, VALUE_KING};
 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);

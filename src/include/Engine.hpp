@@ -10,6 +10,7 @@
 #include <random>
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 #include "Constants.hpp"
 #include "Board.hpp"
@@ -79,7 +80,7 @@ class Engine {
         */
         U32 GetRandomMove();
 
-        float Evaluate(Board *board); // Static evaluation of current game state with no look-ahead
+        float Evaluate(const std::unique_ptr<Board> &board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
         U32 GetBestMove(const std::unique_ptr<Board> &board);
@@ -107,9 +108,10 @@ class Engine {
         U64 fSecondaryStraightAttacks[64]; ///< Primary straight attacks (file) for a sliding straight piece at LSB.
         std::vector<U32> fLegalMoves; ///< All possible legal moves for a position for which this vector was filled.
 
-        float Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer);
-        float GetMaterialEvaluation(Board *board);
-
+        std::pair<float, int> Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta);
+        float GetMaterialEvaluation(const std::unique_ptr<Board> &board);
+        void OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves);
+        U64 GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks);
 
         /**
          * @brief Used on instantiation of the Engine class to generate attack tables ahead of time for faster lookup later.

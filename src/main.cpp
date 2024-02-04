@@ -67,11 +67,21 @@ void PlaySelf(int nGames) {
     for(int iGame = 0; iGame < nGames; ++iGame) {
         board->Reset();
 
+        float percentage = 100. * ((float)iGame + 1.) / (float)nGames;
+        std::cout << "Percentage completed " << percentage << "% [" << iGame + 1 << "/" << nGames << "]\n";
+
         while(board->GetState() == State::Play) {
             engine->GenerateLegalMoves(board);
             if(engine->GetNLegalMoves() == 0)
                 break;
-            U32 move = engine->GetRandomMove(); // For now both agents are random
+
+            U32 move{0};
+            if(board->GetColorToMove() == Color::White) {
+                move = engine->GetBestMove(board); //engine->GetRandomMove(); 
+            } else {
+                move = engine->GetRandomMove(); // For now black is a random agent
+            }
+            
             board->MakeMove(move);
         }
 
@@ -93,7 +103,7 @@ void PlaySelf(int nGames) {
         }
     }
 
-    std::cout << "========== Summary ==========\n";
+    std::cout << "\n========== Summary ==========\n";
     std::cout << "Checkmates by white:            " << whiteWins << "\n";
     std::cout << "Checkmates by black:            " << blackWins << "\n";
     std::cout << "Draws by stalemate:             " << stalemates << "\n";

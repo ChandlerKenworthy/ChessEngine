@@ -146,15 +146,13 @@ void Board::UndoMove() {
         clear_bit(*promotionBoard, targetLSB);
     }
 
+    fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
     fUnique--;
 }
 
 void Board::MakeMove(const U32 move) {
-    //if(fGameState != State::Play)
-    //    return;
-
     const Piece movedPiece = GetMovePiece(move);
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
