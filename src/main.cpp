@@ -249,6 +249,15 @@ int main(int argc, char* argv[]) {
         Play(fenString, userColor);
     } else if(playSelf != 0) {
         PlaySelf(playSelf);
+    } else {
+        // Code for testing goes in here
+        U32 move{0};
+        SetMoveOrigin(move, RANK_2 & FILE_B);
+        SetMoveTarget(move, RANK_5 & FILE_G);
+        SetMovePieceWasTaken(move, true);
+        PrintBitset(GetMoveOrigin(move));
+        PrintBitset(GetMoveTarget(move));
+        std::cout << GetMovePieceWasTaken(move) << "\n";
     }
 
     return 0;

@@ -387,8 +387,8 @@ void Engine::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board, std::
 
 void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor) {
     // En-passant not possible so throw away early
-    if((!board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < MIN_MOVES_FOR_ENPASSANT) || 
-        (board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < 1))
+    if((!board->GetWasLoadedFromFEN() && board->GetNMovesMade() * 2 < MIN_MOVES_FOR_ENPASSANT) || 
+        (board->GetWasLoadedFromFEN() && board->GetNMovesMade() * 2 < 1))
         return;
 
     // FEN loaded position with en-passant move immediately available
@@ -452,7 +452,7 @@ void Engine::GenerateEnPassantMoves(const std::unique_ptr<Board> &board, std::ve
 }
 
 void Engine::GenerateCastlingMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 activeKing, const U64 occupancy) {
-    if(board->GetNHalfMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
+    if(board->GetNMovesMade() * 2 < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
         return;
 
     // Castling conditions for white
