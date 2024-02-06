@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    name: perft2
     runs-on: ubuntu-latest # You can also use macos-latest for macOS
 
     steps:

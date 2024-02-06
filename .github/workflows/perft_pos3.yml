@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main # Change this to your main branch
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
+    name: perft3
     runs-on: ubuntu-latest # You can also use macos-latest for macOS
 
     steps:
