@@ -757,12 +757,12 @@ std::pair<float, int> Engine::Minimax(const std::unique_ptr<Board> &board, int d
 }
 
 U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
-    auto start = std::chrono::high_resolution_clock::now();
+    //auto start = std::chrono::high_resolution_clock::now();
     U32 bestMove{0};
     Color colorToMove = board->GetColorToMove();
     // If white is playing the worst eval is -999 (i.e. black completely winning)
     float bestEval = colorToMove == Color::White ? -9999. : 9999.;
-    int nMovesSearched = 0;
+    //int nMovesSearched = 0;
 
     // Order the moves for faster searching
     OrderMoves(board, fLegalMoves);
@@ -773,7 +773,7 @@ U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
         std::pair<float, int> result = Minimax(board, fMaxDepth - 1, -99999., 99999.);
         board->UndoMove();
         float eval = result.first;
-        nMovesSearched += result.second;
+        //nMovesSearched += result.second;
         if(colorToMove == Color::White && eval >= bestEval) {
             bestEval = eval;
             bestMove = move;
@@ -783,8 +783,8 @@ U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
         }
     }
 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    //auto stop = std::chrono::high_resolution_clock::now();
+    //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     //std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
     //std::cout << "Evaluated: " << nMovesSearched << " positions\n";
     return bestMove;
