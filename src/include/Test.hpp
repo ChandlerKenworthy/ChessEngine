@@ -33,7 +33,7 @@ class Test {
         /**
          * @brief Get the number of moves that are possible from the start position up to a speicifed depth (values from Stockfish 16)
         */
-        unsigned long int GetExpectedGeneration(int depth) { return depth < fExpectedGeneration.size() ? fExpectedGeneration[depth] : 0; };
+        unsigned long int GetExpectedGeneration(int depth) { return depth < (int)fExpectedGeneration.size() ? fExpectedGeneration[depth] : 0; };
         /**
          * @brief Get the number of moves that are possible from the specified FEN position up to a specified depth.
         */

@@ -10,6 +10,7 @@
 #include <random>
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 #include "Constants.hpp"
 #include "Board.hpp"
@@ -34,6 +35,16 @@ class Engine {
         */
         void GenerateLegalMoves(const std::unique_ptr<Board> &board);
         /**
+         * @brief Generate the set of legal moves for the specified board, return rather than fill fLegalMoves
+         * @param board The board for which the legal moves should be calculated.
+         * @param returnMoves Flag, default is true - controls return of the move vector.
+        */
+        std::vector<U32> GenerateLegalMoves(const std::unique_ptr<Board> &board, bool returnMoves);
+        /**
+         * 
+        */
+        std::vector<U32> GenerateCaptureMoves(const std::unique_ptr<Board> &board);
+        /**
          * @brief True if the provided move is a legal one otherwise false.
         */
         bool GetMoveIsLegal(U32 *move);
@@ -41,11 +52,11 @@ class Engine {
         * @brief Remove illegal moves from the fLegalMoves vector. This does a thorough check for pins, self-checks etc.
         * @param board The current board configuration.
         */
-        void StripIllegalMoves(const std::unique_ptr<Board> &board);
+        void StripIllegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color otherColor, const Color activeColor, const U64 activeKing);
         /**
          * @brief Get the number of legal moves for a board given the current position.
         */
-       int GetNLegalMoves(const std::unique_ptr<Board> &board);
+       int GetNLegalMoves();
        /**
         * @brief Get all the legal moves.
        */
@@ -55,7 +66,7 @@ class Engine {
          * 
          * Modifies the passed vector v in place.
         */
-        void PruneCheckMoves(const std::unique_ptr<Board> &board);
+        void PruneCheckMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const U64 activeKing, const Color activeColor);
         /**
          * @brief Get all squares attacked by the specified color as a single bitboard.
         */
@@ -68,11 +79,15 @@ class Engine {
          * @brief Check the board for a draw by insufficient material. Updates internal board state to match.
         */
         bool CheckInsufficientMaterial(const std::unique_ptr<Board> &board);
+        /***
+         * @brief Get a random legal move, testing purposes only. Must generate legal moves first!
+        */
+        U32 GetRandomMove();
 
-        float Evaluate(Board board); // Static evaluation of current game state with no look-ahead
+        float Evaluate(const std::unique_ptr<Board> &board); // Static evaluation of current game state with no look-ahead
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U32 GetBestMove(Board board);
+        U32 GetBestMove(const std::unique_ptr<Board> &board);
     private:
         std::random_device fRandomDevice;
         int fMaxDepth;
@@ -97,9 +112,26 @@ class Engine {
         U64 fSecondaryStraightAttacks[64]; ///< Primary straight attacks (file) for a sliding straight piece at LSB.
         std::vector<U32> fLegalMoves; ///< All possible legal moves for a position for which this vector was filled.
 
-        float Minimax(Board board, int depth, float alpha, float beta, Color maximisingPlayer);
-        float GetMaterialEvaluation(Board board);
+        float SearchAllCaptures(const std::unique_ptr<Board> &board, float alpha, float beta);
 
+        /**
+         * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
+         * @param board The board to evaluate.
+         * @param depth The depth the evaluation function should calculate up-to.
+         * @param alpha The alpha value to prune at.
+         * @param beta The beta value to prune at.
+        */
+        std::pair<float, int> Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta);
+
+        float GetMaterialEvaluation(const std::unique_ptr<Board> &board);
+        void OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves);
+
+        /**
+         * @brief Calculates all the diagonally forward attacked squares, disregarding pins.
+         * @param board The board to calculate against.
+         * @param colorToMoveAttacks The perspective of which to calculate from.
+        */
+        U64 GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks);
 
         /**
          * @brief Used on instantiation of the Engine class to generate attack tables ahead of time for faster lookup later.
@@ -131,62 +163,70 @@ class Engine {
          */
         void BuildDiagonalAttackTables(const U64 pos);
         /**
-         * @brief Adds all the pseudo-legal moves to the fLegalMoves vector.
+         * @brief Adds all the pseudo-legal moves to the specified vector.
          * @param board The board for which pseudo-legal moves will be generated.
+         * @param moves Vector of moves to be filled.
         */
-        void GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 occupancy, const U64 activeKing);
         /**
          * @brief Generate the pseudo-legal pawn moves (doesn't check for possibles checks) for the color to move.
          * @param board The board for which pseudo-legal moves will be generated.
         */
-        void GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 occupancy);
         /**
          * @brief Generate the pseudo-legal king moves (doesn't check for possibles checks) for the color to move.
          * @param board The board for which pseudo-legal moves will be generated.
         */
-        void GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 activeKing);
         /**
          * @brief Generate the pseudo-legal knight moves (doesn't check for possibles checks) for the color to move.
          * @param board The board for which pseudo-legal moves will be generated.
         */
-        void GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor);
         /**
          * @brief Generate the pseudo-legal bishop moves (doesn't check for possibles checks) for the color to move.
          * @param board The board for which pseudo-legal moves will be generated.
         */
-        void GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 occupancy);
         /**
          * @brief Generate the pseudo-legal rook moves (doesn't check for possibles checks) for the color to move.
          * @param board The board for which pseudo-legal moves will be generated.
         */
-        void GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 occupancy);
         /**
          * @brief Generate the pseudo-legal queen moves (doesn't check for possibles checks) for the color to move.
          * @param board The board for which pseudo-legal moves will be generated.
         */
-        void GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 occupancy);
         /**
          * @brief Finds any pawn promotion moves and splits into separate moves for each type of piece it is possible to promote to.
         */
-        void UpdatePromotionMoves();
+        void UpdatePromotionMoves(std::vector<U32> &moves);
         /**
          * @brief Add absolutely pinned pieces of the colour to move to a provided vector.
          * @param v Vector of pairs of the pinned piece and piece pinning that piece in that order.
          * @param d Direction of the ray to check.
         */
-        void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
+        void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d, const U64 activeKing, const Color activeColor, const Color otherColor);
         /**
          * @brief Generates the en-passant moves, if any exist, and adds them to the legal moves vector.
+         * @param board The board object to calculate moves for.
+         * @param moves Reference to the moves vector to add moves onto.
+         * @param activeColor The current colour to move on the board.
         */
-        void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);
+        void GenerateEnPassantMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor);
         /**
          * @brief Generates castling moves, if any exist, and adds them to the legal moves vector.
+         * @param board The board object to calculate moves for.
+         * @param moves Reference to the moves vector to add moves onto.
+         * @param activeColor The current colour to move on the board.
+         * @param activeKing The position of the King whose colour it is to move.
         */
-        void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
+        void GenerateCastlingMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves, const Color activeColor, const Color otherColor, const U64 activeKing, const U64 occupancy);
         /**
          * @brief Determines if castling is possible on a particular side on the current board. 
         */
-        bool IsCastlingPossible(const U64 castlingMask, const U64 occupancyMask, const std::unique_ptr<Board> &board);
+        bool IsCastlingPossible(const U64 castlingMask, const U64 occupancyMask, const std::unique_ptr<Board> &board, const U64 occupancy, const Color otherColor);
         /**
          * @brief True if any of the positions in mask and attacked by the specified colour on the current board.
         */

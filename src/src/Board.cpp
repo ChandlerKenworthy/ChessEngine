@@ -6,6 +6,30 @@ Board::Board() {
     Reset();
 }
 
+Board::Board(const Board& other) {
+    // Copy over the bitboards
+    for(int iBoard = 0; iBoard < 12; ++iBoard) {
+        this->fBoards[iBoard] = other.fBoards[iBoard];
+    }
+
+    // Copy over the game state variables
+    this->fUnique = other.fUnique;
+    this->fMadeMoves = other.fMadeMoves;
+    this->fHalfMoves = other.fHalfMoves;
+    this->fGameState = other.fGameState;
+    this->fWhiteKingMoved = other.fWhiteKingMoved;
+    this->fBlackKingMoved = other.fBlackKingMoved;
+    this->fWhiteKingsideRookMoved = other.fWhiteKingsideRookMoved;
+    this->fWhiteQueensideRookMoved = other.fWhiteQueensideRookMoved;
+    this->fBlackKingsideRookMoved = other.fBlackKingsideRookMoved;
+    this->fBlackQueensideRookMoved = other.fBlackQueensideRookMoved;
+    this->fEnPassantFENTarget = other.fEnPassantFENTarget;
+    this->fColorToMove = other.fColorToMove;
+
+    // Copy over how the board was initalised
+    this->fWasLoadedFromFEN = other.fWasLoadedFromFEN;
+}
+
 void Board::Reset() {
     fBoards[0] = RANK_2; // White pawns
     fBoards[1] = RANK_1 & (FILE_C | FILE_F); // White bishops
@@ -33,7 +57,6 @@ void Board::Reset() {
     fEnPassantFENTarget = 0;
     fColorToMove = Color::White;
 
-    fLegalMoves.clear();
     fMadeMoves.clear();
 }
 
@@ -123,15 +146,13 @@ void Board::UndoMove() {
         clear_bit(*promotionBoard, targetLSB);
     }
 
+    fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
     fUnique--;
 }
 
 void Board::MakeMove(const U32 move) {
-    if(fGameState != State::Play)
-        return;
-
     const Piece movedPiece = GetMovePiece(move);
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
@@ -365,4 +386,36 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
         }
     }
     return std::make_pair(color, Piece::Null);
+}
+
+void Board::PrintDetailedMove(U32 move) {
+    U64 target = GetMoveTarget(move);
+    U64 origin = GetMoveOrigin(move);
+    Piece piece = GetMovePiece(move);
+    Piece takenPiece = GetMoveTakenPiece(move);
+    char pieceChar = GetPieceChar(piece);
+    
+    int rank = get_rank_number(target);
+    int file = get_file_number(target);
+    char fileChar = get_file_char(file);
+
+    std::string moveStr = "";
+    if(piece != Piece::Pawn)
+        moveStr += pieceChar;
+
+    if(takenPiece != Piece::Null && piece != Piece::Pawn) {
+        moveStr += "x";
+        moveStr += fileChar;
+        moveStr += std::to_string(rank);
+    } else if(takenPiece != Piece::Null && piece == Piece::Pawn) {
+        moveStr += get_file_char(get_file_number(origin));
+        moveStr += "x";
+        moveStr += fileChar;
+        moveStr += std::to_string(rank);
+    }
+
+    // if(checking the king)
+    // add a "+"
+
+    std::cout << moveStr << "\n";
 }
