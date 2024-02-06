@@ -41,6 +41,10 @@ class Engine {
         */
         std::vector<U32> GenerateLegalMoves(const std::unique_ptr<Board> &board, bool returnMoves);
         /**
+         * 
+        */
+        std::vector<U32> GenerateCaptureMoves(const std::unique_ptr<Board> &board);
+        /**
          * @brief True if the provided move is a legal one otherwise false.
         */
         bool GetMoveIsLegal(U32 *move);
@@ -108,9 +112,25 @@ class Engine {
         U64 fSecondaryStraightAttacks[64]; ///< Primary straight attacks (file) for a sliding straight piece at LSB.
         std::vector<U32> fLegalMoves; ///< All possible legal moves for a position for which this vector was filled.
 
+        float SearchAllCaptures(const std::unique_ptr<Board> &board, float alpha, float beta);
+
+        /**
+         * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
+         * @param board The board to evaluate.
+         * @param depth The depth the evaluation function should calculate up-to.
+         * @param alpha The alpha value to prune at.
+         * @param beta The beta value to prune at.
+        */
         std::pair<float, int> Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta);
+
         float GetMaterialEvaluation(const std::unique_ptr<Board> &board);
         void OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves);
+
+        /**
+         * @brief Calculates all the diagonally forward attacked squares, disregarding pins.
+         * @param board The board to calculate against.
+         * @param colorToMoveAttacks The perspective of which to calculate from.
+        */
         U64 GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks);
 
         /**

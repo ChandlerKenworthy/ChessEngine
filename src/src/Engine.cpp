@@ -648,15 +648,17 @@ void Engine::OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &m
 
     auto compareMoves = [&](U32 move1, U32 move2) {
         float move1ScoreEstimate = 0.;
-        int pieceType1 = (int)GetMovePiece(move1);
+        const int pieceType1 = (int)GetMovePiece(move1);
+        const int takenPieceType1 = (int)GetMoveTakenPiece(move1);
         float move2ScoreEstimate = 0.;
-        int pieceType2 = (int)GetMovePiece(move2);
+        const int pieceType2 = (int)GetMovePiece(move2);
+        const int takenPieceType2 = (int)GetMoveTakenPiece(move2);
 
         // Prioritise capturing opponent's most valudable pieces with our least valuable piece
-        if(GetMoveTakenPiece(move1) != Piece::Null)
-            move1ScoreEstimate = 10. * PIECE_VALUES[(int)GetMoveTakenPiece(move1)] - PIECE_VALUES[pieceType1];
-        if(GetMoveTakenPiece(move2) != Piece::Null)
-            move2ScoreEstimate = 10. * PIECE_VALUES[(int)GetMoveTakenPiece(move2)] - PIECE_VALUES[pieceType2];
+        if(takenPieceType1 != (int)Piece::Null)
+            move1ScoreEstimate += 10. * (PIECE_VALUES[takenPieceType1] - PIECE_VALUES[pieceType1]);
+        if(takenPieceType2 != (int)Piece::Null)
+            move2ScoreEstimate += 10. * (PIECE_VALUES[takenPieceType2] - PIECE_VALUES[pieceType2]);
 
         // Promoting a pawn is probably a good plan
         if(GetMoveIsPromotion(move1))
@@ -687,11 +689,44 @@ U64 Engine::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMove
     }
 }
 
+std::vector<U32> Engine::GenerateCaptureMoves(const std::unique_ptr<Board> &board) {
+    // TODO: Rewrite this so it is much, much faster
+    std::vector<U32> allMoves = GenerateLegalMoves(board, true);
+
+    // Remove moves where the taken piece is Piece::Null
+    allMoves.erase(std::remove_if(allMoves.begin(), allMoves.end(),
+        [&](U32 move) { return GetMoveTakenPiece(move) == Piece::Null; }),
+        allMoves.end());
+
+    return allMoves;
+}
+
+float Engine::SearchAllCaptures(const std::unique_ptr<Board> &board, float alpha, float beta) {
+    float eval = Evaluate(board);
+    if(eval >= beta)
+        return beta;
+    alpha = std::max(alpha, eval);
+
+    std::vector<U32> captureMoves = GenerateCaptureMoves(board); // Generate only captures
+    OrderMoves(board, captureMoves);
+
+    for(U32 move : captureMoves) {
+        board->MakeMove(move);
+        eval = -SearchAllCaptures(board, -alpha, -beta);
+        board->UndoMove();
+
+        if(eval >= beta)
+            return beta;
+        alpha = std::max(alpha, eval);
+    }
+
+    return alpha;
+}
 
 std::pair<float, int> Engine::Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta) {
     // Return the evaluation up to depth [depth] and the number of moves explicitly searched
     if(depth == 0)
-        return std::make_pair(Evaluate(board), 1);
+        return std::make_pair(Evaluate(board), 1); // Was SearchAllCaptures(board, alpha, beta)
 
     int movesSearched = 0;
     std::vector<U32> moves = GenerateLegalMoves(board, true);
@@ -735,12 +770,9 @@ U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
     // For each of the moves we want to find the "best" evaluation
     for(U32 move : fLegalMoves) {
         board->MakeMove(move);
-        PrintMove(move);
-        std::cout << ": ";
         std::pair<float, int> result = Minimax(board, fMaxDepth - 1, -99999., 99999.);
         board->UndoMove();
         float eval = result.first;
-        std::cout << result.second << "\n";
         nMovesSearched += result.second;
         if(colorToMove == Color::White && eval >= bestEval) {
             bestEval = eval;
@@ -753,8 +785,8 @@ U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-    std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+    //std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
+    //std::cout << "Evaluated: " << nMovesSearched << " positions\n";
     return bestMove;
 }
 

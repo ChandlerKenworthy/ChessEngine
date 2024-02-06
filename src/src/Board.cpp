@@ -390,6 +390,7 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
 
 void Board::PrintDetailedMove(U32 move) {
     U64 target = GetMoveTarget(move);
+    U64 origin = GetMoveOrigin(move);
     Piece piece = GetMovePiece(move);
     Piece takenPiece = GetMoveTakenPiece(move);
     char pieceChar = GetPieceChar(piece);
@@ -402,11 +403,16 @@ void Board::PrintDetailedMove(U32 move) {
     if(piece != Piece::Pawn)
         moveStr += pieceChar;
 
-    moveStr += fileChar;
-    moveStr += std::to_string(rank);
-
-    if(takenPiece != Piece::Null)
+    if(takenPiece != Piece::Null && piece != Piece::Pawn) {
         moveStr += "x";
+        moveStr += fileChar;
+        moveStr += std::to_string(rank);
+    } else if(takenPiece != Piece::Null && piece == Piece::Pawn) {
+        moveStr += get_file_char(get_file_number(origin));
+        moveStr += "x";
+        moveStr += fileChar;
+        moveStr += std::to_string(rank);
+    }
 
     // if(checking the king)
     // add a "+"
