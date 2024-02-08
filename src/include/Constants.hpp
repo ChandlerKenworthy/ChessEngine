@@ -204,12 +204,7 @@ const U64 KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK = RANK_8 & (FILE_F | FILE_G);
 const U64 QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK = RANK_8 & (FILE_C | FILE_D | FILE_B);
 
 inline int CountSetBits(U64 number) {
-    int count = 0;
-    while (number) {
-        count += number & 1;
-        number >>= 1;
-    }
-    return count;
+    return __builtin_popcountll(number);
 }
 
 inline U64 get_rank(U64 position) {
