@@ -115,6 +115,11 @@ class Board {
         */
         int GetNMovesMade() { return (int)(fMadeMoves.size() / 2); };
         /**
+         * @brief Get the number of individual moves made such that a move by white followed by black is 2 moves (1 turn).
+         * @return Number of moves.
+        */
+        int GetNMoves() { return (int)fMadeMoves.size(); };
+        /**
          * @brief True if the white king has moved
          * @return True if the white king has moved during the game.
         */
