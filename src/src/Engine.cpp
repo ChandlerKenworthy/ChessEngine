@@ -170,7 +170,7 @@ void Engine::StripIllegalMoves(const std::unique_ptr<Board> &board, std::vector<
 
     std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and all squares (including the attacking piece) on the pinning ray (as all moves on this ray of the pinned position are of course legal)
     for(Direction d : DIRECTIONS) {
-        AddAbolsutePins(board, &pinnedPieces, d, activeKing, activeColor, otherColor);
+        AddAbsolutePins(board, &pinnedPieces, d, activeKing, activeColor, otherColor);
     }
     const U64 pinnedPositions = std::accumulate(
         pinnedPieces.begin(), pinnedPieces.end(), U64(0),
@@ -250,8 +250,7 @@ void Engine::PruneCheckMoves(const std::unique_ptr<Board> &board, std::vector<U3
     moves = std::move(validMoves);
 }
 
-
-void Engine::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d, const U64 activeKing, const Color activeColor, const Color otherColor) {
+void Engine::AddAbsolutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d, const U64 activeKing, const Color activeColor, const Color otherColor) {
     // Make artificial occupancy to block in the king and only get the north ray
     const uint8_t lsb = get_LSB(activeKing);
     U64 rayOccupancy = board->GetBoard(otherColor);
