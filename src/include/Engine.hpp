@@ -207,7 +207,7 @@ class Engine {
          * @param v Vector of pairs of the pinned piece and piece pinning that piece in that order.
          * @param d Direction of the ray to check.
         */
-        void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d, const U64 activeKing, const Color activeColor, const Color otherColor);
+        void AddAbsolutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d, const U64 activeKing, const Color activeColor, const Color otherColor);
         /**
          * @brief Generates the en-passant moves, if any exist, and adds them to the legal moves vector.
          * @param board The board object to calculate moves for.
