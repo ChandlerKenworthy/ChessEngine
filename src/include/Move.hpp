@@ -1,21 +1,29 @@
+/**
+ * @file Move.hpp
+ * @brief Utiltiy functions for setting and getting data from 32-bit move words.
+ */
+
 #ifndef MOVE_HPP
 #define MOVE_HPP
 
 #include "Constants.hpp"
 
 // Define constants for bit positions
-constexpr U32 ORIGIN_MASK = 0b111111;
-constexpr U32 TARGET_MASK = 0b111111 << 6;
-constexpr U32 PIECE_TAKEN_MASK = 1 << 12;
-constexpr U32 COLOR_MASK = 1 << 13;
-constexpr U32 PIECE_MASK = 0b111 << 14;
+constexpr U32 ORIGIN_MASK = 0b111111; ///< Bits [0,5] used to provide the LSB of the move origin.
+constexpr U32 TARGET_MASK = 0b111111 << 6; ///< Bits [6,11] used to provide the LSB of the move target.
+constexpr U32 PIECE_TAKEN_MASK = 1 << 12; ///< Bit 12 is set if a piece is being taken.
+constexpr U32 COLOR_MASK = 1 << 13; ///< Bit 13 is set if the colour to move is white.
+constexpr U32 PIECE_MASK = 0b111 << 14; ///< Bits [14,16] are used to identify the type of piece being moved.
 constexpr U32 EN_PASSANT_MASK = 1 << 17;
 constexpr U32 CASTLING_MASK = 1 << 18;
 constexpr U32 PROMOTION_MASK = 1 << 19;
 constexpr U32 CHECK_MASK = 1 << 26;
 
-
-// Define all the functions to quickly extract data for the U32 move
+/**
+ * @brief Get the bitboard with a single set bit at the origin of the move.
+ * @param move The 32-bit move word.
+ * @return The bitboard with the bit set at the move origin.
+*/
 inline U64 GetMoveOrigin(U32 move) {
     U64 origin = 0;
     int lsb = move & ORIGIN_MASK; // Get the first 6-bits only
@@ -23,12 +31,22 @@ inline U64 GetMoveOrigin(U32 move) {
     return origin;
 }
 
+/**
+ * @brief Set the bitboard with a single set bit at the origin provided.
+ * @param move The 32-bit move word to modify in-place.
+ * @param origin The origin position of the move. Must be a single set bit.
+*/
 inline void SetMoveOrigin(U32 &move, U64 origin) {
     int lsb = get_LSB(origin);
     move &= ~ORIGIN_MASK;        // Clear the first 6 bits
     move |= (lsb & ORIGIN_MASK); // Set the first 6 bits based on the LSB
 }
 
+/**
+ * @brief Get the bitboard with a single set bit at the target of the move.
+ * @param move The 32-bit move word.
+ * @return The bitboard with the bit set at the move target.
+*/
 inline U64 GetMoveTarget(U32 move) {
     U64 target = 0;
     int lsb = (move >> 6) & ORIGIN_MASK; // Get bits 7-12
@@ -36,20 +54,40 @@ inline U64 GetMoveTarget(U32 move) {
     return target;
 }
 
+/**
+ * @brief Set the bitboard with a single set bit at the target provided.
+ * @param move The 32-bit move word to modify in-place.
+ * @param origin The target position of the move. Must be a single set bit.
+*/
 inline void SetMoveTarget(U32 &move, U64 origin) {
     int lsb = get_LSB(origin);
     move &= ~TARGET_MASK; // Clear the first 7-12 bits
     move |= ((lsb & ORIGIN_MASK) << 6); // Set bits 7-12 based on the new value
 }
 
+/**
+ * @brief Get whether an enemy piece is being taken on this move.
+ * @param move The 32-bit move word.
+ * @return True if a piece is being taken on this move.
+*/
 inline bool GetMovePieceWasTaken(U32 move) {
     return move & PIECE_TAKEN_MASK;
 }
 
+/**
+ * @brief Set the move word to show if a piece is being taken.
+ * @param move The 32-bit move word to modify in-place.
+ * @param pieceIsTaken True if a piece is being taken.
+*/
 inline void SetMovePieceWasTaken(U32 &move, bool pieceIsTaken) {
     pieceIsTaken ? move |= PIECE_TAKEN_MASK : move &= ~PIECE_TAKEN_MASK;
 }
 
+/**
+ * @brief Get the colour making the provided move.
+ * @param move The 32-bit move word.
+ * @return The colour who is making the move.
+*/
 inline Color GetMoveColor(U32 move) {
     return (move & COLOR_MASK) ? Color::White : Color::Black;
 }
