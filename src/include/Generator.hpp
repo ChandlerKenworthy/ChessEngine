@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 #include <chrono>
+#include <algorithm>
 
 #include "Constants.hpp"
 #include "Board.hpp"
@@ -90,6 +91,27 @@ class Generator {
          * @param board The board configuration to generate moves for.
         */
         void GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the pseudo-legal moves for the king.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the pseudo-legal moves for all the knights.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the pseudo-legal moves for all the rooks.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the pseudo-legal moves for all the bishops.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board);
+
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.

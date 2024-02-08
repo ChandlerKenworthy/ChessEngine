@@ -16,17 +16,17 @@ void Generator::GenerateAttackTables() {
 }
 
 void Generator::FillKingAttackTable(const U64 pos) {
-    fKingAttacks[get_LSB(pos)] = north(pos) | east(pos) | west(pos) | south(pos) | north_east(pos) | north_west(pos) | south_east(pos) | south_west(pos);
+    fKingAttacks[__builtin_ctzll(pos)] = north(pos) | east(pos) | west(pos) | south(pos) | north_east(pos) | north_west(pos) | south_east(pos) | south_west(pos);
 }
 
 void Generator::FillKnightAttackTable(const U64 pos) {
-    fKnightAttacks[get_LSB(pos)] = north(north_east(pos)) | north(north_west(pos)) | south(south_east(pos)) | south(south_west(pos)) | east(north_east(pos)) | east(south_east(pos)) | west(north_west(pos)) | west(south_west(pos));
+    fKnightAttacks[__builtin_ctzll(pos)] = north(north_east(pos)) | north(north_west(pos)) | south(south_east(pos)) | south(south_west(pos)) | east(north_east(pos)) | east(south_east(pos)) | west(north_west(pos)) | west(south_west(pos));
 }
 
 void Generator::FillPawnAttackTable(const U64 pos) {
     // Note this does not include special pawn moves like en-passant or promotion
     U64 attacks = 0;
-    const U8 lsb = get_LSB(pos);
+    const U8 lsb = __builtin_ctzll(pos);
     // White pawn case (attacks in a northern direction)
     attacks |= north(pos);
     if(pos & RANK_2)
@@ -44,8 +44,9 @@ void Generator::FillPawnAttackTable(const U64 pos) {
 }
 
 void Generator::FillStraightAttackTables(const U64 pos) {
-    fPrimaryStraightAttacks[get_LSB(pos)] = get_rank(pos) ^ pos;
-    fSecondaryStraightAttacks[get_LSB(pos)] = get_file(pos) ^ pos;
+    U8 lsb = __builtin_ctzll(pos);
+    fPrimaryStraightAttacks[lsb] = get_rank(pos) ^ pos;
+    fSecondaryStraightAttacks[lsb] = get_file(pos) ^ pos;
 }
 
 void Generator::FillDiagonalAttackTables(const U64 pos) {
@@ -53,7 +54,7 @@ void Generator::FillDiagonalAttackTables(const U64 pos) {
     // negative value = shift primary DOWN, positive value = shift primary UP
     const U8 fileNumber = get_file_number(pos);
     const U8 rankNumber = get_rank_number(pos);
-    const U8 lsb = get_LSB(pos);
+    const U8 lsb = __builtin_ctzll(pos);
 
     const int dPrimaryDiag = (fileNumber - 1) - (8 - rankNumber); // Vertical distance from the primary diagonal
     const int dSecondaryDiag = (8 - fileNumber) - (8 - rankNumber); // Vertical distance from the secondary diagonal
@@ -78,6 +79,7 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     fOtherColor = fColor == Color::White ? Color::Black : Color::White;
     fOccupancy = board->GetOccupancy();
     fKing = board->GetBoard(fColor, Piece::King);
+    fLegalMoves.reserve(AVERAGE_MOVES_PER_POSITION); // Avoid excess dynamic memory allocation
 
     GeneratePseudoLegalMoves(board);
 
@@ -124,5 +126,78 @@ bool Generator::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
 }
 
 void Generator::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    // TODO: implement me
+    //GeneratePawnPseudoLegalMoves(board);
+    GenerateKingPseudoLegalMoves(board);
+    GenerateKnightPseudoLegalMoves(board);
+    GenerateBishopPseudoLegalMoves(board);
+    GenerateRookPseudoLegalMoves(board);
+    //GenerateQueenPseudoLegalMoves(board);
+
+    // Erase all moves moving onto a square of its own colour
+    const U64 selfOccupancy = board->GetBoard(fColor);
+    fLegalMoves.erase(std::remove_if(fLegalMoves.begin(), fLegalMoves.end(), [&](U32 move) {
+        return GetMoveTarget(move) & selfOccupancy;
+    }), fLegalMoves.end());
+}
+
+void Generator::GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 attacks = fKingAttacks[__builtin_ctzll(fKing)];
+    while(attacks) {
+        const U64 attack = 1ULL << __builtin_ctzll(attacks);
+        U32 move = 0;
+        SetMove(move, fKing, attack, Piece::King, board->GetIsOccupied(attack, fOtherColor).second);
+        fLegalMoves.push_back(move);
+        attacks &= attacks - 1; // Clear the lowest set bit
+    }
+}
+
+void Generator::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 knights = board->GetBoard(fColor, Piece::Knight);
+    while(knights) {
+        const U8 lsb = __builtin_ctzll(knights);
+        const U64 knight = 1ULL << lsb;
+        U64 attacks = fKnightAttacks[lsb];
+        while(attacks) {
+            const U64 attack = 1ULL << __builtin_ctzll(attacks);
+            U32 move = 0;
+            SetMove(move, knight, attack, Piece::Knight, board->GetIsOccupied(attack, fOtherColor).second);
+            fLegalMoves.push_back(move);
+            attacks &= attacks - 1; // Clear the lowest set bit
+        }
+        knights &= knights - 1;
+    }
+}
+
+void Generator::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 rooks = board->GetBoard(fColor, Piece::Rook);
+    while(rooks) {
+        const U8 lsb = __builtin_ctzll(rooks);
+        const U64 rook = 1ULL << lsb;
+        U64 attacks = (hypQuint(rook, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, fOccupancy, fSecondaryStraightAttacks[lsb]));
+        while(attacks) {
+            U64 attack = 1ULL << __builtin_ctzll(attacks);
+            U32 move = 0;
+            SetMove(move, rook, attack, Piece::Rook, board->GetIsOccupied(attack, fOtherColor).second);
+            fLegalMoves.push_back(move);
+            attacks &= attacks - 1;
+        }
+        rooks &= rooks - 1;
+    }
+}
+
+void Generator::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 bishops = board->GetBoard(fColor, Piece::Bishop);
+    while(bishops) {
+        const U8 lsb = __builtin_ctzll(bishops);
+        const U64 bishop = 1ULL << lsb;
+        U64 attacks = (hypQuint(bishop, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
+        while(attacks) {
+            U64 attack = 1ULL << __builtin_ctzll(attacks);
+            U32 move = 0;
+            SetMove(move, bishop, attack, Piece::Bishop, board->GetIsOccupied(attack, fOtherColor).second);
+            fLegalMoves.push_back(move);
+            attacks &= attacks - 1;
+        }
+        bishops &= bishops - 1;
+    }
 }

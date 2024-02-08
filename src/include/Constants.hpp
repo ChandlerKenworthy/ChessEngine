@@ -18,6 +18,8 @@
 #define get_LSB(b) (__builtin_ctzll(b))
 #define get_MSB(b) (__builtin_clzll(b))
 
+constexpr U8 AVERAGE_MOVES_PER_POSITION{32};
+
 /**
  * @brief Typedef for U64 using unsigned long long.
  *
