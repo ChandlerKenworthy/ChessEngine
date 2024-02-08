@@ -32,6 +32,8 @@ typedef unsigned long long U64;
  */
 typedef uint32_t U32;
 
+typedef uint8_t U8;
+
 /**
  * @brief Enumeration describing different piece colors.
  *
@@ -140,6 +142,7 @@ constexpr U64 RANK_5 = 0x000000FF00000000ULL;
 constexpr U64 RANK_6 = 0x0000FF0000000000ULL;
 constexpr U64 RANK_7 = 0x00FF000000000000ULL;
 constexpr U64 RANK_8 = 0xFF00000000000000ULL;
+const std::vector<U64> RANKS = {RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8};
 
 constexpr U64 FILE_A = 0x8080808080808080ULL;
 constexpr U64 FILE_B = 0x4040404040404040ULL;
@@ -149,6 +152,7 @@ constexpr U64 FILE_E = 0x0808080808080808ULL;
 constexpr U64 FILE_F = 0x0404040404040404ULL;
 constexpr U64 FILE_G = 0x0202020202020202ULL;
 constexpr U64 FILE_H = 0x0101010101010101ULL;
+const std::vector<U64> FILES = {FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H};
 constexpr U64 FILE_GH = FILE_G | FILE_H;
 constexpr U64 FILE_AB = FILE_A | FILE_B;
 
@@ -209,135 +213,31 @@ inline int CountSetBits(U64 number) {
 }
 
 inline U64 get_rank(U64 position) {
-    if(position & RANK_1) {
-        return RANK_1;
-    } else if(position & RANK_2) {
-        return RANK_2;
-    } else if(position & RANK_3) {
-        return RANK_3;
-    } else if(position & RANK_4) {
-        return RANK_4;
-    } else if(position & RANK_5) {
-        return RANK_5;
-    } else if(position & RANK_6) {
-        return RANK_6;
-    } else if(position & RANK_7) {
-        return RANK_7;
-    } else if(position & RANK_8) {
-        return RANK_8;
-    } else {
-        return 0;
-    }
+    U8 rankIndex = get_LSB(position) / 8;
+    return RANKS[rankIndex];
 }
 
 inline int get_rank_number(U64 position) {
-    if(position & RANK_1) {
-        return 1;
-    } else if(position & RANK_2) {
-        return 2;
-    } else if(position & RANK_3) {
-        return 3;
-    } else if(position & RANK_4) {
-        return 4;
-    } else if(position & RANK_5) {
-        return 5;
-    } else if(position & RANK_6) {
-        return 6;
-    } else if(position & RANK_7) {
-        return 7;
-    } else if(position & RANK_8) {
-        return 8;
-    } else {
-        return 0;
-    }
+    return (get_LSB(position) / 8) + 1; 
 }
 
 inline U64 get_file(U64 position) {
-    if(position & FILE_A) {
-        return FILE_A;
-    } else if(position & FILE_B) {
-        return FILE_B;
-    } else if(position & FILE_C) {
-        return FILE_C;
-    } else if(position & FILE_D) {
-        return FILE_D;
-    } else if(position & FILE_E) {
-        return FILE_E;
-    } else if(position & FILE_F) {
-        return FILE_F;
-    } else if(position & FILE_G) {
-        return FILE_G;
-    } else if(position & FILE_H) {
-        return FILE_H;
-    } else {
-        return 0;
-    }
+    U8 fileIndex = 7 - (get_LSB(position) % 8);
+    return FILES[fileIndex];
 }
 
 inline int get_file_number(U64 position) {
-    if(position & FILE_A) {
-        return 1;
-    } else if(position & FILE_B) {
-        return 2;
-    } else if(position & FILE_C) {
-        return 3;
-    } else if(position & FILE_D) {
-        return 4;
-    } else if(position & FILE_E) {
-        return 5;
-    } else if(position & FILE_F) {
-        return 6;
-    } else if(position & FILE_G) {
-        return 7;
-    } else if(position & FILE_H) {
-        return 8;
-    } else {
-        return 0;
-    }
+    return 8 - (get_LSB(position) % 8);
 }
 
 inline U64 get_rank_from_number(int n) {
-    if(n == 1) {
-        return RANK_1;
-    } else if(n == 2) {
-        return RANK_2;
-    } else if(n == 3) {
-        return RANK_3;
-    } else if(n == 4) {
-        return RANK_4;
-    } else if(n == 5) {
-        return RANK_5;
-    } else if(n == 6) {
-        return RANK_6;
-    } else if(n == 7) {
-        return RANK_7;
-    } else if(n == 8) {
-        return RANK_8;
-    } else {
-        return U64{0};
-    }
+    // Provide ranks as read from the board (1--8)
+    return RANKS[n - 1];
 }
 
 inline U64 get_file_from_number(int n) {
-    if(n == 1) {
-        return FILE_A;
-    } else if(n == 2) {
-        return FILE_B;
-    } else if(n == 3) {
-        return FILE_C;
-    } else if(n == 4) {
-        return FILE_D;
-    } else if(n == 5) {
-        return FILE_E;
-    } else if(n == 6) {
-        return FILE_F;
-    } else if(n == 7) {
-        return FILE_G;
-    } else if(n ==8) {
-        return FILE_H;
-    } else {
-        return U64{0};
-    }
+    // Provide file as read from board (A=1,B=2...)
+    return FILES[n - 1];
 }
 
 inline U64 get_file_from_char(char c) {
