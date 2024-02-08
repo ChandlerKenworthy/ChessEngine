@@ -18,8 +18,6 @@
 #define get_LSB(b) (__builtin_ctzll(b))
 #define get_MSB(b) (__builtin_clzll(b))
 
-constexpr U8 AVERAGE_MOVES_PER_POSITION{32};
-
 /**
  * @brief Typedef for U64 using unsigned long long.
  *
@@ -35,6 +33,8 @@ typedef unsigned long long U64;
 typedef uint32_t U32;
 
 typedef uint8_t U8;
+
+constexpr U8 AVERAGE_MOVES_PER_POSITION{32};
 
 /**
  * @brief Enumeration describing different piece colors.
