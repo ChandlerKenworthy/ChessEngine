@@ -67,9 +67,7 @@ void Generator::FillDiagonalAttackTables(const U64 pos) {
 }
 
 void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
-    // TODO: implement me
     // TODO: Make me multi-threaded?
-
     if(CheckFiftyMoveDraw(board))
         return;
     if(CheckInsufficientMaterial(board))
@@ -82,8 +80,8 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     fLegalMoves.reserve(AVERAGE_MOVES_PER_POSITION); // Avoid excess dynamic memory allocation
 
     GeneratePseudoLegalMoves(board);
+    GenerateCastlingMoves(board);
 
-    // GeneratePseudoLegalMoves(board, moves, movingColor, otherColor, occ, movingKing);
     // GenerateCastlingMoves(board, moves, movingColor, otherColor, movingKing, occ);
     // GenerateEnPassantMoves(board, moves, movingColor);
     // UpdatePromotionMoves(moves);
@@ -108,12 +106,15 @@ bool Generator::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
 }
 
 bool Generator::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
+    const U8 nBlackPieces = CountSetBits(board->GetBoard(Color::Black));
+    const U8 nWhitePieces = CountSetBits(board->GetBoard(Color::White));
+    if(nBlackPieces > 2 || nWhitePieces > 2)
+        return false;
+    
     const U8 nBlackKnights = CountSetBits(board->GetBoard(Color::Black, Piece::Knight));
     const U8 nBlackBishops = CountSetBits(board->GetBoard(Color::Black, Piece::Bishop));
     const U8 nWhiteKnights = CountSetBits(board->GetBoard(Color::White, Piece::Knight));
     const U8 nWhiteBishops = CountSetBits(board->GetBoard(Color::White, Piece::Bishop));
-    const U8 nBlackPieces = CountSetBits(board->GetBoard(Color::Black));
-    const U8 nWhitePieces = CountSetBits(board->GetBoard(Color::White));
 
     if(nBlackPieces == 2 && (nBlackKnights == 1 || nBlackBishops == 1) && nWhitePieces == 1) {
         board->SetState(State::InSufficientMaterial);
@@ -126,12 +127,12 @@ bool Generator::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
 }
 
 void Generator::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
-    //GeneratePawnPseudoLegalMoves(board);
+    GeneratePawnPseudoLegalMoves(board);
     GenerateKingPseudoLegalMoves(board);
     GenerateKnightPseudoLegalMoves(board);
     GenerateBishopPseudoLegalMoves(board);
     GenerateRookPseudoLegalMoves(board);
-    //GenerateQueenPseudoLegalMoves(board);
+    GenerateQueenPseudoLegalMoves(board);
 
     // Erase all moves moving onto a square of its own colour
     const U64 selfOccupancy = board->GetBoard(fColor);
@@ -199,5 +200,62 @@ void Generator::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &boa
             attacks &= attacks - 1;
         }
         bishops &= bishops - 1;
+    }
+}
+
+void Generator::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 queens = board->GetBoard(fColor, Piece::Queen); // Could have multiple due to promotion
+    while(queens) {
+        const U8 lsb = __builtin_ctzll(queens);
+        const U64 queen = 1ULL << lsb;
+        U64 attacks = (hypQuint(queen, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
+        while(attacks) {
+            U64 attack = 1ULL << __builtin_ctzll(attacks);
+            U32 move = 0;
+            SetMove(move, queen, attack, Piece::Queen, board->GetIsOccupied(attack, fOtherColor).second);
+            fLegalMoves.push_back(move);
+            attacks &= attacks - 1;
+        }
+        queens &= queens - 1;
+    }
+}
+
+void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+    U64 pawns = board->GetBoard(fColor, Piece::Pawn);
+    const U64 enemy = board->GetBoard(fOtherColor);
+    const U64 promotionRank = fColor == Color::White ? RANK_8 : RANK_1;
+    const U64 startRank = fColor == Color::White ? RANK_2 : RANK_7;
+    while(pawns) {
+        const U8 lsb = __builtin_ctzll(pawns);
+        U64 pawn = 1ULL << lsb;
+
+        // Only allow diagonal attacks if occupied by enemy piece
+        U64 attacks = (fColor == Color::White ? fWhitePawnDiagonalAttacks[lsb] : fBlackPawnDiagonalAttacks[lsb]) & enemy;
+
+        while(attacks) {
+            const U64 attack = 1ULL << __builtin_ctzll(attacks);
+            U32 move = 0;
+            SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack, fOtherColor).second);
+            if(attack & promotionRank)
+                SetMoveIsPromotion(move, true);
+            fLegalMoves.push_back(move);
+        }
+        attacks = 0;
+
+        // Get rid of 2-square attack if 1st or 2nd square is occupied, add single square attacks
+        U64 oneSquareForward = (fColor == Color::White ? north(pawn) : south(pawn)) & ~fOccupancy;
+        attacks |= oneSquareForward;
+        if(oneSquareForward && (pawn & startRank))
+            attacks |= (fColor == Color::White ? north(north(pawn)) : south(south(pawn))) & ~fOccupancy;
+
+        while(attacks) {
+            const U64 attack = 1ULL << __builtin_ctzll(attacks);
+            U32 move = 0;
+            SetMove(move, pawn, attack, Piece::Pawn, Piece::Null); // Forward moves don't take pieces
+            if(attack & promotionRank)
+                SetMoveIsPromotion(move, true);
+            fLegalMoves.push_back(move);
+        }
+        pawns &= pawns - 1; // Drop the least significant bit
     }
 }

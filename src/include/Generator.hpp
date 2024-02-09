@@ -111,7 +111,21 @@ class Generator {
          * @param board The board configuration to generate moves for.
         */
         void GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board);
-
+        /**
+         * @brief Generate the pseudo-legal moves for all the queens.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the pseudo-legal moves for all the pawns.
+         * @param board The board configuration to generate moves for.
+        */
+        void GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the set of possible castling moves.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.
@@ -126,10 +140,10 @@ class Generator {
         U64 fBlackPawnForwardAttacks[64]; ///< Attacks (1 and 2 square forwards) of the black pawns
 
         // Variables to use when generating moves, helps reduce number of function calls
-        Color fColor;
-        Color fOtherColor;
-        U64 fOccupancy;
-        U64 fKing;
+        Color fColor; ///< The colour of the piece to move for the provided board configuration when generating legal moves is called.
+        Color fOtherColor; ///< The colour who has just moved.
+        U64 fOccupancy; ///< Total occupancy of the board represented as a single bitboard for ray occupancy calculations.
+        U64 fKing; ///< Position of the king whose colour it is to move.
         
 };
 
