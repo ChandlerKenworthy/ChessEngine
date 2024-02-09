@@ -154,6 +154,11 @@ class Generator {
          * @return Mask of all attacks by the attacking colour excluding absolute pins.
         */
         U64 GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor);
+        /**
+         * @brief Removes illegal moves from the fLegalMoves vector. Does a complete check such as with absolute pins etc.
+         * @param board The board configuration to generate moves for.
+        */
+        void RemoveIllegalMoves(const std::unique_ptr<Board> &board);
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.

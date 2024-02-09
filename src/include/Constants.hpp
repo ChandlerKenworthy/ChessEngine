@@ -104,6 +104,7 @@ const float VALUE_QUEEN = 900.;
 const float VALUE_KING = 99999.;
 
 const float PIECE_VALUES[7] = {0., VALUE_PAWN, VALUE_BISHOP, VALUE_KNIGHT, VALUE_ROOK, VALUE_QUEEN, VALUE_KING};
+const std::vector<Piece> PROMOTION_PIECES = {Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen};
 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);

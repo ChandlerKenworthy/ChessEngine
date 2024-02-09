@@ -82,8 +82,7 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
     GenerateEnPassantMoves(board);
-    // UpdatePromotionMoves(moves);
-    // StripIllegalMoves(board, moves, otherColor, movingColor, movingKing);
+    RemoveIllegalMoves(board);
 
     if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
         bool kingInCheck = IsUnderAttack(fKing, fOtherColor, board);
@@ -234,8 +233,13 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
             const U64 attack = 1ULL << __builtin_ctzll(attacks);
             U32 move = 0;
             SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack, fOtherColor).second);
-            if(attack & promotionRank)
+            if(attack & promotionRank) {
                 SetMoveIsPromotion(move, true);
+                for(Piece p : PROMOTION_PIECES) {
+                    SetMovePromotionPiece(move, p);
+                    fLegalMoves.push_back(move);
+                }
+            }
             fLegalMoves.push_back(move);
         }
         attacks = 0;
@@ -250,8 +254,13 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
             const U64 attack = 1ULL << __builtin_ctzll(attacks);
             U32 move = 0;
             SetMove(move, pawn, attack, Piece::Pawn, Piece::Null); // Forward moves don't take pieces
-            if(attack & promotionRank)
+            if(attack & promotionRank) {
                 SetMoveIsPromotion(move, true);
+                for(Piece p : PROMOTION_PIECES) {
+                    SetMovePromotionPiece(move, p);
+                    fLegalMoves.push_back(move);
+                }
+            }
             fLegalMoves.push_back(move);
         }
         pawns &= pawns - 1; // Drop the least significant bit
@@ -426,4 +435,8 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
         fLegalMoves.push_back(move);
         enPassantPawns &= enPassantPawns - 1;
     }
+}
+
+void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
+
 }
