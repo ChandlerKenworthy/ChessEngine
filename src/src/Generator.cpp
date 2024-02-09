@@ -81,20 +81,18 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
 
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
-
-    // GenerateCastlingMoves(board, moves, movingColor, otherColor, movingKing, occ);
-    // GenerateEnPassantMoves(board, moves, movingColor);
+    GenerateEnPassantMoves(board);
     // UpdatePromotionMoves(moves);
     // StripIllegalMoves(board, moves, otherColor, movingColor, movingKing);
 
-    //if(moves.size() == 0) { // No legal moves, game is either stalemate or checkmate
-    //    bool kingInCheck = IsUnderAttack(movingKing, otherColor, board);
-    //    if(kingInCheck) {
-    //        board->SetState(State::Checkmate);
-    //    } else {
-    //        board->SetState(State::Stalemate);
-    //    }
-    //}
+    if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
+        bool kingInCheck = IsUnderAttack(fKing, fOtherColor, board);
+        if(kingInCheck) {
+            board->SetState(State::Checkmate);
+        } else {
+            board->SetState(State::Stalemate);
+        }
+    }
 }
 
 bool Generator::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
@@ -257,5 +255,175 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
             fLegalMoves.push_back(move);
         }
         pawns &= pawns - 1; // Drop the least significant bit
+    }
+}
+
+void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
+    // Return quickly if we know castling is not possible
+    if(board->GetNHalfMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
+        return;
+
+    U32 move = 0;
+    if(fColor == Color::White && !board->GetWhiteKingMoved()) {
+        if(!board->GetWhiteKingsideRookMoved() && 
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, KING_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) 
+        {
+            SetMove(move, fKing, SQUARE_G1, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
+            move = 0;
+        }
+        if(!board->GetWhiteQueensideRookMoved() &&
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) {
+            SetMove(move, fKing, SQUARE_C1, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
+            move = 0;
+        }
+    } else if(fColor == Color::Black && !board->GetBlackKingMoved()) {
+        if(!board->GetBlackKingsideRookMoved() &&
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
+        {
+            SetMove(move, fKing, SQUARE_G8, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
+            move = 0;
+        }
+        if (!board->GetBlackQueensideRookMoved() &&
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
+        {
+            SetMove(move, fKing, SQUARE_C8, Piece::King, Piece::Null);
+            SetMoveIsCastling(move, true);
+            fLegalMoves.push_back(move);
+            move = 0;
+        }
+    }
+}
+
+bool Generator::IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board) {
+    return !(fOccupancy & occupancyMask) && !IsUnderAttack(castlingMask, fOtherColor, board);
+}
+
+bool Generator::IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board) {    
+    const U64 attacker = board->GetBoard(attackingColor);
+    const U64 attacks = GetAttacks(board, attackingColor);
+    return attacks & mask & ~attacker;
+}
+
+U64 Generator::GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor) {
+    U64 attacks = 0;
+    const U64 occ = board->GetOccupancy(); // Cannot replace with fOccupancy?????
+
+    // Pawns (only diagonal forwards check as only care about attacks)
+    const U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
+    if(attackingColor == Color::White) {
+        attacks |= (north_east(pawns) | north_west(pawns));
+    } else {
+        attacks |= (south_east(pawns) | south_west(pawns));   
+    }
+
+    // Knight attacks
+    U64 knights = board->GetBoard(attackingColor, Piece::Knight);
+    while(knights) {
+        attacks |= fKnightAttacks[__builtin_ctzll(knights)];
+        knights &= knights - 1;
+    }
+
+    // King
+    U64 king = board->GetBoard(attackingColor, Piece::King);
+    attacks |= fKingAttacks[__builtin_ctzll(king)];
+
+    // Bishops
+    U64 bishops = board->GetBoard(attackingColor, Piece::Bishop);
+    while(bishops) {
+        const U8 lsb = __builtin_ctzll(bishops);
+        const U64 bishop = 1ULL << lsb;
+        attacks |= (hypQuint(bishop, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, occ, fSecondaryDiagonalAttacks[lsb]));
+        bishops &= bishops - 1;
+    }
+
+    // Rooks
+    U64 rooks = board->GetBoard(attackingColor, Piece::Rook);
+    while(rooks) {
+        const U8 lsb = __builtin_ctzll(rooks);
+        const U64 rook = 1ULL << lsb;
+        attacks |= (hypQuint(rook, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, occ, fSecondaryStraightAttacks[lsb]));
+        rooks &= rooks - 1;
+    }
+
+    // Queens
+    U64 queens = board->GetBoard(attackingColor, Piece::Queen);
+    while(queens) {
+        const U8 lsb = __builtin_ctzll(queens);
+        const U64 queen = 1ULL << lsb;
+        attacks |= (hypQuint(queen, occ, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, occ, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, occ, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, occ, fSecondaryDiagonalAttacks[lsb]));
+        queens &= queens - 1;
+    }
+
+    return attacks; // Don't exclude your own pieces since they are protected so king cannot take them
+}
+
+void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
+    // En-passant not possible so throw away early
+    if((!board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < MIN_MOVES_FOR_ENPASSANT) || 
+        (board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < 1))
+        return;
+
+    // FEN loaded position with en-passant move immediately available
+    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN()) {
+        U64 attackSquares = 0;
+        U64 target = board->GetEnPassantFEN();
+        if(fColor == Color::White) {
+            attackSquares = (south_east(target) | south_west(target)) & board->GetBoard(Color::White, Piece::Pawn);
+        } else {
+            attackSquares = (north_east(target) | north_west(target)) & board->GetBoard(Color::Black, Piece::Pawn);
+        }
+
+        while(attackSquares) {
+            U64 pawn = 1ULL << __builtin_ctzll(attackSquares);
+            U32 move = 0;
+            SetMove(
+                move, 
+                pawn, 
+                target, 
+                Piece::Pawn, 
+                Piece::Pawn
+            );
+            SetMoveIsEnPassant(move, true);
+            fLegalMoves.push_back(move);
+            attackSquares &= attackSquares - 1;
+        }       
+        // TODO: Clear board's en-passsant fen target so this loop doesn't run everytime? 
+    }
+
+    // Can't be wrapped in an else bracket due to undoing moves
+    // Now run the usual code
+    U32 lastMove = board->GetLastMove();
+    U64 lastMoveTarget = GetMoveTarget(lastMove);
+    U64 lastMoveOrigin = GetMoveTarget(lastMove);
+
+    // Faster return if you know en-passant will not be possible
+    if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
+        return;
+
+    U64 enPassantPawns = 0;
+    U64 attackingPawns = board->GetBoard(fColor, Piece::Pawn);
+    if(((get_rank(lastMoveTarget) & RANK_5) && (fOtherColor == Color::Black) && (get_rank(lastMoveOrigin) & RANK_7))
+    || ((get_rank(lastMoveTarget) & RANK_4) && (fOtherColor == Color::White) && (get_rank(lastMoveOrigin) & RANK_2))) {
+        enPassantPawns = (east(lastMoveTarget) | west(lastMoveTarget)) & attackingPawns;
+    }
+
+    while(enPassantPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(enPassantPawns);
+        U32 move = 0;
+        SetMove(
+            move, 
+            pawn, 
+            fColor == Color::White ? north(lastMoveTarget) : south(lastMoveTarget), Piece::Pawn, 
+            Piece::Pawn
+        );
+        SetMoveIsEnPassant(move, true);
+        fLegalMoves.push_back(move);
+        enPassantPawns &= enPassantPawns - 1;
     }
 }

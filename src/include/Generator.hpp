@@ -122,10 +122,38 @@ class Generator {
         */
         void GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board);
         /**
+         * @brief Generate en-passant moves.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);
+        /**
          * @brief Generate the set of possible castling moves.
          * @param board The board configuration to generate moves for.
         */
         void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Get whether a specific type of castling is possible. Effectively checks occupancy and attack masks.
+         * @param castlingMask All squares that must be free from attack in order to permit castling (includes the king and end point and all squares in between).
+         * @param occupanyMask The tiles that must be free of any occupancy in order for castling to be permitted.
+         * @param board The board configuration to generate moves for.
+         * @return True if castling with these masks is possible.
+        */
+        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        /**
+         * @brief Get whether any squares in the specified mask are under attack from the enemy. Does not account for pinned enemy pieces.
+         * @param mask The mask of squares to check.
+         * @param attackingColor The colour to calculate the attack rays for.
+         * @param board The board configuration to generate moves for.
+         * @return True if any of the squares in mask are under attack from the specified colour.
+        */
+        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
+        /**
+         * @brief Get the bitboard of all possible attacks by the specified colour assuming they are the next colour to move. Does not take into account absolutely positioned pieces.
+         * @param board The board configuration to generate moves for.
+         * @param attackingColor The colour to calculate attacks for (assumes they are colour to move).
+         * @return Mask of all attacks by the attacking colour excluding absolute pins.
+        */
+        U64 GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor);
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.
