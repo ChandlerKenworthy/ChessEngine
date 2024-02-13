@@ -438,5 +438,165 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
+    // TODO: Rewrite this from the ground up to make it faster and more readable...
 
+    // Check all the illegal moves, e.g. do they result in your own king being in check?
+    const U64 underAttack = GetAttacks(board, fOtherColor);
+
+    if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
+        PruneCheckMoves(board);
+
+    std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and all squares (including the attacking piece) on the pinning ray (as all moves on this ray of the pinned position are of course legal)
+    for(Direction d : DIRECTIONS) {
+        AddAbolsutePins(board, &pinnedPieces, d);
+    }
+
+    const U64 pinnedPositions = std::accumulate(
+        pinnedPieces.begin(), pinnedPieces.end(), U64(0),
+        [](U64 acc, const std::pair<U64, U64>& p) {
+            return acc | p.first;
+        }
+    );
+
+    for(int iMove = 0; iMove < (int)fLegalMoves.size(); iMove++) {
+        const U32 m = fLegalMoves[iMove];
+        const U64 moveOrigin = GetMoveOrigin(m);
+        // King cant move to squares the opponent attacks
+        if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
+            fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+            iMove--;
+        } else if(pinnedPositions & moveOrigin) { // Piece originates from a pinned position
+            // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
+            for(const std::pair<U64, U64> &pins : pinnedPieces) {
+                // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
+                if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                    // Moving to somewhere off the absolutely pinning ray (illegal)
+                    fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+                    iMove--;
+                }
+            }
+        } else if(GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
+            U64 activeRank = get_rank(moveOrigin);
+            U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
+            U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
+
+            if(kingOnRank && rookOnRank) { // King, two pawns and rook/queen(s) occupy the same rank
+                // Is en-passant so the captured pawn occupies the same rank as well, if we remove our pawn and the
+                // captured pawn does this leave our king on a rank with just itself and the attacking rook/queen
+
+                // MSB is the left-most bit (i.e. that with lowest index)
+                const U8 kingMSB = __builtin_clzll(fKing);
+                const U8 rookMSB = __builtin_clzll(rookOnRank);
+
+                int attackingRookBit = kingMSB < rookMSB ? 63 - rookMSB : __builtin_ctzll(rookOnRank);
+                U64 rook = 1ULL << attackingRookBit; // Again could be a queen but it doesn't matter, this is the one checking king if move happens
+                U64 rookShift = kingMSB < rookMSB ? east(rook) : west(rook);
+                U64 takenPawn = fColor == Color::White ? south(GetMoveTarget(m)) : north(GetMoveTarget(m));
+
+                // Make a custom occupancy mask to cut the rook ray down
+                U64 mask = fKing | rook | rookShift;
+                U64 rookRay = hypQuint(rook, mask, fPrimaryStraightAttacks[attackingRookBit]);
+
+                // Subtract from the ray our pawns that we know intersect the ray
+                rookRay ^= (moveOrigin | takenPawn | fKing | rookShift);
+
+                if(!(rookRay & fOccupancy)) { // No pieces on the ray so if en-passant happens king will be in check
+                    fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
+                    iMove--;
+                }
+            }
+        }
+    }
+}
+
+void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d) {
+    // Make artificial occupancy to block in the king and only get the north ray
+    const U8 lsb = __builtin_ctzll(fKing);
+    U64 rayOccupancy = board->GetBoard(fOtherColor);
+    const U64 defendingRook = board->GetBoard(fOtherColor, Piece::Rook);
+    const U64 defendingBishop = board->GetBoard(fOtherColor, Piece::Bishop);
+    const U64 ownPieces = board->GetBoard(fColor);
+    U64 rayMask = 0;
+    U64 enemies = board->GetBoard(fOtherColor, Piece::Queen); // Queen can pin both ways so is always an "enemy"
+    U64 kingShift = 0;
+
+    switch(d) {
+        case Direction::North:
+            kingShift |= south(fKing);
+            rayMask = fSecondaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::East:
+            kingShift |= west(fKing);
+            rayMask = fPrimaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::West:
+            kingShift |= east(fKing);
+            rayMask = fPrimaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::South:
+            kingShift |= north(fKing);
+            rayMask = fSecondaryStraightAttacks[lsb];
+            enemies |= defendingRook;
+            break;
+        case Direction::NorthEast:
+            kingShift |= south_west(fKing);
+            rayMask = fSecondaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        case Direction::NorthWest:
+            kingShift |= south_east(fKing);
+            rayMask = fPrimaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        case Direction::SouthEast:
+            kingShift |= north_west(fKing);
+            rayMask = fPrimaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        case Direction::SouthWest:
+            kingShift |= north_east(fKing);
+            rayMask = fSecondaryDiagonalAttacks[lsb];
+            enemies |= defendingBishop;
+            break;
+        default:
+            return;
+            break;
+    }
+
+    rayOccupancy |= kingShift;
+    U64 ray = hypQuint(fKing, rayOccupancy, rayMask) ^ kingShift;
+    U64 rayAndEnemy = ray & enemies;
+
+    if(rayAndEnemy) { // Enemy piece on the ray pointing at the king (that could attack king, if not blocked)
+        // Note that rayAndEnemy is actually the position of the attacking piece on the ray
+        U64 potentialPin = ray & ownPieces; // All your pieces that exist on the ray (between king and attacking piece)
+        if(CountSetBits(potentialPin) == 1) { // A single piece is on the ray and so absolutely pinned
+            v->push_back(std::make_pair(potentialPin, ray));
+        } // else : None of your pieces in the way so the king is in check from attacker
+    }
+}
+
+void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board) {
+    // TODO: Implement me
+    std::vector<U32> validMoves;
+
+    for (U32 move : fLegalMoves) {
+        if (GetMoveIsCastling(move)) {
+            continue; // Skip castling moves
+        }
+
+        board->MakeMove(move);
+        U64 underAttack = GetAttacks(board, fColor == Color::White ? Color::Black : Color::White);
+        // King may have moved so can't use fActiveKing
+        U64 newKing = GetMovePiece(move) == Piece::King ? board->GetBoard(fColor, Piece::King) : fKing;
+        if(!(underAttack & newKing)) {
+            validMoves.push_back(move); // Move is legal, add it to the vector
+        }
+        board->UndoMove();
+    }
+    // Replace fLegalMoves with validMoves
+    fLegalMoves = std::move(validMoves);
 }

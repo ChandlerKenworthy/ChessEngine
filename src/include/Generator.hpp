@@ -159,6 +159,18 @@ class Generator {
          * @param board The board configuration to generate moves for.
         */
         void RemoveIllegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Fill a vetor with the position of all absolutely pinned pieces and the pinning ray they occupy.
+         * @param board The board configuration to generate moves for.
+         * @param v Vector to fill.
+         * @param d Direction to search for pinning rays.
+        */
+        void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
+        /**
+         * @brief Remove moves from the fLegalMoves vector that do not resolve the check when the king is in check.
+         * @param board The board configuration to generate moves for.
+        */
+        void PruneCheckMoves(const std::unique_ptr<Board> &board);
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.
