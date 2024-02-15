@@ -412,7 +412,7 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     // Now run the usual code
     U32 lastMove = board->GetLastMove();
     U64 lastMoveTarget = GetMoveTarget(lastMove);
-    U64 lastMoveOrigin = GetMoveTarget(lastMove);
+    U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
     if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
