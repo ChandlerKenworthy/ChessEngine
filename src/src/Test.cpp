@@ -3,6 +3,7 @@
 Test::Test(bool useGUI) {
     fBoard = std::make_unique<Board>();
     fEngine = std::make_unique<Engine>(true);
+    fGenerator = std::make_unique<Generator>();
     fUseGUI = useGUI;
     if(fUseGUI)
         fGUI = std::make_unique<Renderer>();
@@ -51,11 +52,12 @@ unsigned long int Test::MoveGeneration(int depth) {
     if(depth == 0)
         return 1;
 
-    fEngine->GenerateLegalMoves(fBoard);
+    fGenerator->GenerateLegalMoves(fBoard);
     unsigned long int numPositions = 0;
     unsigned long int subPositions = 0;
 
-    std::vector<U32> moves = fEngine->GetLegalMoves();
+    std::vector<U32> moves = fGenerator->GetLegalMoves(); // Puts moves inside this vector for you
+
     if(depth == fPrintDepth)
         std::cout << "Parent nodes searched: " << moves.size() << "\n";
 

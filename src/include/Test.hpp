@@ -14,6 +14,7 @@
 #include "Move.hpp"
 #include "Renderer.hpp"
 #include "Engine.hpp"
+#include "Generator.hpp"
 #include "Board.hpp"
 
 /**
@@ -54,6 +55,7 @@ class Test {
         int fPrintDepth;
         std::unique_ptr<Board> fBoard;
         std::unique_ptr<Engine> fEngine;
+        std::unique_ptr<Generator> fGenerator;
         std::unique_ptr<Renderer> fGUI;
         std::vector<unsigned long int> fExpectedGeneration; ///< Total number of possible moves after each depth level
 };
