@@ -12,6 +12,7 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             bool &useGUI,
                             bool &doGame,
                             bool &helpRequested,
+                            bool &doFinePrint,
                             int &perftDepth,
                             int &playSelf,
                             Color &userColor,
@@ -22,6 +23,8 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
             useGUI = false;
         } else if(!arg.compare("--perft")) {
             perftDepth = std::stoi(args[i+1]); // TODO: Catch if this is not a valid digit
+        } else if(!arg.compare("--verbose")) {
+            doFinePrint = true; ///< Print all the moves generated when perft testing, useful for debugging
         } else if(!arg.compare("--help")) {
             helpRequested = true;
         } else if(!arg.compare("--fen")) {
@@ -231,25 +234,42 @@ int main(int argc, char* argv[]) {
     bool useGUI = true; 
     bool doGame = false;
     bool helpRequested = false;
+    bool doFinePrint = false;
     int perftDepth = 0;
     int playSelf = 0;
     Color userColor = Color::White;
     std::string fenString = "";
 
     std::vector<std::string> args(argv, argv + argc);
-    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, perftDepth, playSelf, userColor, fenString);
+    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, doFinePrint, perftDepth, playSelf, userColor, fenString);
 
     if(helpRequested) {
         DisplayHelp();
     } else if(perftDepth > 0) {
         Test myTest = Test(useGUI);
-        unsigned long int result = myTest.GetNodes(perftDepth, fenString);
+        unsigned long int result = myTest.GetNodes(perftDepth, fenString, doFinePrint);
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {
         Play(fenString, userColor);
     } else if(playSelf != 0) {
         PlaySelf(playSelf);
-    }
+    } else {
+        U64 rook = RANK_6 & FILE_H;
+        PrintBitset(rook);
 
+        U64 rook2 = RANK_8 & FILE_A;
+        //U64 attacks = RANK_4 | FILE_B;
+        //PrintBitset(attacks);
+
+        //U64 occ = (RANK_6 & FILE_B) | (RANK_1 & FILE_B) | (RANK_4 & FILE_E);
+        //PrintBitset(occ);
+        
+        // Get file of rook
+        int fileIndex = __builtin_ctzll(rook) / 8; // Assuming rookBitboard has exactly one bit set
+        std::cout << fileIndex << std::endl;
+
+        fileIndex = get_LSB(rook2) / 8;
+        std::cout << fileIndex << std::endl;
+    }
     return 0;
 }
