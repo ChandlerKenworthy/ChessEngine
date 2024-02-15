@@ -67,6 +67,7 @@ void Generator::FillDiagonalAttackTables(const U64 pos) {
 }
 
 void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
+    fLegalMoves.clear();
     // TODO: Make me multi-threaded?
     if(CheckFiftyMoveDraw(board))
         return;
@@ -241,6 +242,7 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
                 }
             }
             fLegalMoves.push_back(move);
+            attacks &= attacks - 1;
         }
         attacks = 0;
 
@@ -262,6 +264,7 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
                 }
             }
             fLegalMoves.push_back(move);
+            attacks &= attacks - 1;
         }
         pawns &= pawns - 1; // Drop the least significant bit
     }

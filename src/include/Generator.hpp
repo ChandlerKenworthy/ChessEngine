@@ -36,7 +36,7 @@ class Generator {
          * @brief Get the legal moves from the last move generation.
          * @return Reference to the fLegalMoves vector.
         */
-        std::vector<U32>& GetLegalMoves() { return fLegalMoves; };
+        std::vector<U32> GetLegalMoves() { return fLegalMoves; };
         /**
          * @brief Get a copy of all the legal moves from the last move generation.
          * @return Vector of all possible legal moves, as a copy of the fLegalMoves vector.
