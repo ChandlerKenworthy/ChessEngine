@@ -274,7 +274,7 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
 
 void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     // Return quickly if we know castling is not possible
-    if(board->GetNHalfMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
+    if(board->GetNMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
         return;
 
     U32 move = 0;
@@ -379,8 +379,8 @@ U64 Generator::GetAttacks(const std::unique_ptr<Board> &board, const Color attac
 
 void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     // En-passant not possible so throw away early
-    if((!board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < MIN_MOVES_FOR_ENPASSANT) || 
-        (board->GetWasLoadedFromFEN() && board->GetNHalfMoves() < 1))
+    if((!board->GetWasLoadedFromFEN() && board->GetNMoves() < MIN_MOVES_FOR_ENPASSANT) || 
+        (board->GetWasLoadedFromFEN() && board->GetNMoves() < 1))
         return;
 
     // FEN loaded position with en-passant move immediately available
