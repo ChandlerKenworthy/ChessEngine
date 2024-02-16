@@ -7,21 +7,9 @@
 #include <bitset>
 
 /**
- * @file Constants.hpp
- * @brief Lots of useful constants and bit manipulation functions.
- */
-
-// TODO: Stop using macros and switch to proper functions following modern C++ standards
-#define set_bit(b, i) ((b) |= (1ULL << i))
-#define get_bit(b, i) ((b) & (1ULL << i))
-#define clear_bit(b, i) ((b) &= ~(1ULL << i))
-#define get_LSB(b) (__builtin_ctzll(b))
-#define get_MSB(b) (__builtin_clzll(b))
-
-/**
  * @brief Typedef for U64 using unsigned long long.
  *
- * Using unsigned long long provides a 64-bit integer. Each bit can be considered a square on the chess board.
+ * Using unsigned long long provides a 64-bit integer. Each bit can be considered a square on the chess board. The least significant bit is the rightmost bit when printed and represents the square H1. The most significant bit represents the square A8. Bit indices are counted from the least significant bit (0) up to the most significant (63).
  */
 typedef unsigned long long U64;
 
@@ -35,6 +23,57 @@ typedef uint32_t U32;
 typedef uint8_t U8;
 
 constexpr U8 AVERAGE_MOVES_PER_POSITION{32};
+
+/**
+ * @file Constants.hpp
+ * @brief Lots of useful constants and bit manipulation functions.
+ */
+
+/**
+ * @brief Get the state of the bit at the i-th position from the right
+ * @param b The 64-bit integer to search.
+ * @param i The index of the bit to check as counted with zero as the rightmost (least significant) bit.
+ * @return True if bit is set else false.
+*/
+inline bool get_bit(U64 b, int i) {
+    return b & (1ULL << i);
+}
+
+/**
+ * @brief Get the least significant set bit in the 64-bit number.
+ * @param b The 64-bit integer to search.
+ * @return The integer position of the LSB.
+*/
+inline int get_LSB(U64 b) {
+    return __builtin_ctzll(b);
+}
+
+/**
+ * @brief Get the most significant set bit in the 64-bit number.
+ * @param b The 64-bit integer to search.
+ * @return The integer position of the MSB.
+*/
+inline int get_MSB(U64 b) {
+    return __builtin_clzll(b);
+}
+
+/**
+ * @brief Set the bit at position i (counted from left to right which is the least to most significant).
+ * @param b The 64-bit number to set the bit on.
+ * @param i The integer position of the bit in the range [0,63].
+*/
+inline void set_bit(U64 &b, int i) {
+    b |= (1ULL << i);
+}
+
+/**
+ * @brief Clear the bit at position i (counted from least to most significant)
+ * @param b The 64-bit number to modify.
+ * @param i The integer position of the bit to clear.
+*/
+inline void clear_bit(U64 &b, int i) {
+    b &= ~(1ULL << i);
+}
 
 /**
  * @brief Enumeration describing different piece colors.
@@ -69,8 +108,8 @@ enum class Direction {
     East,
     SouthEast,
     South,
-    SouthWest,
-    West,
+    SouthWest, ///< South west direction (down and right)
+    West,      ///< West direction (right)
     NorthWest
 };
 
@@ -186,10 +225,10 @@ constexpr U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
 constexpr U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
 constexpr U64 EDGES = RANK_1 | RANK_8 | FILE_A | FILE_H;
 
-constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; };
-constexpr U64 east(U64 b) { return (b & ~FILE_H) >> 1; };
-constexpr U64 north(U64 b) { return (b & ~RANK_8) << 8; };
-constexpr U64 south(U64 b) { return (b & ~RANK_1) >> 8; };
+constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; }; // Automatically handle overflows
+constexpr U64 east(U64 b) { return (b & ~FILE_H) >> 1; }; // Automatically handle overflows
+constexpr U64 north(U64 b) { return (b & ~RANK_8) << 8; }; // Automatically handle overflows
+constexpr U64 south(U64 b) { return (b & ~RANK_1) >> 8; }; // Automatically handle overflows
 
 constexpr U64 south_east(U64 b) { return (b & ~FILE_H) >> 9; };
 constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; };

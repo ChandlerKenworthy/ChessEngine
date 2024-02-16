@@ -146,6 +146,10 @@ void Board::UndoMove() {
         clear_bit(*promotionBoard, targetLSB);
     }
 
+    fHalfMoves--; // Only reduces if move was not a capture of pawn push
+    if(movedPiece == Piece::Pawn || takenPiece != Piece::Null)
+        fHalfMoves = 0;
+
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
