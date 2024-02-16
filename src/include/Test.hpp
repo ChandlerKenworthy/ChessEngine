@@ -55,7 +55,6 @@ class Test {
         int fPrintDepth;
         bool fDoFinePrint; ///< Print out all moves at depth 1 during perft testing
         std::unique_ptr<Board> fBoard;
-        std::unique_ptr<Engine> fEngine;
         std::unique_ptr<Generator> fGenerator;
         std::unique_ptr<Renderer> fGUI;
         std::vector<unsigned long int> fExpectedGeneration; ///< Total number of possible moves after each depth level

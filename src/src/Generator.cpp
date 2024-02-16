@@ -604,3 +604,16 @@ void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board) {
     // Replace fLegalMoves with validMoves
     fLegalMoves = std::move(validMoves);
 }
+
+bool Generator::GetMoveIsLegal(U32 &move) {
+    const U64 moveOrigin = GetMoveOrigin(move);
+    const U64 moveTarget = GetMoveTarget(move);
+
+    for(U32 m : fLegalMoves) {
+        if((moveOrigin & GetMoveOrigin(m)) && (moveTarget & GetMoveTarget(m))) {
+            move = m;
+            return true;
+        }
+    }
+    return false;
+}

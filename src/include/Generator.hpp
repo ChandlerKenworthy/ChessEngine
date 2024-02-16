@@ -38,10 +38,27 @@ class Generator {
         */
         std::vector<U32> GetLegalMoves() { return fLegalMoves; };
         /**
-         * @brief Get a copy of all the legal moves from the last move generation.
-         * @return Vector of all possible legal moves, as a copy of the fLegalMoves vector.
+         * @brief Get a reference to the vector of legal moves stored [warning: dangerous do not modify in place]
+         * @return Reference to the legal moves vector.
         */
-        std::vector<U32> GetLegalMovesCopy() { return fLegalMoves; };
+        std::vector<U32>& GetLegalMoveRef() { return fLegalMoves; };
+        /**
+         * @brief Get the number of legal moves from the last move generation.
+         * @return Number of legal moves. 
+        */
+        U8 GetNLegalMoves() { return fLegalMoves.size(); };
+        /**
+         * @brief Get the move at the specified position from the legal moves vector.
+         * @param index The index to copy the move from.
+         * @return The move at the specified index.
+        */
+        U32 GetMoveAt(const U8 index) { return index < fLegalMoves.size() ? fLegalMoves.at(index) : 0; };
+        /**
+         * @brief Get whether a provided move is legal. Will update the move word with extra information.
+         * @param move The move to check.
+         * @return True if the move is legal false otherwise.
+        */
+        bool GetMoveIsLegal(U32 &move);
     private:
         std::vector<U32> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
 

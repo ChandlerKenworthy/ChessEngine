@@ -2,7 +2,6 @@
 
 Test::Test(bool useGUI) {
     fBoard = std::make_unique<Board>();
-    fEngine = std::make_unique<Engine>(true);
     fGenerator = std::make_unique<Generator>();
     fUseGUI = useGUI;
     fDoFinePrint = false;
