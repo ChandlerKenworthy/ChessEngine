@@ -12,6 +12,7 @@ add_executable(ChessEngine
     main.cpp
     src/Board.cpp
     src/Engine.cpp
+    src/Generator.cpp
     src/Renderer.cpp
     src/Test.cpp
 )

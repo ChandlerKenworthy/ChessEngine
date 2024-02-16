@@ -2,8 +2,9 @@
 
 Test::Test(bool useGUI) {
     fBoard = std::make_unique<Board>();
-    fEngine = std::make_unique<Engine>(true);
+    fGenerator = std::make_unique<Generator>();
     fUseGUI = useGUI;
+    fDoFinePrint = false;
     if(fUseGUI)
         fGUI = std::make_unique<Renderer>();
     fPrintDepth = 999;
@@ -22,7 +23,8 @@ Test::Test(bool useGUI) {
     };
 }
 
-unsigned long int Test::GetNodes(int depth, std::string fen) {
+unsigned long int Test::GetNodes(int depth, std::string fen, bool doFinePrint) {
+    fDoFinePrint = doFinePrint;
     auto start = std::chrono::high_resolution_clock::now(); // Time the execution
     if(fen.length() > 0)
         fBoard->LoadFEN(fen);
@@ -51,11 +53,12 @@ unsigned long int Test::MoveGeneration(int depth) {
     if(depth == 0)
         return 1;
 
-    fEngine->GenerateLegalMoves(fBoard);
+    fGenerator->GenerateLegalMoves(fBoard);
     unsigned long int numPositions = 0;
     unsigned long int subPositions = 0;
 
-    std::vector<U32> moves = fEngine->GetLegalMoves();
+    std::vector<U32> moves = fGenerator->GetLegalMoves(); // Puts moves inside this vector for you
+
     if(depth == fPrintDepth)
         std::cout << "Parent nodes searched: " << moves.size() << "\n";
 
@@ -66,10 +69,10 @@ unsigned long int Test::MoveGeneration(int depth) {
             subPositions = numPositions;
         }
 
-        //if(depth == 1) {
-        //    std::cout << "\n depth 1 move = ";
-        //    PrintMove(move);
-        //}
+        if(depth == 1 && fDoFinePrint) {
+            std::cout << "\n depth 1 move = ";
+            PrintMove(move);
+        }
         fBoard->MakeMove(move);
         numPositions += MoveGeneration(depth - 1);
         if(depth == fPrintDepth) {
