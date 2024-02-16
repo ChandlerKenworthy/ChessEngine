@@ -51,6 +51,7 @@ void DisplayHelp() {
               << "  --fen <fen>         Specify an initial position for the engine to perform perft tests or play against using the standard FEN notation.\n"
               << "  --play              Play a game of user versus the computer. The engine will play the best move.\n"
               << "  --play-self <n>     Make the computer play against itself n times and print the outcomes.\n"
+              << "  --verbose           Prints every move generated at the highest search depth when performing a perft test.\n"
               << "  --color <colour>    Specify the colour of the human player e.g. \"white\" or \"black\". If not provided will default to white.\n\n"
               << "Examples:\n"
               << "  ChessEngine --perft 5 --fen \"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1\" --no-gui\n"
