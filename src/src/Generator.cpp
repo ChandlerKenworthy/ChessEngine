@@ -240,8 +240,9 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
                     SetMovePromotionPiece(move, p);
                     fLegalMoves.push_back(move);
                 }
+            } else {
+                fLegalMoves.push_back(move);
             }
-            fLegalMoves.push_back(move);
             attacks &= attacks - 1;
         }
         attacks = 0;
@@ -262,8 +263,9 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
                     SetMovePromotionPiece(move, p);
                     fLegalMoves.push_back(move);
                 }
+            } else {
+                fLegalMoves.push_back(move);
             }
-            fLegalMoves.push_back(move);
             attacks &= attacks - 1;
         }
         pawns &= pawns - 1; // Drop the least significant bit
@@ -404,8 +406,7 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
             SetMoveIsEnPassant(move, true);
             fLegalMoves.push_back(move);
             attackSquares &= attackSquares - 1;
-        }       
-        // TODO: Clear board's en-passsant fen target so this loop doesn't run everytime? 
+        }
     }
 
     // Can't be wrapped in an else bracket due to undoing moves
