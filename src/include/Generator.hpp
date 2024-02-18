@@ -67,6 +67,13 @@ class Generator {
          * @return True if any of the squares in mask are under attack from the specified colour.
         */
         bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
+        /**
+         * @brief Find the attacks of the pawns for a particular colour. To be used for move ordering.
+         * @param board The board configuration.
+         * @param colorToMoveAttacks True if the attacking colour is the current colour to move on board.
+         * @return Mask of all possible attacks of pawns from the specified colour.
+        */
+        U64 GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks);
     private:
         std::vector<U32> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
 
@@ -182,7 +189,7 @@ class Generator {
          * @param v Vector to fill.
          * @param d Direction to search for pinning rays.
         */
-        void AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d);
+        void AddAbolsutePins(const std::unique_ptr<Board> &board, Direction d);
         /**
          * @brief Remove moves from the fLegalMoves vector that do not resolve the check when the king is in check.
          * @param board The board configuration to generate moves for.
@@ -206,6 +213,8 @@ class Generator {
         Color fOtherColor; ///< The colour who has just moved.
         U64 fOccupancy; ///< Total occupancy of the board represented as a single bitboard for ray occupancy calculations.
         U64 fKing; ///< Position of the king whose colour it is to move.
+
+        std::vector<std::pair<U64, U64>> fPinnedPieces; ///< The position of the absolutely pinned piece and the ray pinning it including the position of the pinning piece.
         
 };
 

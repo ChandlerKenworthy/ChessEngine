@@ -25,10 +25,10 @@ float Engine::GetMaterialEvaluation() {
     return material;
 }
 
-/*void Engine::OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves) {
-    const U64 pawnAttacks = GetPawnAttacks(board, false);
+void Engine::OrderMoves(std::vector<U32> &moves) {
+    const U64 pawnAttacks = fGenerator->GetPawnAttacks(fBoard, false);
 
-    auto compareMoves = [&](U32 move1, U32 move2) {
+    std::sort(moves.begin(), moves.end(), [&](U32 move1, U32 move2) {
         float move1ScoreEstimate = 0.;
         const int pieceType1 = (int)GetMovePiece(move1);
         const int takenPieceType1 = (int)GetMoveTakenPiece(move1);
@@ -38,9 +38,9 @@ float Engine::GetMaterialEvaluation() {
 
         // Prioritise capturing opponent's most valudable pieces with our least valuable piece
         if(takenPieceType1 != (int)Piece::Null)
-            move1ScoreEstimate += 10. * (PIECE_VALUES[takenPieceType1] - PIECE_VALUES[pieceType1]);
+            move1ScoreEstimate += 10. * PIECE_VALUES[takenPieceType1] - PIECE_VALUES[pieceType1];
         if(takenPieceType2 != (int)Piece::Null)
-            move2ScoreEstimate += 10. * (PIECE_VALUES[takenPieceType2] - PIECE_VALUES[pieceType2]);
+            move2ScoreEstimate += 10. * PIECE_VALUES[takenPieceType2] - PIECE_VALUES[pieceType2];
 
         // Promoting a pawn is probably a good plan
         if(GetMoveIsPromotion(move1))
@@ -55,22 +55,9 @@ float Engine::GetMaterialEvaluation() {
             move2ScoreEstimate -= PIECE_VALUES[pieceType2];
 
         return move1ScoreEstimate > move2ScoreEstimate; // Higher scores come first
-    };
-
-    std::sort(moves.begin(), moves.end(), compareMoves);
+    });
 }
-
-U64 Engine::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks) {
-    // Find squares attacked by pawns for quick move ordering, does not take into account pins
-    Color attackingColor = colorToMoveAttacks ? board->GetColorToMove() : (board->GetColorToMove() == Color::White ? Color::Black : Color::White);
-    U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
-    if(attackingColor == Color::White) {
-        return north_east(pawns) | north_west(pawns);
-    } else {
-        return south_east(pawns) | south_west(pawns);
-    }
-}
-
+/*
 std::vector<U32> Engine::GenerateCaptureMoves(const std::unique_ptr<Board> &board) {
     // TODO: Rewrite this so it is much, much faster
     std::vector<U32> allMoves = GenerateLegalMoves(board, true);
@@ -90,7 +77,7 @@ float Engine::SearchAllCaptures(const std::unique_ptr<Board> &board, float alpha
     alpha = std::max(alpha, eval);
 
     std::vector<U32> captureMoves = GenerateCaptureMoves(board); // Generate only captures
-    OrderMoves(board, captureMoves);
+    OrderMoves(captureMoves);
 
     for(U32 move : captureMoves) {
         board->MakeMove(move);
@@ -113,9 +100,6 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     int movesSearched = 0;
     fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
     std::vector<U32> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
-    //if(depth == 1) {
-    //    std::cout << "\nIn minimax I am searching " << moves.size() << " moves\n";
-    //}
 
     Color movingColor = fBoard->GetColorToMove(); // These can change on recursive calls
     Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
@@ -124,19 +108,16 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
             return std::make_pair(movingColor == Color::White ? -99999. : 99999., movesSearched); // Checkmate loss
         return std::make_pair(0., movesSearched); // Stalemate
     } 
-
     // For speed up, order the generated moves each iteration
-    //OrderMoves(board, moves);
-
+    OrderMoves(moves);
     for(U32 move : moves) { // Search through all the possible moves
         fBoard->MakeMove(move);
-        //movesSearched++;
         std::pair<float, int> result = Minimax(depth - 1, -beta, -alpha);
         float evaluation = -result.first;
         movesSearched += result.second;
         fBoard->UndoMove();
-        //if(evaluation >= beta)
-        //    return std::make_pair(beta, movesSearched);
+        if(evaluation >= beta)
+            return std::make_pair(beta, movesSearched);
         alpha = std::max(alpha, evaluation);
     }
     return std::make_pair(alpha, movesSearched);
@@ -150,11 +131,10 @@ U32 Engine::GetBestMove() {
     float bestEval = colorToMove == Color::White ? -9999. : 9999.;
     int nMovesSearched = 0;
 
-    // Order the moves for faster searching
-    //OrderMoves(board, fLegalMoves);
-
     // For each of the moves we want to find the "best" evaluation
-    const std::vector<U32> moves = fGenerator->GetLegalMoves();
+    std::vector<U32> moves = fGenerator->GetLegalMoves();
+    // Order the moves for faster searching
+    OrderMoves(moves);
     for(U32 move : moves) {
         fBoard->MakeMove(move);
         std::pair<float, int> result = Minimax(fMaxDepth - 1, -99999., 99999.);

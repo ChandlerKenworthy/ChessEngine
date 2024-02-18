@@ -450,13 +450,13 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board);
 
-    std::vector<std::pair<U64, U64>> pinnedPieces; // Position of the pinned piece and all squares (including the attacking piece) on the pinning ray (as all moves on this ray of the pinned position are of course legal)
+    fPinnedPieces.clear(); // Empty the vector from the last call
     for(Direction d : DIRECTIONS) {
-        AddAbolsutePins(board, &pinnedPieces, d);
+        AddAbolsutePins(board, d);
     }
 
     const U64 pinnedPositions = std::accumulate(
-        pinnedPieces.begin(), pinnedPieces.end(), U64(0),
+        fPinnedPieces.begin(), fPinnedPieces.end(), U64(0),
         [](U64 acc, const std::pair<U64, U64>& p) {
             return acc | p.first;
         }
@@ -471,7 +471,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
             iMove--;
         } else if(pinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
-            for(const std::pair<U64, U64> &pins : pinnedPieces) {
+            for(const std::pair<U64, U64> &pins : fPinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
                 if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
@@ -513,7 +513,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector<std::pair<U64, U64>> *v, Direction d) {
+void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, Direction d) {
     // Make artificial occupancy to block in the king and only get the north ray
     const U8 lsb = __builtin_ctzll(fKing);
     U64 rayOccupancy = board->GetBoard(fOtherColor);
@@ -578,8 +578,27 @@ void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, std::vector
         // Note that rayAndEnemy is actually the position of the attacking piece on the ray
         U64 potentialPin = ray & ownPieces; // All your pieces that exist on the ray (between king and attacking piece)
         if(CountSetBits(potentialPin) == 1) { // A single piece is on the ray and so absolutely pinned
-            v->push_back(std::make_pair(potentialPin, ray));
+            fPinnedPieces.push_back(std::make_pair(potentialPin, ray));
         } // else : None of your pieces in the way so the king is in check from attacker
+    }
+}
+
+U64 Generator::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks) {
+    Color attackingColor = colorToMoveAttacks ? board->GetColorToMove() : (board->GetColorToMove() == Color::White ? Color::Black : Color::White);
+    U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
+    // Drop the absolutely pinned pawns for improved accuracy
+    const U64 pinnedPositions = std::accumulate(
+        fPinnedPieces.begin(), fPinnedPieces.end(), U64(0),
+        [](U64 acc, const std::pair<U64, U64>& p) {
+            return acc | p.first;
+        }
+    );
+    pawns &= ~pinnedPositions;
+    
+    if(attackingColor == Color::White) {
+        return north_east(pawns) | north_west(pawns);
+    } else {
+        return south_east(pawns) | south_west(pawns);
     }
 }
 

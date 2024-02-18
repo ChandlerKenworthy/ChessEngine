@@ -60,7 +60,7 @@ class Engine {
         std::pair<float, int> Minimax(int depth, float alpha, float beta);
 
         float GetMaterialEvaluation();
-        //void OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves);
+        void OrderMoves(std::vector<U32> &moves);
 
 };
 
