@@ -215,6 +215,7 @@ class Generator {
         U64 fKing; ///< Position of the king whose colour it is to move.
 
         std::vector<std::pair<U64, U64>> fPinnedPieces; ///< The position of the absolutely pinned piece and the ray pinning it including the position of the pinning piece.
+        U64 fPinnedPositions; ///< Accumulation of first elements of fPinnedPieces.
         
 };
 

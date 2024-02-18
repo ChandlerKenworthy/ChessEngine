@@ -455,7 +455,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
         AddAbolsutePins(board, d);
     }
 
-    const U64 pinnedPositions = std::accumulate(
+    fPinnedPositions = std::accumulate(
         fPinnedPieces.begin(), fPinnedPieces.end(), U64(0),
         [](U64 acc, const std::pair<U64, U64>& p) {
             return acc | p.first;
@@ -469,7 +469,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
         if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
-        } else if(pinnedPositions & moveOrigin) { // Piece originates from a pinned position
+        } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
             for(const std::pair<U64, U64> &pins : fPinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
@@ -587,13 +587,7 @@ U64 Generator::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToM
     Color attackingColor = colorToMoveAttacks ? board->GetColorToMove() : (board->GetColorToMove() == Color::White ? Color::Black : Color::White);
     U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
     // Drop the absolutely pinned pawns for improved accuracy
-    const U64 pinnedPositions = std::accumulate(
-        fPinnedPieces.begin(), fPinnedPieces.end(), U64(0),
-        [](U64 acc, const std::pair<U64, U64>& p) {
-            return acc | p.first;
-        }
-    );
-    pawns &= ~pinnedPositions;
+    pawns &= ~fPinnedPositions;
     
     if(attackingColor == Color::White) {
         return north_east(pawns) | north_west(pawns);
