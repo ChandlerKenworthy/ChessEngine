@@ -37,10 +37,10 @@ class Engine {
         */
         U32 GetRandomMove();
 
-        //float Evaluate(const std::unique_ptr<Board> &board); // Static evaluation of current game state with no look-ahead
+        float Evaluate(); // Static evaluation of a board
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        //U32 GetBestMove(const std::unique_ptr<Board> &board);
+        U32 GetBestMove();
     private:
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
@@ -57,9 +57,9 @@ class Engine {
          * @param alpha The alpha value to prune at.
          * @param beta The beta value to prune at.
         */
-        //std::pair<float, int> Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta);
+        std::pair<float, int> Minimax(int depth, float alpha, float beta);
 
-        //float GetMaterialEvaluation(const std::unique_ptr<Board> &board);
+        float GetMaterialEvaluation();
         //void OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves);
 
 };

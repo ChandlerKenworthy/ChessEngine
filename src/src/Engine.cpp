@@ -4,28 +4,28 @@
 
 #include "Engine.hpp"
 
-Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board) : fGenerator(generator), fBoard(board) {
+Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board) : fGenerator(generator), fBoard(board), fMaxDepth(4) {
 
 }
 
-/*
-float Engine::Evaluate(const std::unique_ptr<Board> &board) {
-    float evaluation = GetMaterialEvaluation(board);
-    int perspective = board->GetColorToMove() == Color::White ? 1. : -1.;
+
+float Engine::Evaluate() {
+    float evaluation = GetMaterialEvaluation();
+    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
     return evaluation * perspective; // Return in centipawns rather than pawns
 }
 
-float Engine::GetMaterialEvaluation(const std::unique_ptr<Board> &board) {
+float Engine::GetMaterialEvaluation() {
     float material = 0.;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
-    material += (__builtin_popcountll(board->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(board->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
     return material;
 }
 
-void Engine::OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves) {
+/*void Engine::OrderMoves(const std::unique_ptr<Board> &board, std::vector<U32> &moves) {
     const U64 pawnAttacks = GetPawnAttacks(board, false);
 
     auto compareMoves = [&](U32 move1, U32 move2) {
@@ -104,58 +104,63 @@ float Engine::SearchAllCaptures(const std::unique_ptr<Board> &board, float alpha
 
     return alpha;
 }
-
-std::pair<float, int> Engine::Minimax(const std::unique_ptr<Board> &board, int depth, float alpha, float beta) {
+*/
+std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     // Return the evaluation up to depth [depth] and the number of moves explicitly searched
     if(depth == 0)
-        return std::make_pair(Evaluate(board), 1); // Was SearchAllCaptures(board, alpha, beta)
+        return std::make_pair(Evaluate(), 1); // Was SearchAllCaptures(board, alpha, beta)
 
     int movesSearched = 0;
-    std::vector<U32> moves = GenerateLegalMoves(board, true);
+    fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
+    std::vector<U32> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
+    //if(depth == 1) {
+    //    std::cout << "\nIn minimax I am searching " << moves.size() << " moves\n";
+    //}
 
-    Color movingColor = board->GetColorToMove();
+    Color movingColor = fBoard->GetColorToMove(); // These can change on recursive calls
     Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
     if(moves.size() == 0) {
-        if(IsUnderAttack(board->GetBoard(movingColor, Piece::King), otherColor, board))
+        if(fGenerator->IsUnderAttack(fBoard->GetBoard(movingColor, Piece::King), otherColor, fBoard))
             return std::make_pair(movingColor == Color::White ? -99999. : 99999., movesSearched); // Checkmate loss
         return std::make_pair(0., movesSearched); // Stalemate
     } 
 
     // For speed up, order the generated moves each iteration
-    OrderMoves(board, moves);
+    //OrderMoves(board, moves);
 
-    for(U32 move : moves) {
-        board->MakeMove(move);
-        movesSearched++;
-        std::pair<float, int> result = Minimax(board, depth - 1, -beta, -alpha);
+    for(U32 move : moves) { // Search through all the possible moves
+        fBoard->MakeMove(move);
+        //movesSearched++;
+        std::pair<float, int> result = Minimax(depth - 1, -beta, -alpha);
         float evaluation = -result.first;
         movesSearched += result.second;
-        board->UndoMove();
-        if(evaluation >= beta)
-            return std::make_pair(beta, movesSearched);
+        fBoard->UndoMove();
+        //if(evaluation >= beta)
+        //    return std::make_pair(beta, movesSearched);
         alpha = std::max(alpha, evaluation);
     }
     return std::make_pair(alpha, movesSearched);
 }
 
-U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
-    //auto start = std::chrono::high_resolution_clock::now();
+U32 Engine::GetBestMove() {
+    auto start = std::chrono::high_resolution_clock::now();
     U32 bestMove{0};
-    Color colorToMove = board->GetColorToMove();
+    Color colorToMove = fBoard->GetColorToMove();
     // If white is playing the worst eval is -999 (i.e. black completely winning)
     float bestEval = colorToMove == Color::White ? -9999. : 9999.;
-    //int nMovesSearched = 0;
+    int nMovesSearched = 0;
 
     // Order the moves for faster searching
-    OrderMoves(board, fLegalMoves);
+    //OrderMoves(board, fLegalMoves);
 
     // For each of the moves we want to find the "best" evaluation
-    for(U32 move : fLegalMoves) {
-        board->MakeMove(move);
-        std::pair<float, int> result = Minimax(board, fMaxDepth - 1, -99999., 99999.);
-        board->UndoMove();
+    const std::vector<U32> moves = fGenerator->GetLegalMoves();
+    for(U32 move : moves) {
+        fBoard->MakeMove(move);
+        std::pair<float, int> result = Minimax(fMaxDepth - 1, -99999., 99999.);
+        fBoard->UndoMove();
         float eval = result.first;
-        //nMovesSearched += result.second;
+        nMovesSearched += result.second;
         if(colorToMove == Color::White && eval >= bestEval) {
             bestEval = eval;
             bestMove = move;
@@ -165,19 +170,16 @@ U32 Engine::GetBestMove(const std::unique_ptr<Board> &board) {
         }
     }
 
-    //auto stop = std::chrono::high_resolution_clock::now();
-    //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    //std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-    //std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
+    std::cout << "Evaluated: " << nMovesSearched << " positions\n";
     return bestMove;
 }
-*/
 
 U32 Engine::GetRandomMove() {   
     std::random_device seeder;
     std::mt19937 engine(seeder());
     std::uniform_int_distribution<U32> dist2(0, fGenerator->GetNLegalMoves() - 1);
-    U32 m = fGenerator->GetMoveAt(dist2(engine));
-    fBoard->PrintDetailedMove(m);
-    return m;
+    return fGenerator->GetMoveAt(dist2(engine));
 }

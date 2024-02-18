@@ -39,7 +39,7 @@ class Generator {
         std::vector<U32> GetLegalMoves() { return fLegalMoves; };
         /**
          * @brief Get a reference to the vector of legal moves stored [warning: dangerous do not modify in place]
-         * @return Reference to the legal moves vector.
+         * @return The legal moves vector.
         */
         std::vector<U32>& GetLegalMoveRef() { return fLegalMoves; };
         /**
@@ -59,6 +59,14 @@ class Generator {
          * @return True if the move is legal false otherwise.
         */
         bool GetMoveIsLegal(U32 &move);
+        /**
+         * @brief Get whether any squares in the specified mask are under attack from the enemy. Does not account for pinned enemy pieces.
+         * @param mask The mask of squares to check.
+         * @param attackingColor The colour to calculate the attack rays for.
+         * @param board The board configuration to generate moves for.
+         * @return True if any of the squares in mask are under attack from the specified colour.
+        */
+        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
     private:
         std::vector<U32> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
 
@@ -156,14 +164,6 @@ class Generator {
          * @return True if castling with these masks is possible.
         */
         bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
-        /**
-         * @brief Get whether any squares in the specified mask are under attack from the enemy. Does not account for pinned enemy pieces.
-         * @param mask The mask of squares to check.
-         * @param attackingColor The colour to calculate the attack rays for.
-         * @param board The board configuration to generate moves for.
-         * @return True if any of the squares in mask are under attack from the specified colour.
-        */
-        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
         /**
          * @brief Get the bitboard of all possible attacks by the specified colour assuming they are the next colour to move. Does not take into account absolutely positioned pieces.
          * @param board The board configuration to generate moves for.
