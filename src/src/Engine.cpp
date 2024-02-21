@@ -16,13 +16,75 @@ float Engine::Evaluate() {
 }
 
 float Engine::GetMaterialEvaluation() {
+    // Counts material and respects the position of the material e.g. knights in the centre are stronger
     float material = 0.;
+    material += EvaluateKnightPositions();
+    material += EvaluateQueenPositions();
+    material += EvaluateRookPositions();
+    material += EvaluateBishopPositions();
+
     material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Bishop))) * VALUE_BISHOP;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Knight))) * VALUE_KNIGHT;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Rook))) * VALUE_ROOK;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
     return material;
+}
+
+float Engine::EvaluateKnightPositions() {
+    float val = 0.;
+    U64 white_knights = fBoard->GetBoard(Color::White, Piece::Knight);
+    U64 black_knights = fBoard->GetBoard(Color::Black, Piece::Knight);
+    while(white_knights) {
+        val += (VALUE_KNIGHT * fKnightPosModifier[__builtin_ctzll(white_knights)]);
+        white_knights &= white_knights - 1;
+    }
+    while(black_knights) {
+        val -= (VALUE_KNIGHT * fKnightPosModifier[__builtin_ctzll(black_knights)]);
+        black_knights &= black_knights - 1;
+    }
+    return val;
+}
+
+float Engine::EvaluateQueenPositions() {
+    float val = 0.;
+    U64 white_queens = fBoard->GetBoard(Color::White, Piece::Queen);
+    U64 black_queens = fBoard->GetBoard(Color::Black, Piece::Queen);
+    while(white_queens) {
+        val += (VALUE_QUEEN * fQueenPosModifier[__builtin_ctzll(white_queens)]);
+        white_queens &= white_queens - 1;
+    }
+    while(black_queens) {
+        val -= (VALUE_QUEEN * fQueenPosModifier[__builtin_ctzll(black_queens)]);
+        black_queens &= black_queens - 1;
+    }
+    return val;
+}
+
+float Engine::EvaluateRookPositions() {
+    float val = 0.;
+    U64 white_rooks = fBoard->GetBoard(Color::White, Piece::Rook);
+    U64 black_rooks = fBoard->GetBoard(Color::Black, Piece::Rook);
+    while(white_rooks) {
+        val += (VALUE_ROOK * fRookPosModifier[__builtin_ctzll(white_rooks)]);
+        white_rooks &= white_rooks - 1;
+    }
+    while(black_rooks) {
+        val -= (VALUE_ROOK * fRookPosModifier[__builtin_ctzll(black_rooks)]);
+        black_rooks &= black_rooks - 1;
+    }
+    return val;
+}
+
+float Engine::EvaluateBishopPositions() {
+    float val = 0.;
+    U64 white_bishops = fBoard->GetBoard(Color::White, Piece::Bishop);
+    U64 black_bishops = fBoard->GetBoard(Color::Black, Piece::Bishop);
+    while(white_bishops) {
+        val += (VALUE_BISHOP * fBishopPosModifier[__builtin_ctzll(white_bishops)]);
+        white_bishops &= white_bishops - 1;
+    }
+    while(black_bishops) {
+        val -= (VALUE_BISHOP * fBishopPosModifier[__builtin_ctzll(black_bishops)]);
+        black_bishops &= black_bishops - 1;
+    }
+    return val;
 }
 
 void Engine::OrderMoves(std::vector<U32> &moves) {
@@ -57,45 +119,33 @@ void Engine::OrderMoves(std::vector<U32> &moves) {
         return move1ScoreEstimate > move2ScoreEstimate; // Higher scores come first
     });
 }
-/*
-std::vector<U32> Engine::GenerateCaptureMoves(const std::unique_ptr<Board> &board) {
-    // TODO: Rewrite this so it is much, much faster
-    std::vector<U32> allMoves = GenerateLegalMoves(board, true);
 
-    // Remove moves where the taken piece is Piece::Null
-    allMoves.erase(std::remove_if(allMoves.begin(), allMoves.end(),
-        [&](U32 move) { return GetMoveTakenPiece(move) == Piece::Null; }),
-        allMoves.end());
-
-    return allMoves;
-}
-
-float Engine::SearchAllCaptures(const std::unique_ptr<Board> &board, float alpha, float beta) {
-    float eval = Evaluate(board);
+float Engine::SearchAllCaptures(float alpha, float beta) {
+    float eval = Evaluate();
     if(eval >= beta)
         return beta;
     alpha = std::max(alpha, eval);
 
-    std::vector<U32> captureMoves = GenerateCaptureMoves(board); // Generate only captures
+    fGenerator->GenerateLegalMoves(fBoard); // TODO: Generate only capture moves rather than all then prune
+    std::vector<U32> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
     OrderMoves(captureMoves);
 
     for(U32 move : captureMoves) {
-        board->MakeMove(move);
-        eval = -SearchAllCaptures(board, -alpha, -beta);
-        board->UndoMove();
-
+        fBoard->MakeMove(move);
+        eval = -SearchAllCaptures(-alpha, -beta);
+        fBoard->UndoMove();
         if(eval >= beta)
             return beta;
         alpha = std::max(alpha, eval);
     }
-
+    fBoard->UndoMove(); // Always need to undo one more time here
     return alpha;
 }
-*/
+
 std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     // Return the evaluation up to depth [depth] and the number of moves explicitly searched
     if(depth == 0)
-        return std::make_pair(Evaluate(), 1); // Was SearchAllCaptures(board, alpha, beta)
+        return std::make_pair(Evaluate(), 1); // SearchAllCaptures(alpha, beta)
 
     int movesSearched = 0;
     fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
@@ -123,7 +173,7 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     return std::make_pair(alpha, movesSearched);
 }
 
-U32 Engine::GetBestMove() {
+U32 Engine::GetBestMove(bool verbose) {
     auto start = std::chrono::high_resolution_clock::now();
     U32 bestMove{0};
     Color colorToMove = fBoard->GetColorToMove();
@@ -152,8 +202,10 @@ U32 Engine::GetBestMove() {
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-    std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+    if(verbose) {
+        std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
+        std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+    }
     return bestMove;
 }
 
