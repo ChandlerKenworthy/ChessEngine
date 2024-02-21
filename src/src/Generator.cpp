@@ -66,9 +66,9 @@ void Generator::FillDiagonalAttackTables(const U64 pos) {
     fSecondaryDiagonalAttacks[lsb] = secondaryAttacks ^ pos;
 }
 
-void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) { // TODO: Make me multi-threaded?
     fLegalMoves.clear();
-    // TODO: Make me multi-threaded?
+    fCaptureMoves.clear();
     if(CheckFiftyMoveDraw(board))
         return;
     if(CheckInsufficientMaterial(board))
@@ -79,13 +79,22 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) {
     fOccupancy = board->GetOccupancy();
     fKing = board->GetBoard(fColor, Piece::King);
     fLegalMoves.reserve(AVERAGE_MOVES_PER_POSITION); // Avoid excess dynamic memory allocation
+    fCaptureMoves.reserve(10);
 
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
     GenerateEnPassantMoves(board);
     RemoveIllegalMoves(board);
 
+    // Copy moves from fLegalMoves to fCaptureMoves if the capture flag is true
+    std::copy_if(fLegalMoves.begin(), fLegalMoves.end(), std::back_inserter(fCaptureMoves),
+        [](const U32& move) {
+            return GetMoveTakenPiece(move) != Piece::Null;
+        }
+    );
+
     if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
+        fCaptureMoves.clear();
         bool kingInCheck = IsUnderAttack(fKing, fOtherColor, board);
         if(kingInCheck) {
             board->SetState(State::Checkmate);

@@ -74,8 +74,14 @@ class Generator {
          * @return Mask of all possible attacks of pawns from the specified colour.
         */
         U64 GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks);
+        /**
+         * @brief Get all moves that are captures in the current set of legal moves.
+         * @return Vector of legal capture moves.
+        */
+        std::vector<U32> GetCaptureMoves() { return fCaptureMoves; };
     private:
         std::vector<U32> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
+        std::vector<U32> fCaptureMoves; ///< The legal capturing moves available. Updated on call to GenerateLegalMoves.
 
         /**
          * @brief Generate attack tables for faster lookup during move generation.
