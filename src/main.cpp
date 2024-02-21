@@ -82,7 +82,7 @@ void PlaySelf(int nGames) {
 
             U32 move{0};
             if(board->GetColorToMove() == Color::White) {
-                move = engine->GetBestMove(); 
+                move = engine->GetBestMove(false); 
             } else {
                 move = engine->GetRandomMove(); // For now black is a random agent
             }
@@ -148,7 +148,7 @@ void Play(const std::string &fen, Color userColor) {
             } else {
                 // Compcuter chooses a move
                 //move = engine->GetRandomMove();
-                move = engine->GetBestMove();
+                move = engine->GetBestMove(true);
                 // Print out the move to the console
                 board->PrintDetailedMove(move);
             }
@@ -193,19 +193,12 @@ int main(int argc, char* argv[]) {
         U64 rook = RANK_6 & FILE_H;
         PrintBitset(rook);
 
-        U64 rook2 = RANK_8 & FILE_A;
-        //U64 attacks = RANK_4 | FILE_B;
-        //PrintBitset(attacks);
+        std::cout << get_LSB(rook) << std::endl;
 
-        //U64 occ = (RANK_6 & FILE_B) | (RANK_1 & FILE_B) | (RANK_4 & FILE_E);
-        //PrintBitset(occ);
-        
-        // Get file of rook
-        int fileIndex = __builtin_ctzll(rook) / 8; // Assuming rookBitboard has exactly one bit set
-        std::cout << fileIndex << std::endl;
-
-        fileIndex = get_LSB(rook2) / 8;
-        std::cout << fileIndex << std::endl;
+        std::cout << get_LSB(RANK_8 & FILE_A) << std::endl;
+        std::cout << get_LSB(RANK_1 & FILE_A) << std::endl;
+        std::cout << get_LSB(RANK_1 & FILE_H) << std::endl;
+        std::cout << get_LSB(RANK_2 & FILE_A) << std::endl;
     }
     return 0;
 }
