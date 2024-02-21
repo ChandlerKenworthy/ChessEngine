@@ -121,6 +121,7 @@ void Engine::OrderMoves(std::vector<U32> &moves) {
 }
 
 float Engine::SearchAllCaptures(float alpha, float beta) {
+    // Called when minimax hits maximum depth
     float eval = Evaluate();
     if(eval >= beta)
         return beta;
@@ -138,7 +139,6 @@ float Engine::SearchAllCaptures(float alpha, float beta) {
             return beta;
         alpha = std::max(alpha, eval);
     }
-    fBoard->UndoMove(); // Always need to undo one more time here
     return alpha;
 }
 
@@ -185,7 +185,7 @@ U32 Engine::GetBestMove(bool verbose) {
     std::vector<U32> moves = fGenerator->GetLegalMoves();
     // Order the moves for faster searching
     OrderMoves(moves);
-    for(U32 move : moves) {
+    for(U32 move : moves) { // this loop accounts for one order of depth already
         fBoard->MakeMove(move);
         std::pair<float, int> result = Minimax(fMaxDepth - 1, -99999., 99999.);
         fBoard->UndoMove();
@@ -206,6 +206,7 @@ U32 Engine::GetBestMove(bool verbose) {
         std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
         std::cout << "Evaluated: " << nMovesSearched << " positions\n";
     }
+
     return bestMove;
 }
 

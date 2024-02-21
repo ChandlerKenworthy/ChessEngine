@@ -401,7 +401,7 @@ void Board::PrintDetailedMove(U32 move) {
     
     int rank = get_rank_number(target);
     int file = get_file_number(target);
-    char fileChar = get_file_char(file);
+    char fileChar = get_file_char(file);  
 
     std::string moveStr = "";
     if(piece != Piece::Pawn)
@@ -414,6 +414,9 @@ void Board::PrintDetailedMove(U32 move) {
     } else if(takenPiece != Piece::Null && piece == Piece::Pawn) {
         moveStr += get_file_char(get_file_number(origin));
         moveStr += "x";
+        moveStr += fileChar;
+        moveStr += std::to_string(rank);
+    } else if(takenPiece == Piece::Null) {
         moveStr += fileChar;
         moveStr += std::to_string(rank);
     }
