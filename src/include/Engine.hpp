@@ -38,12 +38,14 @@ class Engine {
         U32 GetRandomMove();
 
         float Evaluate(); // Static evaluation of a board
+        float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
         U32 GetBestMove(bool verbose);
     private:
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
+        Color fOtherColor;
 
         float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, // H1, G1, F1, E1, D1, C1, B1, A1
@@ -100,7 +102,7 @@ class Engine {
          * @param beta Current value of beta from minimax.
          * @return Evaluation of the position.
         */
-        float SearchAllCaptures(float alpha, float beta);
+        std::pair<float, int> SearchAllCaptures(float alpha, float beta);
         /**
          * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
          * @param board The board to evaluate.

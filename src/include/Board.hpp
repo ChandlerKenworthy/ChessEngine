@@ -51,6 +51,12 @@ class Board {
          */
         U64 GetBoard(const Color color, const Piece piece);
         /**
+         * @brief Get the bit board associated with a particular piece for the colour to move.
+         * @param piece The type of the piece.
+         * @return The bitboard containing the abstract representation of the piece positions.
+        */
+        U64 GetBoard(const Piece piece);
+        /**
          * @brief Get a pointer to the bitboard associated with a particular colour and type of piece.
          * @param color The color of the piece(s).
          * @param piece The type of the piece.
@@ -190,6 +196,10 @@ class Board {
          * @param move The move that will be printed.
         */
         void PrintDetailedMove(U32 move); 
+        /**
+         * @brief Returns a value between 0 and 1. Higher values indiciate a position closer to the "endgame".
+        */
+        float GetEndgameWeight();
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.

@@ -4,15 +4,41 @@
 
 #include "Engine.hpp"
 
-Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board) : fGenerator(generator), fBoard(board), fMaxDepth(4) {
+Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board) : fGenerator(generator), fBoard(board), fMaxDepth(2) {
 
 }
 
 
 float Engine::Evaluate() {
+    fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation();
+
+    //evaluation += ForceKingToCornerEndgame();
     int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
     return evaluation * perspective; // Return in centipawns rather than pawns
+}
+
+float Engine::ForceKingToCornerEndgame() {
+    // Endgame weight is inversely proportional to the number of major pieces the opponent has
+    float evaluation = 0.0;
+
+    // Favour positions where the enemy king is in the corner of the board
+    const U64 enemyKing = fBoard->GetBoard(fOtherColor, Piece::King);
+    const U64 myKing = fBoard->GetBoard(Piece::King);
+    const int file = get_file_number(enemyKing);
+    const int rank = get_rank_number(enemyKing);
+    const int distToCentreRank = std::max(4 - rank, rank - 5);
+    const int distToCentreFile = std::max(4 - file, file - 5);
+    const int distToCentre = distToCentreRank + distToCentreFile;
+    evaluation += distToCentre;
+
+    // Favour when the king moves towards the enemy to cut that king off
+    const int rankDist = std::abs(rank - get_rank_number(myKing));
+    const int fileDist = std::abs(file - get_file_number(myKing));
+    const int distBetweenKings = rankDist + fileDist;
+    evaluation += (14 - distBetweenKings);
+
+    return 10.0 * fBoard->GetEndgameWeight() * evaluation;
 }
 
 float Engine::GetMaterialEvaluation() {
@@ -120,36 +146,44 @@ void Engine::OrderMoves(std::vector<U32> &moves) {
     });
 }
 
-float Engine::SearchAllCaptures(float alpha, float beta) {
+std::pair<float, int> Engine::SearchAllCaptures(float alpha, float beta) {
     // Called when minimax hits maximum depth
+    // TODO: Count the number of moves this seaches and send back to minimax
+    int nMovesSearched = 1;
     float eval = Evaluate();
-    if(eval >= beta)
-        return beta;
+    if(eval >= beta) {
+        //std::cout << "Search all broke early since eval >= beta\n";
+        return std::make_pair(eval, nMovesSearched);
+    }
     alpha = std::max(alpha, eval);
 
-    fGenerator->GenerateLegalMoves(fBoard); // TODO: Generate only capture moves rather than all then prune
+    fGenerator->GenerateCaptureMoves(fBoard);
     std::vector<U32> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
+    //std::cout << "Generated " << captureMoves.size() << " captures for colour " << (int)fBoard->GetColorToMove() << "\n";
     OrderMoves(captureMoves);
 
     for(U32 move : captureMoves) {
         fBoard->MakeMove(move);
-        eval = -SearchAllCaptures(-alpha, -beta);
+        std::pair<float, int> result = SearchAllCaptures(-alpha, -beta);
+        eval = -result.first;
+        nMovesSearched += result.second;
         fBoard->UndoMove();
         if(eval >= beta)
-            return beta;
+            return std::make_pair(alpha, nMovesSearched);
         alpha = std::max(alpha, eval);
     }
-    return alpha;
+    return std::make_pair(alpha, nMovesSearched);
 }
 
 std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     // Return the evaluation up to depth [depth] and the number of moves explicitly searched
-    if(depth == 0)
-        return std::make_pair(Evaluate(), 1); // SearchAllCaptures(alpha, beta)
+    if(depth == 0) //  ...(Evaluate(), 1) 
+        return SearchAllCaptures(alpha, beta); //std::make_pair(Evaluate(), 1); 
 
     int movesSearched = 0;
     fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
     std::vector<U32> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
+    //std::cout << "Depth: " << depth << " Moves: " << moves.size() << "\n";
 
     Color movingColor = fBoard->GetColorToMove(); // These can change on recursive calls
     Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
@@ -162,6 +196,8 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     OrderMoves(moves);
     for(U32 move : moves) { // Search through all the possible moves
         fBoard->MakeMove(move);
+        //std::cout << "Depth = " << fMaxDepth - depth << " ";
+        //fBoard->PrintDetailedMove(move);
         std::pair<float, int> result = Minimax(depth - 1, -beta, -alpha);
         float evaluation = -result.first;
         movesSearched += result.second;
@@ -187,6 +223,8 @@ U32 Engine::GetBestMove(bool verbose) {
     OrderMoves(moves);
     for(U32 move : moves) { // this loop accounts for one order of depth already
         fBoard->MakeMove(move);
+        //std::cout << "Depth: " << 0 << " ";  
+        //fBoard->PrintDetailedMove(move);
         std::pair<float, int> result = Minimax(fMaxDepth - 1, -99999., 99999.);
         fBoard->UndoMove();
         float eval = result.first;

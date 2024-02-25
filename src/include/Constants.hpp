@@ -263,7 +263,7 @@ inline U64 get_file(U64 position) {
     return FILES[fileIndex];
 }
 
-inline int get_file_number(U64 position) {
+inline int get_file_number(U64 position) { // Returns in the range [1,8]
     return 8 - (get_LSB(position) % 8);
 }
 

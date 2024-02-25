@@ -33,6 +33,11 @@ class Generator {
         */
         void GenerateLegalMoves(const std::unique_ptr<Board> &board);
         /**
+         * @brief Generates all legal moves involving a capture in the current position.
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateCaptureMoves(const std::unique_ptr<Board> &board);
+        /**
          * @brief Get the legal moves from the last move generation.
          * @return Reference to the fLegalMoves vector.
         */
@@ -82,7 +87,6 @@ class Generator {
     private:
         std::vector<U32> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
         std::vector<U32> fCaptureMoves; ///< The legal capturing moves available. Updated on call to GenerateLegalMoves.
-
         /**
          * @brief Generate attack tables for faster lookup during move generation.
         */
@@ -129,6 +133,21 @@ class Generator {
          * @param board The board configuration to generate moves for.
         */
         void GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the pseudo-legal capturing moves for a given position and append to the fLegalMoves vector.
+         * @param board The board configuration to generate moves for.
+        */
+        void GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Generate the en-passant moves and append to fCaptureMoves
+         * @param board The board configuration to generate moves for.
+        */
+        void GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &board);
+        /**
+         * @brief Remove illegal capturing moves (i.e. absolute pins, etc)
+         * @param board The board configuration to generate moves for.
+        */
+        void RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board); // TODO: These appened to fLegalMoves
         /**
          * @brief Generate the pseudo-legal moves for the king.
          * @param board The board configuration to generate moves for.
@@ -200,7 +219,7 @@ class Generator {
          * @brief Remove moves from the fLegalMoves vector that do not resolve the check when the king is in check.
          * @param board The board configuration to generate moves for.
         */
-        void PruneCheckMoves(const std::unique_ptr<Board> &board);
+        void PruneCheckMoves(const std::unique_ptr<Board> &board, const bool copyToCapures);
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.
@@ -216,6 +235,7 @@ class Generator {
 
         // Variables to use when generating moves, helps reduce number of function calls
         Color fColor; ///< The colour of the piece to move for the provided board configuration when generating legal moves is called.
+        U64 fEnemy; ///< Occupancy bit board of the color not to move.
         Color fOtherColor; ///< The colour who has just moved.
         U64 fOccupancy; ///< Total occupancy of the board represented as a single bitboard for ray occupancy calculations.
         U64 fKing; ///< Position of the king whose colour it is to move.

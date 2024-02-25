@@ -265,6 +265,11 @@ U64 Board::GetBoard(const Color color, const Piece piece) {
     return color == Color::White ? fBoards[(int)piece - 1] : fBoards[(int)piece + 5];
 }
 
+U64 Board::GetBoard(const Piece piece) {
+    // Assumes you want the color to move's board for the presiding piece
+    return fColorToMove == Color::White ? fBoards[(int)piece - 1] : fBoards[(int)piece + 5];
+}
+
 U64* Board::GetBoardPointer(const Color color, const Piece piece) {
     return color == Color::White ? &fBoards[(int)piece - 1] : &fBoards[(int)piece + 5];
 }
@@ -409,20 +414,32 @@ void Board::PrintDetailedMove(U32 move) {
 
     if(takenPiece != Piece::Null && piece != Piece::Pawn) {
         moveStr += "x";
-        moveStr += fileChar;
-        moveStr += std::to_string(rank);
     } else if(takenPiece != Piece::Null && piece == Piece::Pawn) {
         moveStr += get_file_char(get_file_number(origin));
         moveStr += "x";
-        moveStr += fileChar;
-        moveStr += std::to_string(rank);
-    } else if(takenPiece == Piece::Null) {
-        moveStr += fileChar;
-        moveStr += std::to_string(rank);
     }
+    moveStr += fileChar;
+    moveStr += std::to_string(rank);
 
     // if(checking the king)
     // add a "+"
 
     std::cout << moveStr << "\n";
+}
+
+float Board::GetEndgameWeight() { // TODO: implement me
+    // Get the nummber of major pieces from the color not to move
+    const Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
+    const float scaleFactor = 4.62837;
+
+    const U8 nKnights = CountSetBits(GetBoard(otherColor, Piece::Knight));
+    const U8 nBishops = CountSetBits(GetBoard(otherColor, Piece::Bishop));
+    const U8 nQueens = CountSetBits(GetBoard(otherColor, Piece::Rook));
+    const U8 nRooks = CountSetBits(GetBoard(otherColor, Piece::Queen));
+    const U8 nPawns = CountSetBits(GetBoard(otherColor, Piece::Pawn));
+
+    const U8 total = nKnights + nBishops + nQueens + nRooks + nPawns;
+    float weight = 1 / total + 1; // Avoid division by zero issue
+
+    return ((1 / (1 + std::exp(-weight))) - 0.515) * scaleFactor; // Maps the value into the range 0-1 (the Sigmoid function)
 }
