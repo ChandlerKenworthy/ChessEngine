@@ -136,8 +136,8 @@ constexpr int MIN_MOVES_FOR_CASTLING = 6;
 constexpr int MIN_MOVES_FOR_ENPASSANT = 3;
 
 const float VALUE_PAWN = 100.; // centi-pawn value
-const float VALUE_BISHOP = 300.;
-const float VALUE_KNIGHT = 300.;
+const float VALUE_BISHOP = 330.;
+const float VALUE_KNIGHT = 320.;
 const float VALUE_ROOK = 500.;
 const float VALUE_QUEEN = 900.;
 const float VALUE_KING = 99999.;
@@ -263,7 +263,7 @@ inline U64 get_file(U64 position) {
     return FILES[fileIndex];
 }
 
-inline int get_file_number(U64 position) {
+inline int get_file_number(U64 position) { // Returns in the range [1,8]
     return 8 - (get_LSB(position) % 8);
 }
 
