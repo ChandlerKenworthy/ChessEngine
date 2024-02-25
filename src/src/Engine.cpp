@@ -4,7 +4,7 @@
 
 #include "Engine.hpp"
 
-Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board) : fGenerator(generator), fBoard(board), fMaxDepth(2) {
+Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxDepth(maxDepth) {
 
 }
 

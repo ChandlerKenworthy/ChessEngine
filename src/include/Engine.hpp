@@ -29,7 +29,7 @@ class Engine {
          * @brief Instantiate a new Engine class.
          * @param depth The maximum search depth of the engine.
         */
-        explicit Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board);
+        explicit Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth);
 
 
         /***

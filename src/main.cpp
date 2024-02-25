@@ -16,7 +16,8 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             int &perftDepth,
                             int &playSelf,
                             Color &userColor,
-                            std::string &fenString) {
+                            std::string &fenString,
+                            int &maxDepth) {
     for(uint i = 0; i < args.size(); i++) {
         std::string arg = args[i];
         if(!arg.compare("--no-gui")) {
@@ -35,6 +36,8 @@ bool ProcessCommandLineArgs(const std::vector<std::string>& args,
             playSelf = std::stoi(args[i+i]);
         } else if(!arg.compare("--color")) {
             userColor = !args[i+1].compare("black") ? Color::Black : Color::White; // TODO: Catch if this is not a valid
+        } else if(!arg.compare("--depth")) {
+            maxDepth = std::stoi(args[i+1]);
         }
     }
 
@@ -51,6 +54,7 @@ void DisplayHelp() {
               << "  --fen <fen>         Specify an initial position for the engine to perform perft tests or play against using the standard FEN notation.\n"
               << "  --play              Play a game of user versus the computer. The engine will play the best move.\n"
               << "  --play-self <n>     Make the computer play against itself n times and print the outcomes.\n"
+              << "  --depth <n>         The maximum depth the computer should search to, exponentially increases runtime.\n"
               << "  --verbose           Prints every move generated at the highest search depth when performing a perft test.\n"
               << "  --color <colour>    Specify the colour of the human player e.g. \"white\" or \"black\". If not provided will default to white.\n\n"
               << "Examples:\n"
@@ -58,7 +62,7 @@ void DisplayHelp() {
               << "  ChessEngine --play\n";
 }
 
-void PlaySelf(int nGames) {
+void PlaySelf(int nGames, int depth) {
     int whiteWins = 0;
     int blackWins = 0;
     int stalemates = 0;
@@ -67,7 +71,7 @@ void PlaySelf(int nGames) {
 
     const std::unique_ptr<Board> board = std::make_unique<Board>();
     const std::unique_ptr<Generator> generator = std::make_unique<Generator>();
-    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board);
+    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, depth);
 
     for(int iGame = 0; iGame < nGames; ++iGame) {
         board->Reset();
@@ -115,11 +119,11 @@ void PlaySelf(int nGames) {
     std::cout << "Draws by insufficient material: " << materialDraw << "\n";
 }
 
-void Play(const std::string &fen, Color userColor) {
+void Play(const std::string &fen, Color userColor, int depth) {
     const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initalise the main game board (game state handling)
     const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(); // For handling the GUI
     const std::unique_ptr<Generator> generator = std::make_unique<Generator>();
-    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board);
+    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, depth);
 
     // If the FEN exists load the board with the FEN
     if(fen.size() > 0)
@@ -172,12 +176,13 @@ int main(int argc, char* argv[]) {
     bool helpRequested = false;
     bool doFinePrint = false;
     int perftDepth = 0;
+    int maxDepth = 4;
     int playSelf = 0;
     Color userColor = Color::White;
     std::string fenString = "";
 
     std::vector<std::string> args(argv, argv + argc);
-    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, doFinePrint, perftDepth, playSelf, userColor, fenString);
+    ProcessCommandLineArgs(args, useGUI, doGame, helpRequested, doFinePrint, perftDepth, playSelf, userColor, fenString, maxDepth);
 
     if(helpRequested) {
         DisplayHelp();
@@ -186,9 +191,9 @@ int main(int argc, char* argv[]) {
         unsigned long int result = myTest.GetNodes(perftDepth, fenString, doFinePrint);
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {
-        Play(fenString, userColor);
+        Play(fenString, userColor, maxDepth);
     } else if(playSelf != 0) {
-        PlaySelf(playSelf);
+        PlaySelf(playSelf, maxDepth);
     } else {
         U64 rook = RANK_6 & FILE_H;
         PrintBitset(rook);
