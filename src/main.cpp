@@ -168,6 +168,7 @@ void Play(const std::string &fen, Color userColor, int depth) {
         }
 
         std::cout << "Game terminated normally in state " << (int)board->GetState() << "\n";
+        board->PrintFEN();
         gui->CloseWindow();
     }
 }
@@ -198,15 +199,10 @@ int main(int argc, char* argv[]) {
     } else if(playSelf != 0) {
         PlaySelf(playSelf, maxDepth);
     } else {
-        U64 rook = RANK_6 & FILE_H;
-        PrintBitset(rook);
+        std::unique_ptr<Board> board = std::make_unique<Board>();
 
-        std::cout << get_LSB(rook) << std::endl;
-
-        std::cout << get_LSB(RANK_8 & FILE_A) << std::endl;
-        std::cout << get_LSB(RANK_1 & FILE_A) << std::endl;
-        std::cout << get_LSB(RANK_1 & FILE_H) << std::endl;
-        std::cout << get_LSB(RANK_2 & FILE_A) << std::endl;
+        board->LoadFEN("r1b1kb1r/pppp1ppp/5q2/4n3/3KP3/2N3PN/PPP4P/R1BQ1B1R b kq - 0 1");
+        board->PrintFEN();
     }
     return 0;
 }

@@ -443,3 +443,102 @@ float Board::GetEndgameWeight() { // TODO: implement me
 
     return ((1 / (1 + std::exp(-weight))) - 0.515) * scaleFactor; // Maps the value into the range 0-1 (the Sigmoid function)
 }
+
+void Board::PrintFEN() const {
+    std::ostringstream fen;
+    // Piece placement
+    for(int i = 7; i >= 0; --i) {
+        U64 rank = RANKS[i]; // Get the bitboard for the current rank
+        int emptySquares = 0;
+        for(U64 file : FILES) {
+            U64 square = file & rank;
+            char piece = ' ';
+            if (fBoards[0] & square) piece = 'P';
+            else if (fBoards[2] & square) piece = 'N';
+            else if (fBoards[1] & square) piece = 'B';
+            else if (fBoards[3] & square) piece = 'R';
+            else if (fBoards[4] & square) piece = 'Q';
+            else if (fBoards[5] & square) piece = 'K';
+            else if (fBoards[6] & square) piece = 'p';
+            else if (fBoards[8] & square) piece = 'n';
+            else if (fBoards[7] & square) piece = 'b';
+            else if (fBoards[9] & square) piece = 'r';
+            else if (fBoards[10] & square) piece = 'q';
+            else if (fBoards[11] & square) piece = 'k';
+
+            if (piece != ' ') {
+                if (emptySquares > 0) {
+                    fen << emptySquares;
+                    emptySquares = 0;
+                }
+                fen << piece;
+            } else {
+                ++emptySquares;
+            }
+
+        }
+        if (emptySquares > 0) {
+            fen << emptySquares;
+        }
+        if(get_rank_number(rank) > 1) {
+            fen << '/';
+        }
+    }
+
+    // Side to move
+    fen << ' ' << (fColorToMove == Color::White ? 'w' : 'b');
+
+    // Other FEN fields (castling rights, en passant target square, halfmove clock, fullmove number)
+    std::vector<char> castlingChars{};
+    if(fWhiteKingMoved == 0) {
+        if(fWhiteKingsideRookMoved == 0) {
+            castlingChars.push_back('K');
+        }
+        if(fWhiteQueensideRookMoved == 0) {
+            castlingChars.push_back('Q');
+        } 
+    }
+    if(fBlackKingMoved == 0) {
+        if(fBlackKingsideRookMoved == 0) {
+            castlingChars.push_back('k');
+        }
+        if(fBlackQueensideRookMoved == 0) {
+            castlingChars.push_back('q');
+        } 
+    }
+
+    if(castlingChars.size() > 0) {
+        fen << ' ';
+        for(char c : castlingChars) {
+            fen << c;
+        }
+    }
+
+    // Available en-passant
+    bool wasEnPassant = false;
+    if(fMadeMoves.size() > 0) {
+        U32 move = fMadeMoves.back();
+        const U64 origin = GetMoveOrigin(move);
+        const U64 target = GetMoveTarget(move);
+        bool wasPawn = GetMovePiece(move) == Piece::Pawn;
+        bool doubleForward = ((fColorToMove == Color::White) && (origin & RANK_7) && (target & RANK_5)) || ((fColorToMove == Color::Black) && (origin & RANK_2) && (target & RANK_4));
+        bool captureAvailable = (fColorToMove == Color::White ? fBoards[(int)Piece::Pawn - 1] : fBoards[(int)Piece::Pawn + 5]) & (east(target) | west(target));
+        if(wasPawn && doubleForward && captureAvailable) {
+            int offset = fColorToMove == Color::White ? 1 : -1;
+            fen << get_file_char(origin) << get_rank_number(target) + offset;
+            wasEnPassant = true;
+        }
+    }
+
+    if(!wasEnPassant)
+        fen << ' ' << '-';
+
+    // Add the half-move clock
+    fen << ' ' << fHalfMoves << ' ';
+
+    // Add the full move count
+    int nFullMoves = (int)(fMadeMoves.size() / 2); // Always rounds down
+    fen << nFullMoves;
+
+    std::cout << fen.str() << "\n";
+}
