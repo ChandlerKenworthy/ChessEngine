@@ -7,6 +7,7 @@
 #define BOARD_HPP
 
 #include <vector>
+#include <cmath>
 #include <string>
 #include <cctype>
 #include <numeric>
