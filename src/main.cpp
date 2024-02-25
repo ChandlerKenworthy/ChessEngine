@@ -139,8 +139,8 @@ void Play(const std::string &fen, Color userColor, int depth) {
             }
         }
         // For now, don't use GUI do it all in the command line - later use a GUI
+        generator->GenerateLegalMoves(board);
         while(board->GetState() == State::Play) {
-            generator->GenerateLegalMoves(board);
             U32 move{0};
             if(board->GetColorToMove() == userColor) {
                 // Human player chooses a move
@@ -162,6 +162,9 @@ void Play(const std::string &fen, Color userColor, int depth) {
 
             // Update the GUI
             gui->Update(board);
+
+            // Updates checkmate states to potentially get an early exit
+            generator->GenerateLegalMoves(board);
         }
 
         std::cout << "Game terminated normally in state " << (int)board->GetState() << "\n";
