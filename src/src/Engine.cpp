@@ -5,16 +5,25 @@
 #include "Engine.hpp"
 
 Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxDepth(maxDepth) {
-
+    fEvaluationCache.clear();
 }
 
 
 float Engine::Evaluate() {
+    // See if we have evaluated this board before (via a transposition)
+    // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
+    U64 thisHash = fBoard->GetHash();
+    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+
+    auto it = fEvaluationCache.find(thisHash);
+    if(it != fEvaluationCache.end()) {
+        return it->second * perspective;
+    }
+
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation();
-
     //evaluation += ForceKingToCornerEndgame();
-    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+    fEvaluationCache[thisHash] = evaluation;
     return evaluation * perspective; // Return in centipawns rather than pawns
 }
 
