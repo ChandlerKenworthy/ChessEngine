@@ -225,15 +225,15 @@ constexpr U64 PRIMARY_DIAGONAL = 0x8040201008040201; // top left to bottom right
 constexpr U64 SECONDARY_DIAGONAL = 0x0102040810204080; // top right to bottom left
 constexpr U64 EDGES = RANK_1 | RANK_8 | FILE_A | FILE_H;
 
-constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; }; // Automatically handle overflows
-constexpr U64 east(U64 b) { return (b & ~FILE_H) >> 1; }; // Automatically handle overflows
-constexpr U64 north(U64 b) { return (b & ~RANK_8) << 8; }; // Automatically handle overflows
-constexpr U64 south(U64 b) { return (b & ~RANK_1) >> 8; }; // Automatically handle overflows
+constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; } // Automatically handle overflows
+constexpr U64 east(U64 b) { return (b & ~FILE_H) >> 1; } // Automatically handle overflows
+constexpr U64 north(U64 b) { return (b & ~RANK_8) << 8; } // Automatically handle overflows
+constexpr U64 south(U64 b) { return (b & ~RANK_1) >> 8; } // Automatically handle overflows
 
-constexpr U64 south_east(U64 b) { return (b & ~FILE_H) >> 9; };
-constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; };
-constexpr U64 south_west(U64 b) { return (b & ~FILE_A) >> 7; };
-constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; };
+constexpr U64 south_east(U64 b) { return (b & ~FILE_H) >> 9; }
+constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; }
+constexpr U64 south_west(U64 b) { return (b & ~FILE_A) >> 7; }
+constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; }
 
 const U64 KING_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_F | FILE_G);
 const U64 QUEEN_SIDE_CASTLING_MASK_WHITE = RANK_1 & (FILE_C | FILE_D);

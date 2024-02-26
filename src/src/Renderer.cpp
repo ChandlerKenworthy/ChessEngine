@@ -23,7 +23,7 @@ void Renderer::Update(const std::unique_ptr<Board> &board) {
     fWindow->clear();
     DrawChessBoard(board);
     fWindow->display();
-};
+}
 
 U64 Renderer::GetClickedSquare(sf::Event &event) {
     float x = event.mouseButton.x;
@@ -92,7 +92,7 @@ void Renderer::DrawChessBoard(const std::unique_ptr<Board> &board) {
     DrawPieces(board, Piece::Bishop);
     DrawPieces(board, Piece::Knight);
     DrawPieces(board, Piece::Pawn);
-};
+}
 
 void Renderer::DrawPieces(const std::unique_ptr<Board> &board, Piece piece) {
     // Rooks, bishops, knights, pawns (or queens due to possible promotion)
@@ -165,7 +165,7 @@ void Renderer::DrawChessPiece(const Piece piece, const Color color, const int ra
 
     // Draw the piece on the window
     fWindow->draw(pieceSprite);
-};
+}
 
 U32 Renderer::ReadUserMove() const {
     // Simply read in user moves in the format "[ORIGIN] [TARGET]" e.g. "c2 h3"
