@@ -2,15 +2,18 @@
 
 #include "Board.hpp"
 
-Board::Board() {
+Board::Board() : fPawnPhase(0), fKnightPhase(1), fBishopPhase(1), fRookPhase(2), fQueenPhase(4) {
     Reset();
+    fTotalPhase = fPawnPhase*16 + fKnightPhase*4 + fBishopPhase*4 + fRookPhase*4 + fQueenPhase*2;
 }
 
-Board::Board(const Board& other) {
+Board::Board(const Board& other) : fPawnPhase(0), fKnightPhase(1), fBishopPhase(1), fRookPhase(2), fQueenPhase(4) {
     // Copy over the bitboards
     for(int iBoard = 0; iBoard < 12; ++iBoard) {
         this->fBoards[iBoard] = other.fBoards[iBoard];
     }
+
+    this->fTotalPhase = other.fTotalPhase;
 
     // Copy over the game state variables
     this->fUnique = other.fUnique;
@@ -427,21 +430,16 @@ void Board::PrintDetailedMove(U32 move) {
     std::cout << moveStr << "\n";
 }
 
-float Board::GetEndgameWeight() { // TODO: implement me
-    // Get the nummber of major pieces from the color not to move
-    const Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
-    const float scaleFactor = 4.62837;
-
-    const U8 nKnights = CountSetBits(GetBoard(otherColor, Piece::Knight));
-    const U8 nBishops = CountSetBits(GetBoard(otherColor, Piece::Bishop));
-    const U8 nQueens = CountSetBits(GetBoard(otherColor, Piece::Rook));
-    const U8 nRooks = CountSetBits(GetBoard(otherColor, Piece::Queen));
-    const U8 nPawns = CountSetBits(GetBoard(otherColor, Piece::Pawn));
-
-    const U8 total = nKnights + nBishops + nQueens + nRooks + nPawns;
-    float weight = 1 / total + 1; // Avoid division by zero issue
-
-    return ((1 / (1 + std::exp(-weight))) - 0.515) * scaleFactor; // Maps the value into the range 0-1 (the Sigmoid function)
+float Board::GetGamePhase() {
+    // Setup such that the initial game state has a phase of 0 and the endgame (K v K+P) = 1
+    // Gets the number of each piece of material and subtracts from phase
+    float phase = fTotalPhase;
+    phase -= __builtin_popcountll(fBoards[0] | fBoards[6]) * fPawnPhase; // pawns
+    phase -= __builtin_popcountll(fBoards[1] | fBoards[7]) * fBishopPhase; // bishops
+    phase -= __builtin_popcountll(fBoards[2] | fBoards[8]) * fKnightPhase; // knights
+    phase -= __builtin_popcountll(fBoards[3] | fBoards[9]) * fRookPhase; // rook
+    phase -= __builtin_popcountll(fBoards[4] | fBoards[10]) * fQueenPhase; // queen
+    return std::min(std::max(phase / fTotalPhase, (float)0.0), (float)1.0);
 }
 
 void Board::PrintFEN() const {
