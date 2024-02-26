@@ -130,7 +130,7 @@ enum class Piece {
     King,   ///< King piece.
 };
 
-const float MAX_EVAL = 99999.0;
+constexpr float MAX_EVAL = 99999.0;
 
 constexpr int NSQUARES = 64;
 constexpr int BITS_PER_FILE = 8;
