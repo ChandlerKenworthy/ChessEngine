@@ -17,6 +17,7 @@ float Engine::Evaluate() {
 
     auto it = fEvaluationCache.find(thisHash);
     if(it != fEvaluationCache.end()) {
+        fNHashesFound++;
         return it->second * perspective;
     }
 
@@ -231,6 +232,7 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
 }
 
 U32 Engine::GetBestMove(bool verbose) {
+    fNHashesFound = 0;
     auto start = std::chrono::high_resolution_clock::now();
     U32 bestMove{0};
     Color colorToMove = fBoard->GetColorToMove();
@@ -263,7 +265,7 @@ U32 Engine::GetBestMove(bool verbose) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     if(verbose) {
         std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-        std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+        std::cout << "Evaluated: " << nMovesSearched << " positions (" << fNHashesFound << " hashes used)\n";
     }
     return bestMove;
 }

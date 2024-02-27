@@ -44,6 +44,7 @@ class Engine {
         int GetMaxDepth() { return fMaxDepth; };
         U32 GetBestMove(bool verbose);
     private:
+        int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
         Color fOtherColor;
