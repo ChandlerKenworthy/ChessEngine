@@ -3,6 +3,9 @@
 
 #include <iostream>
 #include <string>
+#include <cstdint>
+#include <array>
+#include <random>
 #include <vector>
 #include <bitset>
 
@@ -418,5 +421,22 @@ inline Piece GetPieceFromChar(char c) {
 }
 
 const std::vector<Piece> PIECES = {Piece::Pawn, Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen, Piece::King}; ///< Vector of all the piece types for easy iterations
+
+// Zobrist hasing
+constexpr int NUM_PIECE_TYPES = 13; // Number of different piece types (including empty square)
+constexpr int NUM_SQUARES = 64; // Number of squares on the board
+
+struct ZobristKeys {
+    std::array<std::array<U64, NUM_PIECE_TYPES>, NUM_SQUARES> pieceKeys;
+    std::array<U64, 2> sideToMoveKey;
+    std::array<U64, 4> castlingKeys; // Whether the player can or cannot castle. White = [0,3] black = [4,7]. Then goes kingside/queenside, yes/no e.g. WKY, WQY, WKN, WQN.
+    U64 enPassantKey;
+};
+
+inline U64 GetRandomKey() {
+    static std::mt19937_64 rng(std::random_device{}());
+    static std::uniform_int_distribution<U64> dist;
+    return dist(rng);
+}
 
 #endif
