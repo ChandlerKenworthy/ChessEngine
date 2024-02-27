@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <unordered_map>
 
 #include "Constants.hpp"
 #include "Board.hpp"
@@ -43,9 +44,11 @@ class Engine {
         int GetMaxDepth() { return fMaxDepth; };
         U32 GetBestMove(bool verbose);
     private:
+        int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
         Color fOtherColor;
+        std::unordered_map<U64, float> fEvaluationCache;
         float fGamePhase;
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board

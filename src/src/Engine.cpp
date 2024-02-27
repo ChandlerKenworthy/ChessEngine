@@ -5,16 +5,27 @@
 #include "Engine.hpp"
 
 Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxDepth(maxDepth) {
-
+    fEvaluationCache.clear();
 }
 
 
 float Engine::Evaluate() {
     fGamePhase = fBoard->GetGamePhase();
+    // See if we have evaluated this board before (via a transposition)
+    // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
+    U64 thisHash = fBoard->GetHash();
+    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+
+    auto it = fEvaluationCache.find(thisHash);
+    if(it != fEvaluationCache.end()) {
+        fNHashesFound++;
+        return it->second * perspective;
+    }
+
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation();
     evaluation += ForceKingToCornerEndgame();
-    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+    fEvaluationCache[thisHash] = evaluation;
     return evaluation * perspective; // Return in centipawns rather than pawns
 }
 
@@ -225,6 +236,7 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
 }
 
 U32 Engine::GetBestMove(bool verbose) {
+    fNHashesFound = 0;
     auto start = std::chrono::high_resolution_clock::now();
     U32 bestMove{0};
     Color colorToMove = fBoard->GetColorToMove();
@@ -257,7 +269,7 @@ U32 Engine::GetBestMove(bool verbose) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     if(verbose) {
         std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-        std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+        std::cout << "Evaluated: " << nMovesSearched << " positions (" << fNHashesFound << " hashes used)\n";
     }
     return bestMove;
 }

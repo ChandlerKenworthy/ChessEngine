@@ -205,7 +205,12 @@ class Board {
          * @brief Creates and prints the FEN of the current board to the console.
         */
         void PrintFEN() const;
+        /**
+         * @brief Calculates a semi-unique hash using the Zobrist keys previously generated for the current board state.
+        */
+        U64 GetHash();
     private:
+        ZobristKeys fKeys; ///< Struct to hold keys for Zobrist board hashing.
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, bishop, knight, rook, queen, king)
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
         // Move tracking
@@ -238,6 +243,10 @@ class Board {
          * @brief Set all internal bitboards describing the chess board to zero (empty boards)
         */
         void EmptyBoards();
+        /**
+         * @brief Fill the arrays for the Zobrist key hashing. Randomly generates keys using a hardware generated seed.
+        */
+        void InitZobristKeys();
 };
 
 #endif
