@@ -25,10 +25,7 @@ constexpr U32 CHECK_MASK = 1 << 26;
  * @return The bitboard with the bit set at the move origin.
 */
 inline U64 GetMoveOrigin(U32 move) {
-    U64 origin = 0;
-    int lsb = move & ORIGIN_MASK; // Get the first 6-bits only
-    set_bit(origin, lsb);
-    return origin;
+    return 1ULL << (move & ORIGIN_MASK);
 }
 
 /**
@@ -37,7 +34,7 @@ inline U64 GetMoveOrigin(U32 move) {
  * @param origin The origin position of the move. Must be a single set bit.
 */
 inline void SetMoveOrigin(U32 &move, U64 origin) {
-    int lsb = get_LSB(origin);
+    int lsb = __builtin_ctzll(origin);
     move &= ~ORIGIN_MASK;        // Clear the first 6 bits
     move |= (lsb & ORIGIN_MASK); // Set the first 6 bits based on the LSB
 }
@@ -48,10 +45,7 @@ inline void SetMoveOrigin(U32 &move, U64 origin) {
  * @return The bitboard with the bit set at the move target.
 */
 inline U64 GetMoveTarget(U32 move) {
-    U64 target = 0;
-    int lsb = (move >> 6) & ORIGIN_MASK; // Get bits 7-12
-    set_bit(target, lsb);
-    return target;
+    return 1ULL << ((move >> 6) & ORIGIN_MASK);
 }
 
 /**
@@ -60,7 +54,7 @@ inline U64 GetMoveTarget(U32 move) {
  * @param origin The target position of the move. Must be a single set bit.
 */
 inline void SetMoveTarget(U32 &move, U64 origin) {
-    int lsb = get_LSB(origin);
+    int lsb = __builtin_ctzll(origin);
     move &= ~TARGET_MASK; // Clear the first 7-12 bits
     move |= ((lsb & ORIGIN_MASK) << 6); // Set bits 7-12 based on the new value
 }
@@ -98,10 +92,7 @@ inline void SetMoveColor(U32 &move, Color color) {
 
 inline Piece GetMoveTakenPiece(U32 move) {
     int numPiece = (move >> 14) & 0b111;
-    Piece piece = Piece::Null;
-    if(numPiece < 7)
-        piece = static_cast<Piece>(numPiece);
-    return piece;
+    return numPiece < 7 ? static_cast<Piece>(numPiece) : Piece::Null;
 } 
 
 inline void SetMoveTakenPiece(U32 &move, Piece piece) {

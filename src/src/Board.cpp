@@ -133,12 +133,12 @@ void Board::UndoMove() {
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const uint8_t targetLSB = get_LSB(target);
+    const uint8_t targetLSB = __builtin_ctzll(target);
 
     U64 *origin = GetBoardPointer(movingColor, movedPiece);
     
     // Set piece back at the starting position
-    set_bit(*origin, get_LSB(start));
+    set_bit(*origin, __builtin_ctzll(start));
 
     // Clear the piece at the target position
     clear_bit(*origin, targetLSB);
@@ -150,7 +150,7 @@ void Board::UndoMove() {
         if(GetMoveIsEnPassant(move)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
             // crossing of the origin RANK and target FILE = taken piece position 
-            set_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
+            set_bit(*targ, __builtin_ctzll(get_rank(start) & get_file(target)));
         } else {
             set_bit(*targ, targetLSB); // Put the piece back
             if(takenPiece == Piece::Rook) { // Rook being taken counts as a move for the rook if not moved before
@@ -170,13 +170,13 @@ void Board::UndoMove() {
         U64 targRank = movingColor == Color::White ? RANK_1 : RANK_8;
         // See where the origin was (that tells us which rook needs moving and to where)
         if(target & FILE_G) { // Kingside white castling (rook h1 -> f1)
-            set_bit(*rook, get_LSB(targRank & FILE_H));
-            clear_bit(*rook, get_LSB(targRank & FILE_F));
+            set_bit(*rook, __builtin_ctzll(targRank & FILE_H));
+            clear_bit(*rook, __builtin_ctzll(targRank & FILE_F));
             movingColor == Color::White ? fWhiteKingsideRookMoved-- : fBlackKingsideRookMoved--;          
         // Don't need to check rank, implicitly done by GetMoveIsCastling(move)
         } else if(target & FILE_C) {  // Queenside white castling (rook a1 -> d1)
-            set_bit(*rook, get_LSB(targRank & FILE_A));
-            clear_bit(*rook, get_LSB(targRank & FILE_D));
+            set_bit(*rook, __builtin_ctzll(targRank & FILE_A));
+            clear_bit(*rook, __builtin_ctzll(targRank & FILE_D));
             movingColor == Color::White ? fWhiteQueensideRookMoved-- : fBlackQueensideRookMoved--;
         }
     }
@@ -221,11 +221,11 @@ void Board::MakeMove(const U32 move) {
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const uint8_t targetLSB = get_LSB(target);
+    const uint8_t targetLSB = __builtin_ctzll(target);
     U64 *origin = GetBoardPointer(fColorToMove, movedPiece);
     
     // Remove piece from the starting position
-    clear_bit(*origin, get_LSB(start));
+    clear_bit(*origin, __builtin_ctzll(start));
 
     // Set the piece at the new position
     set_bit(*origin, targetLSB);
@@ -235,7 +235,7 @@ void Board::MakeMove(const U32 move) {
         U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, takenPiece);
         // Check, move could be en-passant
         if(GetMoveIsEnPassant(move)) {
-            clear_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
+            clear_bit(*targ, __builtin_ctzll(get_rank(start) & get_file(target)));
         } else {
             clear_bit(*targ, targetLSB);
             if(takenPiece == Piece::Rook) { // Taking the rook counts as it "moving" so no castling available
@@ -254,20 +254,20 @@ void Board::MakeMove(const U32 move) {
         U64 *rook = GetBoardPointer(fColorToMove, Piece::Rook);
         // See where the origin was (that tells us which rook needs moving and to where)
         if(target & SQUARE_G1) { // Kingside white castling (rook h1 -> f1)
-            clear_bit(*rook, get_LSB(SQUARE_H1));
-            set_bit(*rook, get_LSB(SQUARE_F1));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_H1));
+            set_bit(*rook, __builtin_ctzll(SQUARE_F1));
             fWhiteKingsideRookMoved++;
         } else if(target & SQUARE_C1) {  // Queenside white castling (rook a1 -> d1)
-            clear_bit(*rook, get_LSB(SQUARE_A1));
-            set_bit(*rook, get_LSB(SQUARE_D1));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_A1));
+            set_bit(*rook, __builtin_ctzll(SQUARE_D1));
             fWhiteQueensideRookMoved++;
         } else if(target & SQUARE_G8) { // Kingside black castling
-            clear_bit(*rook, get_LSB(SQUARE_H8));
-            set_bit(*rook, get_LSB(SQUARE_F8));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_H8));
+            set_bit(*rook, __builtin_ctzll(SQUARE_F8));
             fBlackKingsideRookMoved++;
         } else if(target & SQUARE_C8) { // Queenside black castling
-            clear_bit(*rook, get_LSB(SQUARE_A8));
-            set_bit(*rook, get_LSB(SQUARE_D8));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_A8));
+            set_bit(*rook, __builtin_ctzll(SQUARE_D8));
             fBlackQueensideRookMoved++;
         }
     }
