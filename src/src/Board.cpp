@@ -307,7 +307,7 @@ void Board::MakeMove(const U32 move) {
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
-    uint8_t offset = color == Color::White ? -1 : 5;
+    U8 offset = color == Color::White ? -1 : 5;
     for(Piece p : PIECES) {
         if(fBoards[(int)p + offset] & occupiedPosition)
             return fBoards[(int)p + offset];
@@ -316,8 +316,8 @@ U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
 }
 
 U64 Board::GetBoard(const Color color) {
-    uint8_t startOffset = color == Color::White ? 0 : 6;
-    uint8_t endOffset = startOffset + 6;
+    const U8 startOffset = color == Color::White ? 0 : 6;
+    const U8 endOffset = startOffset + 6;
     return std::accumulate(fBoards + startOffset, fBoards + endOffset, 0ULL, std::bit_or<U64>());
 }
 
@@ -435,9 +435,8 @@ void Board::LoadFEN(const std::string &fen) {
 std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     for (int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
-            // We already know the mapping e.g. 0 = pawn, knight, bishop, rook, queen, king (white, black)
-            uint8_t pieceIndex = iBoard >= 6 ? iBoard - 5 : iBoard + 1; // Must fall in range 1--6 (inclusive)
-            Piece pieceType = static_cast<Piece>(pieceIndex);
+            // We already know the mapping e.g. 0 = pawn, bishop, knight, rook, queen, king (white, black)
+            Piece pieceType = static_cast<Piece>(iBoard >= 6 ? iBoard - 5 : iBoard + 1);
             return std::make_pair(iBoard < 6 ? Color::White : Color::Black, pieceType);
         }
     }
@@ -446,11 +445,10 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
 
 std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
     // Similar to GetIsOccupied(pos) but only searches the boards of the provided color
-    uint8_t offset = color == Color::White ? 0 : 6;
+    U8 offset = color == Color::White ? 0 : 6;
     for (int iBoard = offset; iBoard < offset + 6; iBoard++) {
         if(pos & fBoards[iBoard]) {
-            uint8_t pieceIndex = iBoard >= 6 ? iBoard - 5 : iBoard + 1; // Must fall in range 1--6 (inclusive)
-            Piece pieceType = static_cast<Piece>(pieceIndex);
+            Piece pieceType = static_cast<Piece>(iBoard >= 6 ? iBoard - 5 : iBoard + 1);
             return std::make_pair(color, pieceType);
         }
     }
