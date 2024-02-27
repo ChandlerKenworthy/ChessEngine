@@ -15,7 +15,7 @@ void Board::InitZobristKeys() {
     }
     fKeys.sideToMoveKey[0] = GetRandomKey(); // White to move
     fKeys.sideToMoveKey[1] = GetRandomKey(); // Black to move
-    for(int i = 0; i < 8; ++i) {
+    for(int i = 0; i < 4; ++i) {
         fKeys.castlingKeys[i] = GetRandomKey();
     }
     fKeys.enPassantKey = GetRandomKey();
@@ -25,53 +25,34 @@ U64 Board::GetHash() {
     U64 hash = 0;
 
     // Piece placement
-    for(U64 rank : RANKS) {
-        for(U64 file : FILES) {
-            U64 square = rank & file;
-            std::pair<Color, Piece> occupation = GetIsOccupied(square);
+    for(int i = 0; i < NSQUARES; ++i) {
+        U64 square = 1ULL << i;
+        std::pair<Color, Piece> occupation = GetIsOccupied(square);
 
-            if(occupation.second != Piece::Null) {
-                // Piece is in range [1,6], then add zero for white or 6 for black
-                hash ^= fKeys.pieceKeys[get_LSB(square)][(int)occupation.second + (occupation.first == Color::White ? 0 : 6)];
-            }
+        if(occupation.second != Piece::Null) {
+            // Piece is in range [1,6], then add zero for white or 6 for black
+            hash ^= fKeys.pieceKeys[__builtin_ctzll(square)][(int)occupation.second + (occupation.first == Color::White ? 0 : 6)];
         }
     }
     // Side to move
     hash ^= fKeys.sideToMoveKey[(int)fColorToMove];
+
     // Castling rights
     bool wKingside = fWhiteKingsideRookMoved == 0;
     bool bKingside = fBlackKingsideRookMoved == 0;
     bool wQueenside = fWhiteQueensideRookMoved == 0;
     bool bQueenside = fBlackQueensideRookMoved == 0;
     if(fWhiteKingMoved == 0) {
-        if(wKingside) {
+        if(wKingside)
             hash ^= fKeys.castlingKeys[0];
-        } else {
-            hash ^= fKeys.castlingKeys[2];
-        }
-        if(wQueenside) {
+        if(wQueenside)
             hash ^= fKeys.castlingKeys[1];
-        } else {
-            hash ^= fKeys.castlingKeys[3];
-        }
-    } else { // No castling rights
-        hash ^= fKeys.castlingKeys[2];
-        hash ^= fKeys.castlingKeys[3];
     }
-    if(fBlackKingMoved == 0) { // No castling rights
-        if(bKingside) {
-            hash ^= fKeys.castlingKeys[4];
-        } else {
-            hash ^= fKeys.castlingKeys[6];
-        }
-        if(bQueenside) {
-            hash ^= fKeys.castlingKeys[5];
-        } else {
-            hash ^= fKeys.castlingKeys[7];
-        }
-    } else {
-        hash ^= fKeys.castlingKeys[6];
-        hash ^= fKeys.castlingKeys[7];
+    if(fBlackKingMoved == 0) {
+        if(bKingside)
+            hash ^= fKeys.castlingKeys[2];
+        if(bQueenside)
+            hash ^= fKeys.castlingKeys[3];
     }
 
     // En passant square

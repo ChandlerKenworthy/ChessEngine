@@ -429,7 +429,7 @@ constexpr int NUM_SQUARES = 64; // Number of squares on the board
 struct ZobristKeys {
     std::array<std::array<U64, NUM_PIECE_TYPES>, NUM_SQUARES> pieceKeys;
     std::array<U64, 2> sideToMoveKey;
-    std::array<U64, 8> castlingKeys; // Whether the player can or cannot castle. White = [0,3] black = [4,7]. Then goes kingside/queenside, yes/no e.g. WKY, WQY, WKN, WQN.
+    std::array<U64, 4> castlingKeys; // Whether the player can or cannot castle. White = [0,3] black = [4,7]. Then goes kingside/queenside, yes/no e.g. WKY, WQY, WKN, WQN.
     U64 enPassantKey;
 };
 
