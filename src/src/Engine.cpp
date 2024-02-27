@@ -13,8 +13,8 @@ float Engine::Evaluate() {
     fGamePhase = fBoard->GetGamePhase();
     // See if we have evaluated this board before (via a transposition)
     // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
-    U64 thisHash = fBoard->GetHash();
-    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+    const U64 thisHash = fBoard->GetHash();
+    const int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
 
     auto it = fEvaluationCache.find(thisHash);
     if(it != fEvaluationCache.end()) {
