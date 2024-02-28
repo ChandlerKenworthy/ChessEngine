@@ -42,7 +42,7 @@ class Engine {
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U32 GetBestMove(bool verbose);
+        U32 GetBestMove(const bool verbose, const float timeLimit); ///< Time limit in milliseconds
     private:
         int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
@@ -154,6 +154,7 @@ class Engine {
 
         //std::random_device fRandomDevice;
         int fMaxDepth;
+        //const short fCutOffDepth;
 
         /**
          * @brief Search until no more captures are available.

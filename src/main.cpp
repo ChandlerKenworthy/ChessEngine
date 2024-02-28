@@ -7,6 +7,7 @@
 #include "Test.hpp"
 
 const std::string VERSION = "v1.6.1";
+const float TIME_CAP = 500.0; // 0.5 s
 
 bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             bool &useGUI,
@@ -86,7 +87,7 @@ void PlaySelf(int nGames, int depth) {
 
             U32 move{0};
             if(board->GetColorToMove() == Color::White) {
-                move = engine->GetBestMove(false); 
+                move = engine->GetBestMove(false, TIME_CAP); 
             } else {
                 move = engine->GetRandomMove(); // For now black is a random agent
             }
@@ -139,11 +140,11 @@ void Play(const std::string &fen, Color userColor, int depth) {
             }
         }
         // For now, don't use GUI do it all in the command line - later use a GUI
-        generator->GenerateLegalMoves(board);
         while(board->GetState() == State::Play) {
             U32 move{0};
             if(board->GetColorToMove() == userColor) {
                 // Human player chooses a move
+                generator->GenerateLegalMoves(board);
                 move = gui->ReadUserMove(); // Reads the users console input and translates into a move
                 while(!generator->GetMoveIsLegal(move)) { // Protection against illegal user moves
                     std::cout << "[Warning] Illegal move entered. Please enter a valid move.\n";
@@ -152,7 +153,7 @@ void Play(const std::string &fen, Color userColor, int depth) {
             } else {
                 // Compcuter chooses a move
                 //move = engine->GetRandomMove();
-                move = engine->GetBestMove(true);
+                move = engine->GetBestMove(true, TIME_CAP);
                 // Print out the move to the console
                 board->PrintDetailedMove(move);
             }

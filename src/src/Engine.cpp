@@ -209,21 +209,19 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     int movesSearched = 0;
     fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
     std::vector<U32> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
-    //std::cout << "Depth: " << depth << " Moves: " << moves.size() << "\n";
 
     Color movingColor = fBoard->GetColorToMove(); // These can change on recursive calls
     Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
     if(moves.size() == 0) {
         if(fGenerator->IsUnderAttack(fBoard->GetBoard(movingColor, Piece::King), otherColor, fBoard))
-            return std::make_pair(movingColor == Color::White ? -MAX_EVAL/depth : MAX_EVAL/depth, movesSearched); // Checkmate loss, always chose the fastest path to mate
+            // Checkmate loss, always chose the fastest path to mate
+            return std::make_pair(movingColor == Color::White ? -MAX_EVAL : MAX_EVAL, movesSearched);
         return std::make_pair(0., movesSearched); // Stalemate
     } 
     // For speed up, order the generated moves each iteration
     OrderMoves(moves);
     for(U32 move : moves) { // Search through all the possible moves
         fBoard->MakeMove(move);
-        //std::cout << "Depth = " << fMaxDepth - depth << " ";
-        //fBoard->PrintDetailedMove(move);
         std::pair<float, int> result = Minimax(depth - 1, -beta, -alpha);
         float evaluation = -result.first;
         movesSearched += result.second;
@@ -235,6 +233,57 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     return std::make_pair(alpha, movesSearched);
 }
 
+U32 Engine::GetBestMove(const bool verbose, const float timeLimit) {
+    fNHashesFound = 0; // Count the number of times we use a previous result from the transposition table
+    U32 bestMove = 0; // Store the best move to return, null moves represented as 0
+    Color colorToMove = fBoard->GetColorToMove();
+    // If white is playing the worst eval is -999 (i.e. black completely winning)
+    float bestEval = colorToMove == Color::White ? -MAX_EVAL : MAX_EVAL;
+    int depthReached = 0;
+    int nMovesSearched = 0; // Count the number of unique positions searched
+
+    // Start the high resolution timer for a time-capped search
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Perform iterative deepening until time limit is reached (or reaching the depth limiter to preserve CPU)
+    for(int depth = 1; ; ++depth) {
+        auto current = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(current - start);
+        //std::cout << "Depth is " << depth << " time elapsed is " << elapsed.count() << " ms\n";
+        if (elapsed.count() >= timeLimit) { // Time limit in milliseconds
+            break; // Time limit reached, stop searching
+        }
+        fGenerator->GenerateLegalMoves(fBoard);
+        std::vector<U32> moves = fGenerator->GetLegalMoves();
+        OrderMoves(moves);
+        for(U32 move : moves) { // One level of depth is traversed in this loop
+            fBoard->MakeMove(move);
+            std::pair<float, int> result = Minimax(depth - 1, -MAX_EVAL, MAX_EVAL);
+            fBoard->UndoMove();
+            float eval = result.first;
+            nMovesSearched += result.second;
+            if ((colorToMove == Color::White && eval > bestEval) || // Remove = to always prefer faster paths to mate
+                (colorToMove == Color::Black && eval < bestEval)) {
+                bestEval = eval;
+                bestMove = move;
+            }
+        }
+        depthReached = depth;
+    }
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    if(verbose) {
+        std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
+        std::cout << "Evaluated: " << nMovesSearched << " positions (" << fNHashesFound << " hashes used)\n";
+        std::cout << "Depth reached: " << depthReached << "\n";
+        std::cout << "Evaluation: " << bestEval << "\n";
+    }
+
+    return bestMove;
+}
+
+/*
 U32 Engine::GetBestMove(bool verbose) {
     fNHashesFound = 0;
     auto start = std::chrono::high_resolution_clock::now();
@@ -273,6 +322,7 @@ U32 Engine::GetBestMove(bool verbose) {
     }
     return bestMove;
 }
+*/
 
 U32 Engine::GetRandomMove() {   
     std::random_device seeder;
