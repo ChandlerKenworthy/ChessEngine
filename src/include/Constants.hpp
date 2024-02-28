@@ -43,15 +43,6 @@ inline bool get_bit(U64 b, int i) {
 }
 
 /**
- * @brief Get the least significant set bit in the 64-bit number.
- * @param b The 64-bit integer to search.
- * @return The integer position of the LSB.
-*/
-inline int get_LSB(U64 b) {
-    return __builtin_ctzll(b);
-}
-
-/**
  * @brief Get the most significant set bit in the 64-bit number.
  * @param b The 64-bit integer to search.
  * @return The integer position of the MSB.
@@ -133,6 +124,8 @@ enum class Piece {
     King,   ///< King piece.
 };
 
+constexpr float MAX_EVAL = 99999.0;
+
 constexpr int NSQUARES = 64;
 constexpr int BITS_PER_FILE = 8;
 constexpr int MIN_MOVES_FOR_CASTLING = 6;
@@ -149,7 +142,7 @@ const float PIECE_VALUES[7] = {0., VALUE_PAWN, VALUE_BISHOP, VALUE_KNIGHT, VALUE
 const std::vector<Piece> PROMOTION_PIECES = {Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen};
 
 inline int pop_LSB(U64 &b) {
-    int i = get_LSB(b);
+    int i = __builtin_ctzll(b);
     b &= b - 1;
     return i;
 }
@@ -253,21 +246,21 @@ inline int CountSetBits(U64 number) {
 }
 
 inline U64 get_rank(U64 position) {
-    U8 rankIndex = get_LSB(position) / 8;
+    U8 rankIndex = __builtin_ctzll(position) / 8;
     return RANKS[rankIndex];
 }
 
 inline int get_rank_number(U64 position) {
-    return (get_LSB(position) / 8) + 1; 
+    return (__builtin_ctzll(position) / 8) + 1; 
 }
 
 inline U64 get_file(U64 position) {
-    U8 fileIndex = 7 - (get_LSB(position) % 8);
+    U8 fileIndex = 7 - (__builtin_ctzll(position) % 8);
     return FILES[fileIndex];
 }
 
 inline int get_file_number(U64 position) { // Returns in the range [1,8]
-    return 8 - (get_LSB(position) % 8);
+    return 8 - (__builtin_ctzll(position) % 8);
 }
 
 inline U64 get_rank_from_number(int n) {
