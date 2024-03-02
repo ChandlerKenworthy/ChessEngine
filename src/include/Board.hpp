@@ -206,13 +206,13 @@ class Board {
         */
         void PrintFEN() const;
         /**
-         * @brief Get the type of piece being moved for the specified move.
+         * @brief Get the type of piece at the ORIGIN of the specified move for the current board. (Assumes move has not happened).
          * @param move The move.
          * @return The piece type being moved.
         */
         Piece GetMovePiece(const U16 move) const;
         /**
-         * @brief Get the type of piece being taken for the specified move.
+         * @brief Get the type of piece being taken for the specified move. I.e. queries what is at TARGET. (Assumes move has not happened).
          * @param move The move.
          * @return The piece type being taken, null if no piece is taken.
         */
@@ -223,7 +223,12 @@ class Board {
          * @param targetIsNull True if the tile being moved to when this move is happening is occupied by the null piece.
          * @return True if the move is en-passant.
         */
-        bool GetMoveIsEnPassant(const U16 move, const bool targetIsNull) const;
+        bool GetMoveIsEnPassant(const U16 move, const Piece movedPiece, const bool targetIsNull) const;
+        /**
+         * @brief Get the type of the last piece moved.
+         * @return The type of piece last moved.
+        */
+        Piece GetLastPieceMoved() { return fMovedPieces.back(); };
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.

@@ -73,9 +73,9 @@ Piece Board::GetMoveTakenPiece(const U16 move) const {
     return GetIsOccupied(target).second;
 }
 
-bool Board::GetMoveIsEnPassant(const U16 move, const bool targetIsNull) const {
-    // To be en-passant we must be moving a pawn
-    if(GetMovePiece(move) != Piece::Pawn)
+bool Board::GetMoveIsEnPassant(const U16 move, const Piece movedPiece, const bool targetIsNull) const {
+    // To be en-passant we must be moving a pawn -- assumes move has not yet happened!
+    if(movedPiece != Piece::Pawn)
         return false;
     
     const U64 origin = GetMoveOrigin(move);
@@ -120,7 +120,7 @@ void Board::UndoMove() {
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove, takenPiece);
         // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move, takenPiece == Piece::Null)) {
+        if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
             // crossing of the origin RANK and target FILE = taken piece position 
             set_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
@@ -209,7 +209,7 @@ void Board::MakeMove(const U16 move) {
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, takenPiece);
         // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move, takenPiece == Piece::Null)) {
+        if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
             clear_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
         } else {
             clear_bit(*targ, targetLSB);
@@ -437,6 +437,7 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) c
 }
 
 void Board::PrintDetailedMove(U16 move) {
+    // TODO: These functions don't work anymore
     U64 target = GetMoveTarget(move);
     U64 origin = GetMoveOrigin(move);
     Piece piece = GetMovePiece(move);
@@ -559,7 +560,7 @@ void Board::PrintFEN() const {
         U16 move = fMadeMoves.back();
         const U64 origin = GetMoveOrigin(move);
         const U64 target = GetMoveTarget(move);
-        wasEnPassant = GetMoveIsEnPassant(move, GetIsOccupied(target).second == Piece::Null);
+        wasEnPassant = GetMoveIsEnPassant(move, fMovedPieces.back(), fTakenPieces.back() == Piece::Null);
         if(wasEnPassant) {
             int offset = fColorToMove == Color::White ? 1 : -1;
             fen << get_file_char(origin) << get_rank_number(target) + offset;

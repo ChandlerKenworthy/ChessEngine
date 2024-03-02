@@ -265,7 +265,7 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsCastling(lastMove))
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove))
         return;
     // TODO: Add if last move was en-passant then early return  || board->GetMoveIsEnPassant(lastMove, ...)
 
@@ -322,7 +322,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
                     iMove--;
                 }
             }
-        } else if(board->GetMoveIsEnPassant(m, board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -639,7 +639,7 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
         return;
 
     U64 enPassantPawns = 0;
@@ -697,7 +697,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
                     iMove--;
                 }
             }
-        } else if(board->GetMoveIsEnPassant(m, board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -820,10 +820,11 @@ void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board, const bool 
         if (GetMoveIsCastling(move)) {
             continue; // Skip castling moves
         }
+        bool pieceIsKing = board->GetMovePiece(move) == Piece::King;
         board->MakeMove(move);
         U64 underAttack = GetAttacks(board, fColor == Color::White ? Color::Black : Color::White);
         // King may have moved so can't use fActiveKing
-        U64 newKing = board->GetMovePiece(move) == Piece::King ? board->GetBoard(fColor, Piece::King) : fKing;
+        U64 newKing = pieceIsKing ? board->GetBoard(fColor, Piece::King) : fKing;
         if(!(underAttack & newKing)) {
             validMoves.push_back(move); // Move is legal, add it to the vector
         }
