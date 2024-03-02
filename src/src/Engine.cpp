@@ -5,23 +5,32 @@
 #include "Engine.hpp"
 
 Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxDepth(maxDepth) {
-
+    fEvaluationCache.clear();
 }
 
 
 float Engine::Evaluate() {
+    fGamePhase = fBoard->GetGamePhase();
+    // See if we have evaluated this board before (via a transposition)
+    // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
+    const U64 thisHash = fBoard->GetHash();
+    const int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+
+    auto it = fEvaluationCache.find(thisHash);
+    if(it != fEvaluationCache.end()) {
+        fNHashesFound++;
+        return it->second * perspective;
+    }
+
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation();
-
-    //evaluation += ForceKingToCornerEndgame();
-    int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+    evaluation += ForceKingToCornerEndgame();
+    fEvaluationCache[thisHash] = evaluation;
     return evaluation * perspective; // Return in centipawns rather than pawns
 }
 
 float Engine::ForceKingToCornerEndgame() {
-    // Endgame weight is inversely proportional to the number of major pieces the opponent has
     float evaluation = 0.0;
-
     // Favour positions where the enemy king is in the corner of the board
     const U64 enemyKing = fBoard->GetBoard(fOtherColor, Piece::King);
     const U64 myKing = fBoard->GetBoard(Piece::King);
@@ -38,7 +47,7 @@ float Engine::ForceKingToCornerEndgame() {
     const int distBetweenKings = rankDist + fileDist;
     evaluation += (14 - distBetweenKings);
 
-    return 10.0 * fBoard->GetEndgameWeight() * evaluation;
+    return 10.0 * fGamePhase * evaluation;
 }
 
 float Engine::GetMaterialEvaluation() {
@@ -55,12 +64,17 @@ float Engine::GetMaterialEvaluation() {
 }
 
 float Engine::EvaluateKingPositions() {
-    // TODO: King should become active in the endgame
     float val = 0.;
     U64 white_king = fBoard->GetBoard(Color::White, Piece::King);
     U64 black_king = fBoard->GetBoard(Color::Black, Piece::King);
-    val += (VALUE_KING + fKingPosModifier[0][__builtin_ctzll(white_king)]);
-    val -= (VALUE_KING + fKingPosModifier[1][__builtin_ctzll(black_king)]);
+    float beginWhite = fKingPosModifier[0][__builtin_ctzll(white_king)];
+    float endWhite = fKingPosModifier[2][__builtin_ctzll(white_king)];
+
+    float beginBlack = fKingPosModifier[1][__builtin_ctzll(black_king)];
+    float endBlack = fKingPosModifier[3][__builtin_ctzll(black_king)];
+
+    val += (VALUE_KING + (beginWhite + (fGamePhase * (endWhite - beginWhite))));
+    val -= (VALUE_KING + (beginBlack + (fGamePhase * (endBlack - beginBlack))));
     return val;
 }
 
@@ -201,7 +215,7 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
     if(moves.size() == 0) {
         if(fGenerator->IsUnderAttack(fBoard->GetBoard(movingColor, Piece::King), otherColor, fBoard))
-            return std::make_pair(movingColor == Color::White ? -99999. : 99999., movesSearched); // Checkmate loss
+            return std::make_pair(movingColor == Color::White ? -MAX_EVAL/depth : MAX_EVAL/depth, movesSearched); // Checkmate loss, always chose the fastest path to mate
         return std::make_pair(0., movesSearched); // Stalemate
     } 
     // For speed up, order the generated moves each iteration
@@ -222,11 +236,12 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
 }
 
 U16 Engine::GetBestMove(bool verbose) {
+    fNHashesFound = 0;
     auto start = std::chrono::high_resolution_clock::now();
     U16 bestMove{0};
     Color colorToMove = fBoard->GetColorToMove();
     // If white is playing the worst eval is -999 (i.e. black completely winning)
-    float bestEval = colorToMove == Color::White ? -9999. : 9999.;
+    float bestEval = colorToMove == Color::White ? -MAX_EVAL : MAX_EVAL;
     int nMovesSearched = 0;
 
     // For each of the moves we want to find the "best" evaluation
@@ -237,7 +252,7 @@ U16 Engine::GetBestMove(bool verbose) {
         fBoard->MakeMove(move);
         //std::cout << "Depth: " << 0 << " ";  
         //fBoard->PrintDetailedMove(move);
-        std::pair<float, int> result = Minimax(fMaxDepth - 1, -99999., 99999.);
+        std::pair<float, int> result = Minimax(fMaxDepth - 1, -MAX_EVAL, MAX_EVAL);
         fBoard->UndoMove();
         float eval = result.first;
         nMovesSearched += result.second;
@@ -254,7 +269,7 @@ U16 Engine::GetBestMove(bool verbose) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     if(verbose) {
         std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-        std::cout << "Evaluated: " << nMovesSearched << " positions\n";
+        std::cout << "Evaluated: " << nMovesSearched << " positions (" << fNHashesFound << " hashes used)\n";
     }
     return bestMove;
 }

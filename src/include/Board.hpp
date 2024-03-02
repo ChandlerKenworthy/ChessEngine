@@ -200,7 +200,7 @@ class Board {
         /**
          * @brief Returns a value between 0 and 1. Higher values indiciate a position closer to the "endgame".
         */
-        float GetEndgameWeight();
+        float GetGamePhase();
         /**
          * @brief Creates and prints the FEN of the current board to the console.
         */
@@ -229,8 +229,13 @@ class Board {
          * @return The type of piece last moved.
         */
         Piece GetLastPieceMoved() { return fMovedPieces.back(); };
+        /**
+         * @brief Calculates a semi-unique hash using the Zobrist keys previously generated for the current board state.
+        */
+        U64 GetHash();
     private:
-        U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
+        ZobristKeys fKeys; ///< Struct to hold keys for Zobrist board hashing.
+        U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, bishop, knight, rook, queen, king)
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
         // Move tracking
         std::vector<U16> fMadeMoves; ///< Vector of moves made with the back of the vector being the last made move.
@@ -251,6 +256,14 @@ class Board {
         U64 fEnPassantFENTarget; ///< The tile in which an en-passant move is now available (as read from a FEN string)
         Color fColorToMove; ///< Current colour to make a move
 
+        // Variables for quickly calculating a rough game phase
+        const int fPawnPhase;
+        const int fKnightPhase;
+        const int fBishopPhase;
+        const int fRookPhase;
+        const int fQueenPhase;
+        float fTotalPhase;
+
         // Skipping functions
         bool fWasLoadedFromFEN; ///< Get if the board was loaded from FEN
 
@@ -258,6 +271,10 @@ class Board {
          * @brief Set all internal bitboards describing the chess board to zero (empty boards)
         */
         void EmptyBoards();
+        /**
+         * @brief Fill the arrays for the Zobrist key hashing. Randomly generates keys using a hardware generated seed.
+        */
+        void InitZobristKeys();
 };
 
 #endif

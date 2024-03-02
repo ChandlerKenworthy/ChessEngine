@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <unordered_map>
 
 #include "Constants.hpp"
 #include "Board.hpp"
@@ -43,32 +44,14 @@ class Engine {
         int GetMaxDepth() { return fMaxDepth; };
         U16 GetBestMove(bool verbose);
     private:
+        int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
         Color fOtherColor;
+        std::unordered_map<U64, float> fEvaluationCache;
+        float fGamePhase;
 
-        float fKingPosModifier[2][64] = {{
-            20, 30, 10,  0,  0, 10, 30, 20,
-            20, 20,  0,  0,  0,  0, 20, 20,
-            -10,-20,-20,-20,-20,-20,-20,-10,
-            -20,-30,-30,-40,-40,-30,-30,-20,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-        },
-        {
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -20,-30,-30,-40,-40,-30,-30,-20,
-            -10,-20,-20,-20,-20,-20,-20,-10,
-            20, 20,  0,  0,  0,  0, 20, 20,
-            20, 30, 10,  0,  0, 10, 30, 20
-        }};
-
-        float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
+        const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)
             -40,-20,  0,  5,  5,  0,-20,-40, // H2, ... A2
             -30,  5, 10, 15, 15, 10,  5,-30, // H3, ... A3
@@ -79,7 +62,7 @@ class Engine {
             -50,-40,-30,-30,-30,-30,-40,-50  // H8, ... A8
         };
 
-        float fQueenPosModifier[64] = { ///< Value modifier for the queen based on its position on the board
+        const float fQueenPosModifier[64] = { ///< Value modifier for the queen based on its position on the board
             -20,-10,-10, -5, -5,-10,-10,-20,
             -10,  0,  0,  0,  0,  0,  0,-10,
             -10,  0,  5,  5,  5,  5,  0,-10,
@@ -90,7 +73,7 @@ class Engine {
             -20,-10,-10, -5, -5,-10,-10,-20
         };
 
-        float fRookPosModifier[2][64] = {{ ///< Value modifier for the rook based on its position on the board, 0th for white, 1st for black
+        const float fRookPosModifier[2][64] = {{ ///< Value modifier for the rook based on its position on the board, 0th for white, 1st for black
             0,  0,  0,  5,  5,  0,  0,  0,
             -5,  0,  0,  0,  0,  0,  0, -5,
             -5,  0,  0,  0,  0,  0,  0, -5,
@@ -111,7 +94,7 @@ class Engine {
             0,  0,  0,  5,  5,  0,  0,  0
         }};
 
-        float fBishopPosModifier[2][64] = {{ ///< Value modifier for the bishop based on its position on the board
+        const float fBishopPosModifier[2][64] = {{ ///< Value modifier for the bishop based on its position on the board
             -20,-10,-10,-10,-10,-10,-10,-20,
             -10,  5,  0,  0,  0,  0,  5,-10,
             -10, 10, 10, 10, 10, 10, 10,-10,
@@ -131,7 +114,43 @@ class Engine {
             -20,-10,-10,-10,-10,-10,-10,-20,
         }};
 
-        //float fKingPosModifier[64]; ///< Value modifier for the king based on its position on the board
+        const float fKingPosModifier[4][64] = {{
+            20, 30, 10,  0,  0, 10, 30, 20,
+            20, 20,  0,  0,  0,  0, 20, 20,
+            -10,-20,-20,-20,-20,-20,-20,-10,
+            -20,-30,-30,-40,-40,-30,-30,-20,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+        },{
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -20,-30,-30,-40,-40,-30,-30,-20,
+            -10,-20,-20,-20,-20,-20,-20,-10,
+            20, 20,  0,  0,  0,  0, 20, 20,
+            20, 30, 10,  0,  0, 10, 30, 20
+        }, { // White endgame king, want it to be more active in the ultimate endgame
+            -10, -10, -10, -10, -10, -10, -10, -10,
+            -10, -5 , -5,-5,-5,-5,-5, -10,
+            -10, -5 , 5,5,5, 5, -5, -10,
+            -10, -5 , 5,20,20, 5, -5, -10,
+            -10, -5 , 5,20,20, 5, -5, -10,
+            -10, -5 , 5,5,5, 5, -5, -10,
+            -10, -5 ,-5,-5,-5,-5,-5, -10,
+            -10,-10,-10,-10,-10,-10,-10,-10,
+        }, {
+            -10, -10, -10, -10, -10, -10, -10, -10,
+            -10, -5 , -5,-5,-5,-5,-5, -10,
+            -10, -5 , 5,5,5, 5, -5, -10,
+            -10, -5 , 5,20,20, 5, -5, -10,
+            -10, -5 , 5,20,20, 5, -5, -10,
+            -10, -5 , 5,5,5, 5, -5, -10,
+            -10, -5 ,-5,-5,-5,-5,-5, -10,
+            -10,-10,-10,-10,-10,-10,-10,-10,
+        }}; ///< Value modifier for the king based on its position on the board 0 = white early game, 1 = black early game, 2 = white endgame, 3 = black endgame
 
         //std::random_device fRandomDevice;
         int fMaxDepth;

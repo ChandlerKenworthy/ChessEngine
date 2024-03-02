@@ -2,15 +2,75 @@
 
 #include "Board.hpp"
 
-Board::Board() {
+Board::Board() : fPawnPhase(0), fKnightPhase(1), fBishopPhase(1), fRookPhase(2), fQueenPhase(4) {
+    InitZobristKeys();
     Reset();
+    fTotalPhase = fPawnPhase*16 + fKnightPhase*4 + fBishopPhase*4 + fRookPhase*4 + fQueenPhase*2;
 }
 
-Board::Board(const Board& other) {
+void Board::InitZobristKeys() {
+    for (int i = 0; i < NUM_SQUARES; ++i) {
+        for(int j = 0; j < NUM_PIECE_TYPES; ++j) {
+            fKeys.pieceKeys[i][j] = GetRandomKey();
+        }
+    }
+    fKeys.sideToMoveKey[0] = GetRandomKey(); // White to move
+    fKeys.sideToMoveKey[1] = GetRandomKey(); // Black to move
+    for(int i = 0; i < 4; ++i) {
+        fKeys.castlingKeys[i] = GetRandomKey();
+    }
+    fKeys.enPassantKey = GetRandomKey();
+}
+
+U64 Board::GetHash() {
+    U64 hash = 0;
+
+    // Piece placement
+    for(int i = 0; i < NSQUARES; ++i) {
+        U64 square = 1ULL << i;
+        std::pair<Color, Piece> occupation = GetIsOccupied(square);
+
+        if(occupation.second != Piece::Null) {
+            // Piece is in range [1,6], then add zero for white or 6 for black
+            hash ^= fKeys.pieceKeys[__builtin_ctzll(square)][(int)occupation.second + (occupation.first == Color::White ? 0 : 6)];
+        }
+    }
+    // Side to move
+    hash ^= fKeys.sideToMoveKey[(int)fColorToMove];
+
+    // Castling rights
+    bool wKingside = fWhiteKingsideRookMoved == 0;
+    bool bKingside = fBlackKingsideRookMoved == 0;
+    bool wQueenside = fWhiteQueensideRookMoved == 0;
+    bool bQueenside = fBlackQueensideRookMoved == 0;
+    if(fWhiteKingMoved == 0) {
+        if(wKingside)
+            hash ^= fKeys.castlingKeys[0];
+        if(wQueenside)
+            hash ^= fKeys.castlingKeys[1];
+    }
+    if(fBlackKingMoved == 0) {
+        if(bKingside)
+            hash ^= fKeys.castlingKeys[2];
+        if(bQueenside)
+            hash ^= fKeys.castlingKeys[3];
+    }
+
+    // En passant square
+    //if (enPassantSquare != -1) {
+    //    hash ^= zobristKeys.enPassantKey;
+    //}
+
+    return hash;
+}
+
+Board::Board(const Board& other) : fPawnPhase(0), fKnightPhase(1), fBishopPhase(1), fRookPhase(2), fQueenPhase(4) {
     // Copy over the bitboards
     for(int iBoard = 0; iBoard < 12; ++iBoard) {
         this->fBoards[iBoard] = other.fBoards[iBoard];
     }
+
+    this->fTotalPhase = other.fTotalPhase;
 
     // Copy over the game state variables
     this->fUnique = other.fUnique;
@@ -107,11 +167,11 @@ void Board::UndoMove() {
     const Piece takenPiece = fTakenPieces.back();
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const U8 targetLSB = get_LSB(target);
+    const U8 targetLSB = __builtin_ctzll(target);
     U64 *origin = GetBoardPointer(movingColor, movedPiece);
     
     // Set piece back at the starting position
-    set_bit(*origin, get_LSB(start));
+    set_bit(*origin, __builtin_ctzll(start));
 
     // Clear the piece at the target position
     clear_bit(*origin, targetLSB);
@@ -123,7 +183,7 @@ void Board::UndoMove() {
         if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
             // crossing of the origin RANK and target FILE = taken piece position 
-            set_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
+            set_bit(*targ, __builtin_ctzll(get_rank(start) & get_file(target)));
         } else {
             set_bit(*targ, targetLSB); // Put the piece back
             if(takenPiece == Piece::Rook) { // Rook being taken counts as a move for the rook if not moved before
@@ -143,13 +203,13 @@ void Board::UndoMove() {
         U64 targRank = movingColor == Color::White ? RANK_1 : RANK_8;
         // See where the origin was (that tells us which rook needs moving and to where)
         if(target & FILE_G) { // Kingside white castling (rook h1 -> f1)
-            set_bit(*rook, get_LSB(targRank & FILE_H));
-            clear_bit(*rook, get_LSB(targRank & FILE_F));
+            set_bit(*rook, __builtin_ctzll(targRank & FILE_H));
+            clear_bit(*rook, __builtin_ctzll(targRank & FILE_F));
             movingColor == Color::White ? fWhiteKingsideRookMoved-- : fBlackKingsideRookMoved--;          
         // Don't need to check rank, implicitly done by GetMoveIsCastling(move)
         } else if(target & FILE_C) {  // Queenside white castling (rook a1 -> d1)
-            set_bit(*rook, get_LSB(targRank & FILE_A));
-            clear_bit(*rook, get_LSB(targRank & FILE_D));
+            set_bit(*rook, __builtin_ctzll(targRank & FILE_A));
+            clear_bit(*rook, __builtin_ctzll(targRank & FILE_D));
             movingColor == Color::White ? fWhiteQueensideRookMoved-- : fBlackQueensideRookMoved--;
         }
     }
@@ -196,18 +256,18 @@ void Board::MakeMove(const U16 move) {
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const U8 targetLSB = get_LSB(target);
+    const U8 targetLSB = __builtin_ctzll(target);
     U64 *origin = GetBoardPointer(fColorToMove, movedPiece);
     
     // Remove piece from the starting position
-    clear_bit(*origin, get_LSB(start));
+    clear_bit(*origin, __builtin_ctzll(start));
 
     // Set the piece at the new position
     set_bit(*origin, targetLSB);
 
     // Handle en-passant happening (the takenPiece counts as null)
     if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
-        clear_bit(*GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, Piece::Pawn), get_LSB(get_rank(start) & get_file(target)));
+        clear_bit(*GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, Piece::Pawn), __builtin_ctzll(get_rank(start) & get_file(target)));
     }
 
     // Handle pieces being taken
@@ -230,20 +290,20 @@ void Board::MakeMove(const U16 move) {
         U64 *rook = GetBoardPointer(fColorToMove, Piece::Rook);
         // See where the origin was (that tells us which rook needs moving and to where)
         if(target & SQUARE_G1) { // Kingside white castling (rook h1 -> f1)
-            clear_bit(*rook, get_LSB(SQUARE_H1));
-            set_bit(*rook, get_LSB(SQUARE_F1));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_H1));
+            set_bit(*rook, __builtin_ctzll(SQUARE_F1));
             fWhiteKingsideRookMoved++;
         } else if(target & SQUARE_C1) {  // Queenside white castling (rook a1 -> d1)
-            clear_bit(*rook, get_LSB(SQUARE_A1));
-            set_bit(*rook, get_LSB(SQUARE_D1));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_A1));
+            set_bit(*rook, __builtin_ctzll(SQUARE_D1));
             fWhiteQueensideRookMoved++;
         } else if(target & SQUARE_G8) { // Kingside black castling
-            clear_bit(*rook, get_LSB(SQUARE_H8));
-            set_bit(*rook, get_LSB(SQUARE_F8));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_H8));
+            set_bit(*rook, __builtin_ctzll(SQUARE_F8));
             fBlackKingsideRookMoved++;
         } else if(target & SQUARE_C8) { // Queenside black castling
-            clear_bit(*rook, get_LSB(SQUARE_A8));
-            set_bit(*rook, get_LSB(SQUARE_D8));
+            clear_bit(*rook, __builtin_ctzll(SQUARE_A8));
+            set_bit(*rook, __builtin_ctzll(SQUARE_D8));
             fBlackQueensideRookMoved++;
         }
     }
@@ -285,7 +345,7 @@ void Board::MakeMove(const U16 move) {
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
-    uint8_t offset = color == Color::White ? -1 : 5;
+    U8 offset = color == Color::White ? -1 : 5;
     for(Piece p : PIECES) {
         if(fBoards[(int)p + offset] & occupiedPosition)
             return fBoards[(int)p + offset];
@@ -294,8 +354,8 @@ U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
 }
 
 U64 Board::GetBoard(const Color color) {
-    uint8_t startOffset = color == Color::White ? 0 : 6;
-    uint8_t endOffset = startOffset + 6;
+    const U8 startOffset = color == Color::White ? 0 : 6;
+    const U8 endOffset = startOffset + 6;
     return std::accumulate(fBoards + startOffset, fBoards + endOffset, 0ULL, std::bit_or<U64>());
 }
 
@@ -415,9 +475,8 @@ void Board::LoadFEN(const std::string &fen) {
 std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) const {
     for (int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
-            // We already know the mapping e.g. 0 = pawn, knight, bishop, rook, queen, king (white, black)
-            uint8_t pieceIndex = iBoard >= 6 ? iBoard - 5 : iBoard + 1; // Must fall in range 1--6 (inclusive)
-            Piece pieceType = static_cast<Piece>(pieceIndex);
+            // We already know the mapping e.g. 0 = pawn, bishop, knight, rook, queen, king (white, black)
+            Piece pieceType = static_cast<Piece>(iBoard >= 6 ? iBoard - 5 : iBoard + 1);
             return std::make_pair(iBoard < 6 ? Color::White : Color::Black, pieceType);
         }
     }
@@ -426,11 +485,10 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) const {
 
 std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) const {
     // Similar to GetIsOccupied(pos) but only searches the boards of the provided color
-    uint8_t offset = color == Color::White ? 0 : 6;
+    U8 offset = color == Color::White ? 0 : 6;
     for (int iBoard = offset; iBoard < offset + 6; iBoard++) {
         if(pos & fBoards[iBoard]) {
-            uint8_t pieceIndex = iBoard >= 6 ? iBoard - 5 : iBoard + 1; // Must fall in range 1--6 (inclusive)
-            Piece pieceType = static_cast<Piece>(pieceIndex);
+            Piece pieceType = static_cast<Piece>(iBoard >= 6 ? iBoard - 5 : iBoard + 1);
             return std::make_pair(color, pieceType);
         }
     }
@@ -468,21 +526,16 @@ void Board::PrintDetailedMove(U16 move) {
     std::cout << moveStr << "\n";
 }
 
-float Board::GetEndgameWeight() { // TODO: implement me
-    // Get the nummber of major pieces from the color not to move
-    const Color otherColor = fColorToMove == Color::White ? Color::Black : Color::White;
-    const float scaleFactor = 4.62837;
-
-    const U8 nKnights = CountSetBits(GetBoard(otherColor, Piece::Knight));
-    const U8 nBishops = CountSetBits(GetBoard(otherColor, Piece::Bishop));
-    const U8 nQueens = CountSetBits(GetBoard(otherColor, Piece::Rook));
-    const U8 nRooks = CountSetBits(GetBoard(otherColor, Piece::Queen));
-    const U8 nPawns = CountSetBits(GetBoard(otherColor, Piece::Pawn));
-
-    const U8 total = nKnights + nBishops + nQueens + nRooks + nPawns;
-    float weight = 1 / total + 1; // Avoid division by zero issue
-
-    return ((1 / (1 + std::exp(-weight))) - 0.515) * scaleFactor; // Maps the value into the range 0-1 (the Sigmoid function)
+float Board::GetGamePhase() {
+    // Setup such that the initial game state has a phase of 0 and the endgame (K v K+P) = 1
+    // Gets the number of each piece of material and subtracts from phase
+    float phase = fTotalPhase;
+    phase -= __builtin_popcountll(fBoards[0] | fBoards[6]) * fPawnPhase; // pawns
+    phase -= __builtin_popcountll(fBoards[1] | fBoards[7]) * fBishopPhase; // bishops
+    phase -= __builtin_popcountll(fBoards[2] | fBoards[8]) * fKnightPhase; // knights
+    phase -= __builtin_popcountll(fBoards[3] | fBoards[9]) * fRookPhase; // rook
+    phase -= __builtin_popcountll(fBoards[4] | fBoards[10]) * fQueenPhase; // queen
+    return std::min(std::max(phase / fTotalPhase, (float)0.0), (float)1.0);
 }
 
 void Board::PrintFEN() const {
