@@ -73,7 +73,7 @@ Piece Board::GetMoveTakenPiece(const U16 move) const {
     return GetIsOccupied(target).second;
 }
 
-bool Board::GetMoveIsEnPassant(const U16 move) const {
+bool Board::GetMoveIsEnPassant(const U16 move, const bool targetIsNull) const {
     // To be en-passant we must be moving a pawn
     if(GetMovePiece(move) != Piece::Pawn)
         return false;
@@ -85,8 +85,8 @@ bool Board::GetMoveIsEnPassant(const U16 move) const {
     if(!((north_east(origin) | north_west(origin) | south_west(origin) | south_east(origin)) & target))
         return false;
 
-    // Square we land on must not be occupied by any other piece, only true for en-passant
-    if(GetIsOccupied(target).second == Piece::Null)
+    // TODO: Square we land on must not haveb been occupied by any other piece when the move was made, only true for en-passant
+    if(targetIsNull)
         return true;
 
     return false;
@@ -120,7 +120,7 @@ void Board::UndoMove() {
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove, takenPiece);
         // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move)) {
+        if(GetMoveIsEnPassant(move, takenPiece == Piece::Null)) {
             // special case old bit-board already re-instated need to put piece back in correct place now
             // crossing of the origin RANK and target FILE = taken piece position 
             set_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
@@ -209,7 +209,7 @@ void Board::MakeMove(const U16 move) {
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, takenPiece);
         // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move)) {
+        if(GetMoveIsEnPassant(move, takenPiece == Piece::Null)) {
             clear_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
         } else {
             clear_bit(*targ, targetLSB);
@@ -559,7 +559,7 @@ void Board::PrintFEN() const {
         U16 move = fMadeMoves.back();
         const U64 origin = GetMoveOrigin(move);
         const U64 target = GetMoveTarget(move);
-        wasEnPassant = GetMoveIsEnPassant(move);
+        wasEnPassant = GetMoveIsEnPassant(move, GetIsOccupied(target).second == Piece::Null);
         if(wasEnPassant) {
             int offset = fColorToMove == Color::White ? 1 : -1;
             fen << get_file_char(origin) << get_rank_number(target) + offset;

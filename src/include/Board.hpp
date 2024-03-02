@@ -220,9 +220,10 @@ class Board {
         /**
          * @brief Get if the move is an en-passant move.
          * @param move The move to check.
+         * @param targetIsNull True if the tile being moved to when this move is happening is occupied by the null piece.
          * @return True if the move is en-passant.
         */
-        bool GetMoveIsEnPassant(const U16 move) const;
+        bool GetMoveIsEnPassant(const U16 move, const bool targetIsNull) const;
     private:
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, knight, bishop, queen, king)
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.

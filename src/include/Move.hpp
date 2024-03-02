@@ -73,7 +73,7 @@ inline bool GetMoveIsPromotion(U16 move) {
 }
 
 inline Piece GetMovePromotionPiece(U16 move) {
-    U8 numPiece = move & PROMOTION_MASK;
+    U8 numPiece = (move & PROMOTION_MASK) >> 12;
     Piece piece = Piece::Null;
     if(numPiece < 7)
         piece = static_cast<Piece>(numPiece);

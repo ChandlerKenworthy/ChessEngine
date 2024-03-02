@@ -265,8 +265,9 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetMovePiece(lastMove) != Piece::Pawn || board->GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
+    if(board->GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsCastling(lastMove))
         return;
+    // TODO: Add if last move was en-passant then early return  || board->GetMoveIsEnPassant(lastMove, ...)
 
     U64 enPassantPawns = 0;
     U64 attackingPawns = board->GetBoard(fColor, Piece::Pawn);
@@ -306,21 +307,22 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
     for(int iMove = 0; iMove < (int)fCaptureMoves.size(); iMove++) {
         const U16 m = fCaptureMoves[iMove];
         const U64 moveOrigin = GetMoveOrigin(m);
+        const U64 moveTarget = GetMoveTarget(m);
         // King cant move to squares the opponent attacks
-        if((board->GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
+        if((board->GetMovePiece(m) == Piece::King) && (moveTarget & underAttack)) {
             fCaptureMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
             for(const std::pair<U64, U64> &pins : fPinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
-                if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                if((moveOrigin & pins.first) && (moveTarget & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
                     fCaptureMoves.erase(std::begin(fCaptureMoves) + iMove);
                     iMove--;
                 }
             }
-        } else if(board->GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -637,7 +639,7 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetMovePiece(lastMove) != Piece::Pawn || board->GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
+    if(board->GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
         return;
 
     U64 enPassantPawns = 0;
@@ -680,21 +682,22 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     for(int iMove = 0; iMove < (int)fLegalMoves.size(); iMove++) {
         const U16 m = fLegalMoves[iMove];
         const U64 moveOrigin = GetMoveOrigin(m);
+        const U64 moveTarget = GetMoveTarget(m);
         // King cant move to squares the opponent attacks
-        if((board->GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
+        if((board->GetMovePiece(m) == Piece::King) && (moveTarget & underAttack)) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
             for(const std::pair<U64, U64> &pins : fPinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
-                if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                if((moveOrigin & pins.first) && (moveTarget & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
                     fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
                     iMove--;
                 }
             }
-        } else if(board->GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -710,7 +713,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
                 int attackingRookBit = kingMSB < rookMSB ? 63 - rookMSB : __builtin_ctzll(rookOnRank);
                 U64 rook = 1ULL << attackingRookBit; // Again could be a queen but it doesn't matter, this is the one checking king if move happens
                 U64 rookShift = kingMSB < rookMSB ? east(rook) : west(rook);
-                U64 takenPawn = fColor == Color::White ? south(GetMoveTarget(m)) : north(GetMoveTarget(m));
+                U64 takenPawn = fColor == Color::White ? south(moveTarget) : north(moveTarget);
 
                 // Make a custom occupancy mask to cut the rook ray down
                 U64 mask = fKing | rook | rookShift;

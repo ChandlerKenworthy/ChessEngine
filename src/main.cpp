@@ -6,8 +6,6 @@
 #include "Engine.hpp"
 #include "Test.hpp"
 
-const std::string VERSION = "v1.6.1";
-
 bool ProcessCommandLineArgs(const std::vector<std::string>& args,
                             bool &useGUI,
                             bool &doGame,
@@ -205,8 +203,9 @@ int main(int argc, char* argv[]) {
         U16 move = 0;
         SetMove(move, o, t);
  
-        PrintBitset(t);
-        PrintBitset(GetMoveTarget(move));
+        SetMovePromotionPiece(move, Piece::Queen);
+        std::cout << "Promo piece: " << GetMoveIsPromotion(move) << "\n";
+        std::cout << "Promo piece: " << (int)GetMovePromotionPiece(move) << "\n";
     }
     return 0;
 }
