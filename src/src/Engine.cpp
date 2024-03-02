@@ -124,16 +124,16 @@ float Engine::EvaluateBishopPositions() {
     return val;
 }
 
-void Engine::OrderMoves(std::vector<U32> &moves) {
+void Engine::OrderMoves(std::vector<U16> &moves) {
     const U64 pawnAttacks = fGenerator->GetPawnAttacks(fBoard, false);
 
-    std::sort(moves.begin(), moves.end(), [&](U32 move1, U32 move2) {
+    std::sort(moves.begin(), moves.end(), [&](U16 move1, U16 move2) {
         float move1ScoreEstimate = 0.;
-        const int pieceType1 = (int)GetMovePiece(move1);
-        const int takenPieceType1 = (int)GetMoveTakenPiece(move1);
+        const int pieceType1 = (int)fBoard->GetMovePiece(move1);
+        const int takenPieceType1 = (int)fBoard->GetMoveTakenPiece(move1);
         float move2ScoreEstimate = 0.;
-        const int pieceType2 = (int)GetMovePiece(move2);
-        const int takenPieceType2 = (int)GetMoveTakenPiece(move2);
+        const int pieceType2 = (int)fBoard->GetMovePiece(move2);
+        const int takenPieceType2 = (int)fBoard->GetMoveTakenPiece(move2);
 
         // Prioritise capturing opponent's most valudable pieces with our least valuable piece
         if(takenPieceType1 != (int)Piece::Null)
@@ -169,11 +169,11 @@ std::pair<float, int> Engine::SearchAllCaptures(float alpha, float beta) {
     alpha = std::max(alpha, eval);
 
     fGenerator->GenerateCaptureMoves(fBoard);
-    std::vector<U32> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
+    std::vector<U16> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
     //std::cout << "Generated " << captureMoves.size() << " captures for colour " << (int)fBoard->GetColorToMove() << "\n";
     OrderMoves(captureMoves);
 
-    for(U32 move : captureMoves) {
+    for(U16 move : captureMoves) {
         fBoard->MakeMove(move);
         fBoard->PrintDetailedMove(move);
         std::pair<float, int> result = SearchAllCaptures(-alpha, -beta);
@@ -194,7 +194,7 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
 
     int movesSearched = 0;
     fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
-    std::vector<U32> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
+    std::vector<U16> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
     //std::cout << "Depth: " << depth << " Moves: " << moves.size() << "\n";
 
     Color movingColor = fBoard->GetColorToMove(); // These can change on recursive calls
@@ -206,7 +206,7 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     } 
     // For speed up, order the generated moves each iteration
     OrderMoves(moves);
-    for(U32 move : moves) { // Search through all the possible moves
+    for(U16 move : moves) { // Search through all the possible moves
         fBoard->MakeMove(move);
         //std::cout << "Depth = " << fMaxDepth - depth << " ";
         //fBoard->PrintDetailedMove(move);
@@ -221,19 +221,19 @@ std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
     return std::make_pair(alpha, movesSearched);
 }
 
-U32 Engine::GetBestMove(bool verbose) {
+U16 Engine::GetBestMove(bool verbose) {
     auto start = std::chrono::high_resolution_clock::now();
-    U32 bestMove{0};
+    U16 bestMove{0};
     Color colorToMove = fBoard->GetColorToMove();
     // If white is playing the worst eval is -999 (i.e. black completely winning)
     float bestEval = colorToMove == Color::White ? -9999. : 9999.;
     int nMovesSearched = 0;
 
     // For each of the moves we want to find the "best" evaluation
-    std::vector<U32> moves = fGenerator->GetLegalMoves();
+    std::vector<U16> moves = fGenerator->GetLegalMoves();
     // Order the moves for faster searching
     OrderMoves(moves);
-    for(U32 move : moves) { // this loop accounts for one order of depth already
+    for(U16 move : moves) { // this loop accounts for one order of depth already
         fBoard->MakeMove(move);
         //std::cout << "Depth: " << 0 << " ";  
         //fBoard->PrintDetailedMove(move);
@@ -259,9 +259,9 @@ U32 Engine::GetBestMove(bool verbose) {
     return bestMove;
 }
 
-U32 Engine::GetRandomMove() {   
+U16 Engine::GetRandomMove() {   
     std::random_device seeder;
     std::mt19937 engine(seeder());
-    std::uniform_int_distribution<U32> dist2(0, fGenerator->GetNLegalMoves() - 1);
+    std::uniform_int_distribution<U16> dist2(0, fGenerator->GetNLegalMoves() - 1);
     return fGenerator->GetMoveAt(dist2(engine));
 }

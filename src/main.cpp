@@ -84,7 +84,7 @@ void PlaySelf(int nGames, int depth) {
             if(generator->GetNLegalMoves() == 0)
                 break;
 
-            U32 move{0};
+            U16 move{0};
             if(board->GetColorToMove() == Color::White) {
                 move = engine->GetBestMove(false); 
             } else {
@@ -141,7 +141,7 @@ void Play(const std::string &fen, Color userColor, int depth) {
         // For now, don't use GUI do it all in the command line - later use a GUI
         generator->GenerateLegalMoves(board);
         while(board->GetState() == State::Play) {
-            U32 move{0};
+            U16 move{0};
             if(board->GetColorToMove() == userColor) {
                 // Human player chooses a move
                 move = gui->ReadUserMove(); // Reads the users console input and translates into a move
@@ -199,10 +199,14 @@ int main(int argc, char* argv[]) {
     } else if(playSelf != 0) {
         PlaySelf(playSelf, maxDepth);
     } else {
-        std::unique_ptr<Board> board = std::make_unique<Board>();
+        U64 o = RANK_4 & FILE_A;
+        U64 t = RANK_5 & FILE_A;
 
-        board->LoadFEN("r1b1kb1r/pppp1ppp/5q2/4n3/3KP3/2N3PN/PPP4P/R1BQ1B1R b kq - 0 1");
-        board->PrintFEN();
+        U16 move = 0;
+        SetMove(move, o, t);
+ 
+        PrintBitset(t);
+        PrintBitset(GetMoveTarget(move));
     }
     return 0;
 }

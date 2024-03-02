@@ -41,12 +41,12 @@ class Generator {
          * @brief Get the legal moves from the last move generation.
          * @return Reference to the fLegalMoves vector.
         */
-        std::vector<U32> GetLegalMoves() { return fLegalMoves; };
+        std::vector<U16> GetLegalMoves() { return fLegalMoves; };
         /**
          * @brief Get a reference to the vector of legal moves stored [warning: dangerous do not modify in place]
          * @return The legal moves vector.
         */
-        std::vector<U32>& GetLegalMoveRef() { return fLegalMoves; };
+        std::vector<U16>& GetLegalMoveRef() { return fLegalMoves; };
         /**
          * @brief Get the number of legal moves from the last move generation.
          * @return Number of legal moves. 
@@ -57,13 +57,13 @@ class Generator {
          * @param index The index to copy the move from.
          * @return The move at the specified index.
         */
-        U32 GetMoveAt(const U8 index) { return index < fLegalMoves.size() ? fLegalMoves.at(index) : 0; };
+        U16 GetMoveAt(const U8 index) { return index < fLegalMoves.size() ? fLegalMoves.at(index) : 0; };
         /**
          * @brief Get whether a provided move is legal. Will update the move word with extra information.
          * @param move The move to check.
          * @return True if the move is legal false otherwise.
         */
-        bool GetMoveIsLegal(U32 &move);
+        bool GetMoveIsLegal(U16 &move);
         /**
          * @brief Get whether any squares in the specified mask are under attack from the enemy. Does not account for pinned enemy pieces.
          * @param mask The mask of squares to check.
@@ -83,10 +83,10 @@ class Generator {
          * @brief Get all moves that are captures in the current set of legal moves.
          * @return Vector of legal capture moves.
         */
-        std::vector<U32> GetCaptureMoves() { return fCaptureMoves; };
+        std::vector<U16> GetCaptureMoves() { return fCaptureMoves; };
     private:
-        std::vector<U32> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
-        std::vector<U32> fCaptureMoves; ///< The legal capturing moves available. Updated on call to GenerateLegalMoves.
+        std::vector<U16> fLegalMoves; ///< The set of legal moves available upon the last call to GenerateLegalMoves.
+        std::vector<U16> fCaptureMoves; ///< The legal capturing moves available. Updated on call to GenerateLegalMoves.
         /**
          * @brief Generate attack tables for faster lookup during move generation.
         */
@@ -152,7 +152,7 @@ class Generator {
          * @brief Generate the pseudo-legal moves for the king.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateKingPseudoLegalMoves();
         /**
          * @brief Generate the pseudo-legal moves for all the knights.
          * @param board The board configuration to generate moves for.

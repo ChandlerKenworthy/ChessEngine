@@ -57,24 +57,57 @@ void Board::Reset() {
     fEnPassantFENTarget = 0;
     fColorToMove = Color::White;
 
+    fMovedPieces = {};
+    fTakenPieces = {};
+
     fMadeMoves.clear();
+}
+
+Piece Board::GetMovePiece(const U16 move) const {
+    const U64 origin = GetMoveOrigin(move);
+    return GetIsOccupied(origin).second;
+}
+
+Piece Board::GetMoveTakenPiece(const U16 move) const {
+    const U64 target = GetMoveTarget(move);
+    return GetIsOccupied(target).second;
+}
+
+bool Board::GetMoveIsEnPassant(const U16 move) const {
+    // To be en-passant we must be moving a pawn
+    if(GetMovePiece(move) != Piece::Pawn)
+        return false;
+    
+    const U64 origin = GetMoveOrigin(move);
+    const U64 target = GetMoveTarget(move);
+
+    // Move is diagonally forwards, regardless of colour
+    if(!((north_east(origin) | north_west(origin) | south_west(origin) | south_east(origin)) & target))
+        return false;
+
+    // Square we land on must not be occupied by any other piece, only true for en-passant
+    if(GetIsOccupied(target).second == Piece::Null)
+        return true;
+
+    return false;
 }
 
 void Board::UndoMove() {
     // Essentially just does the inverse of MakeMove
-    if(fMadeMoves.size() < 1)
+    if(fMadeMoves.size() < 1) {
         Reset(); // Cannot undo more moves than exist in the move tree
+        return;
+    }
+
     // Last move in the stack will be from player of opposing colour
-
     const Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
-    U32 move = fMadeMoves.back();
+    U16 move = fMadeMoves.back();
 
-    const Piece movedPiece = GetMovePiece(move);
-    const Piece takenPiece = GetMoveTakenPiece(move);
+    const Piece movedPiece = fMovedPieces.back(); // TODO: Doesn't work, as this references board "as is" so moved piece no longer at moved position
+    const Piece takenPiece = fTakenPieces.back();
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const uint8_t targetLSB = get_LSB(target);
-
+    const U8 targetLSB = get_LSB(target);
     U64 *origin = GetBoardPointer(movingColor, movedPiece);
     
     // Set piece back at the starting position
@@ -150,18 +183,20 @@ void Board::UndoMove() {
     if(movedPiece == Piece::Pawn || takenPiece != Piece::Null)
         fHalfMoves = 0;
 
+    fMovedPieces.pop_back();
+    fTakenPieces.pop_back();
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
     fUnique--;
 }
 
-void Board::MakeMove(const U32 move) {
+void Board::MakeMove(const U16 move) {
     const Piece movedPiece = GetMovePiece(move);
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const uint8_t targetLSB = get_LSB(target);
+    const U8 targetLSB = get_LSB(target);
     U64 *origin = GetBoardPointer(fColorToMove, movedPiece);
     
     // Remove piece from the starting position
@@ -243,6 +278,8 @@ void Board::MakeMove(const U32 move) {
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(move);
+    fMovedPieces.push_back(movedPiece);
+    fTakenPieces.push_back(takenPiece);
     fUnique++;
 }
 
@@ -271,6 +308,8 @@ U64 Board::GetBoard(const Piece piece) {
 }
 
 U64* Board::GetBoardPointer(const Color color, const Piece piece) {
+    if(piece == Piece::Null)
+        return nullptr;
     return color == Color::White ? &fBoards[(int)piece - 1] : &fBoards[(int)piece + 5];
 }
 
@@ -372,7 +411,7 @@ void Board::LoadFEN(const std::string &fen) {
     fBlackQueensideRookMoved = blackQueensideRookMoved;
 }
 
-std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) const {
     for (int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
             // We already know the mapping e.g. 0 = pawn, knight, bishop, rook, queen, king (white, black)
@@ -384,7 +423,7 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     return std::make_pair(Color::White, Piece::Null);
 }
 
-std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) const {
     // Similar to GetIsOccupied(pos) but only searches the boards of the provided color
     uint8_t offset = color == Color::White ? 0 : 6;
     for (int iBoard = offset; iBoard < offset + 6; iBoard++) {
@@ -397,7 +436,7 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
     return std::make_pair(color, Piece::Null);
 }
 
-void Board::PrintDetailedMove(U32 move) {
+void Board::PrintDetailedMove(U16 move) {
     U64 target = GetMoveTarget(move);
     U64 origin = GetMoveOrigin(move);
     Piece piece = GetMovePiece(move);
@@ -517,16 +556,13 @@ void Board::PrintFEN() const {
     // Available en-passant
     bool wasEnPassant = false;
     if(fMadeMoves.size() > 0) {
-        U32 move = fMadeMoves.back();
+        U16 move = fMadeMoves.back();
         const U64 origin = GetMoveOrigin(move);
         const U64 target = GetMoveTarget(move);
-        bool wasPawn = GetMovePiece(move) == Piece::Pawn;
-        bool doubleForward = ((fColorToMove == Color::White) && (origin & RANK_7) && (target & RANK_5)) || ((fColorToMove == Color::Black) && (origin & RANK_2) && (target & RANK_4));
-        bool captureAvailable = (fColorToMove == Color::White ? fBoards[(int)Piece::Pawn - 1] : fBoards[(int)Piece::Pawn + 5]) & (east(target) | west(target));
-        if(wasPawn && doubleForward && captureAvailable) {
+        wasEnPassant = GetMoveIsEnPassant(move);
+        if(wasEnPassant) {
             int offset = fColorToMove == Color::White ? 1 : -1;
             fen << get_file_char(origin) << get_rank_number(target) + offset;
-            wasEnPassant = true;
         }
     }
 

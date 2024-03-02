@@ -19,7 +19,7 @@ typedef unsigned long long U64;
  * 32-bit word representing a move. The first 6-bits (0-5) represent an integer [0,63] representing the least significant bit to set for the origin of the move. Bits (6-11) represent the LSB of the target. Bit 12 is whether the move took a piece (1 if it did). Bit 13 is the colour of the moving piece (1 for white). Bits 14-16 represent the type of the taken piece. Bit 17, 18 and 19 represent whether the move was en-passant, castling or promotion (1 for true, 0 for false). The last 3 bits (20-22) specify the promotional piece type. The last 9 bits are unused.
  */
 typedef uint32_t U32;
-
+typedef uint16_t U16;
 typedef uint8_t U8;
 
 constexpr U8 AVERAGE_MOVES_PER_POSITION{32};
