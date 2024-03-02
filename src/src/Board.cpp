@@ -205,24 +205,25 @@ void Board::MakeMove(const U16 move) {
     // Set the piece at the new position
     set_bit(*origin, targetLSB);
 
+    // Handle en-passant happening (the takenPiece counts as null)
+    if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
+        clear_bit(*GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, Piece::Pawn), get_LSB(get_rank(start) & get_file(target)));
+    }
+
     // Handle pieces being taken
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, takenPiece);
         // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
-            clear_bit(*targ, get_LSB(get_rank(start) & get_file(target)));
-        } else {
-            clear_bit(*targ, targetLSB);
-            if(takenPiece == Piece::Rook) { // Taking the rook counts as it "moving" so no castling available
-                if(target & SQUARE_H1) {
-                    fWhiteKingsideRookMoved++;
-                } else if(target & SQUARE_A1) {
-                    fWhiteQueensideRookMoved++;
-                } else if(target & SQUARE_H8) {
-                    fBlackKingsideRookMoved++;
-                } else if(target & SQUARE_A8) {
-                    fBlackQueensideRookMoved++;
-                }
+        clear_bit(*targ, targetLSB);
+        if(takenPiece == Piece::Rook) { // Taking the rook counts as it "moving" so no castling available
+            if(target & SQUARE_H1) {
+                fWhiteKingsideRookMoved++;
+            } else if(target & SQUARE_A1) {
+                fWhiteQueensideRookMoved++;
+            } else if(target & SQUARE_H8) {
+                fBlackKingsideRookMoved++;
+            } else if(target & SQUARE_A8) {
+                fBlackQueensideRookMoved++;
             }
         }
     } else if(GetMoveIsCastling(move)) { // Need to move the rook as well

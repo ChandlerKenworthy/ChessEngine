@@ -610,11 +610,11 @@ U64 Generator::GetAttacks(const std::unique_ptr<Board> &board, const Color attac
 void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     // En-passant not possible so throw away early
     if((!board->GetWasLoadedFromFEN() && board->GetNMoves() < MIN_MOVES_FOR_ENPASSANT) || 
-        (board->GetWasLoadedFromFEN() && board->GetNMoves() < 1))
+        (board->GetWasLoadedFromFEN() && !board->GetEnPassantFEN()))
         return;
 
     // FEN loaded position with en-passant move immediately available
-    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN()) {
+    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN() && board->GetNMoves() < 1) {
         U64 attackSquares = 0;
         U64 target = board->GetEnPassantFEN();
         if(fColor == Color::White) {
@@ -631,6 +631,10 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
             attackSquares &= attackSquares - 1;
         }
     }
+
+    // No en-passant possible if no previous moves (e.g. FEN loaded position)
+    if(board->GetNMoves() < 1) 
+        return;
 
     // Can't be wrapped in an else bracket due to undoing moves
     // Now run the usual code
