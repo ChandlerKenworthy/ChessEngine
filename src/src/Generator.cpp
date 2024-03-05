@@ -668,6 +668,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const U64 underAttack = GetAttacks(board, fOtherColor);
 
+    // TODO: lost a flippin pawn in here somehow
     if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board, false);
 

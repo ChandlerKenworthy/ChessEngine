@@ -163,7 +163,7 @@ void Board::UndoMove() {
     const Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
     U16 move = fMadeMoves.back();
 
-    const Piece movedPiece = fMovedPieces.back(); // TODO: Doesn't work, as this references board "as is" so moved piece no longer at moved position
+    const Piece movedPiece = fMovedPieces.back();
     const Piece takenPiece = fTakenPieces.back();
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
@@ -176,26 +176,26 @@ void Board::UndoMove() {
     // Clear the piece at the target position
     clear_bit(*origin, targetLSB);
 
+    // Handle en-passant properly
+    if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
+        // special case old bit-board already re-instated need to put piece back in correct place now
+        // crossing of the origin RANK and target FILE = taken piece position 
+        set_bit(*GetBoardPointer(fColorToMove, Piece::Pawn), __builtin_ctzll(get_rank(start) & get_file(target)));
+    }
+
     // Handle pieces being taken
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove, takenPiece);
-        // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
-            // special case old bit-board already re-instated need to put piece back in correct place now
-            // crossing of the origin RANK and target FILE = taken piece position 
-            set_bit(*targ, __builtin_ctzll(get_rank(start) & get_file(target)));
-        } else {
-            set_bit(*targ, targetLSB); // Put the piece back
-            if(takenPiece == Piece::Rook) { // Rook being taken counts as a move for the rook if not moved before
-                if(target & SQUARE_H1) {
-                    fWhiteKingsideRookMoved--;
-                } else if(target & SQUARE_A1) {
-                    fWhiteQueensideRookMoved--;
-                } else if(target & SQUARE_H8) {
-                    fBlackKingsideRookMoved--;
-                } else if(target & SQUARE_A8) {
-                    fBlackQueensideRookMoved--;
-                }
+        set_bit(*targ, targetLSB); // Put the piece back
+        if(takenPiece == Piece::Rook) { // Rook being taken counts as a move for the rook if not moved before
+            if(target & SQUARE_H1) {
+                fWhiteKingsideRookMoved--;
+            } else if(target & SQUARE_A1) {
+                fWhiteQueensideRookMoved--;
+            } else if(target & SQUARE_H8) {
+                fBlackKingsideRookMoved--;
+            } else if(target & SQUARE_A8) {
+                fBlackQueensideRookMoved--;
             }
         }
     } else if(GetMoveIsCastling(move)) { // Need to move the rook as well

@@ -72,15 +72,12 @@ unsigned long int Test::MoveGeneration(int depth) {
             std::cout << "\n depth 1 move = ";
             PrintMove(move);
         }
-        //std::cout << "Segmentation fault: 0\n";
         fBoard->MakeMove(move);
-       // std::cout << "Segmentation fault: 1\n";
         numPositions += MoveGeneration(depth - 1);
         if(depth == fPrintDepth) {
             std::cout << ": " << numPositions - subPositions << "\n";
         }
         fBoard->UndoMove();
-        //std::cout << "Segmentation fault: 3\n";
     }
 
     return numPositions;
