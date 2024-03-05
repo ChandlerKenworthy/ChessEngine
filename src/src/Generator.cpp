@@ -98,6 +98,7 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) { // TOD
     fOccupancy = board->GetOccupancy();
     fKing = board->GetBoard(fColor, Piece::King);
     fLegalMoves.reserve(AVERAGE_MOVES_PER_POSITION); // Avoid excess dynamic memory allocation
+    fUnderAttack = GetAttacks(board, fOtherColor);
 
     GeneratePseudoLegalMoves(board);
     GenerateCastlingMoves(board);
@@ -105,7 +106,7 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) { // TOD
     RemoveIllegalMoves(board);
 
     if(fLegalMoves.size() == 0) { // No legal moves, game is either stalemate or checkmate
-        bool kingInCheck = IsUnderAttack(fKing, fOtherColor, board);
+        bool kingInCheck = fKing & fUnderAttack;
         if(kingInCheck) {
             board->SetState(State::Checkmate);
         } else {
@@ -322,7 +323,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
                     iMove--;
                 }
             }
-        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsEmpty(moveTarget))) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -510,7 +511,7 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     U16 move = 0;
     if(fColor == Color::White && !board->GetWhiteKingMoved()) {
         if(!board->GetWhiteKingsideRookMoved() && 
-            IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, KING_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) 
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, KING_SIDE_CASTLING_OCCUPANCY_MASK_WHITE)) 
         {
             SetMove(move, fKing, SQUARE_G1);
             SetMoveIsCastling(move, true);
@@ -518,7 +519,7 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             move = 0;
         }
         if(!board->GetWhiteQueensideRookMoved() &&
-            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) {
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_WHITE)) {
             SetMove(move, fKing, SQUARE_C1);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
@@ -526,7 +527,7 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         }
     } else if(fColor == Color::Black && !board->GetBlackKingMoved()) {
         if(!board->GetBlackKingsideRookMoved() &&
-            IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
+            IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK)) 
         {
             SetMove(move, fKing, SQUARE_G8);
             SetMoveIsCastling(move, true);
@@ -534,7 +535,7 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
             move = 0;
         }
         if (!board->GetBlackQueensideRookMoved() &&
-            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
+            IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK)) 
         {
             SetMove(move, fKing, SQUARE_C8);
             SetMoveIsCastling(move, true);
@@ -544,13 +545,14 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-bool Generator::IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board) {
-    return !(fOccupancy & occupancyMask) && !IsUnderAttack(castlingMask, fOtherColor, board);
+bool Generator::IsCastlingPossible(U64 castlingMask, U64 occupancyMask) {
+    return !(fOccupancy & occupancyMask) && !(castlingMask & fUnderAttack);
 }
 
 bool Generator::IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board) {    
     const U64 attacker = board->GetBoard(attackingColor);
     const U64 attacks = GetAttacks(board, attackingColor);
+    
     return attacks & mask & ~attacker;
 }
 
@@ -663,13 +665,7 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
-    // TODO: Rewrite this from the ground up to make it faster and more readable...
-
-    // Check all the illegal moves, e.g. do they result in your own king being in check?
-    const U64 underAttack = GetAttacks(board, fOtherColor);
-
-    // TODO: lost a flippin pawn in here somehow
-    if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
+    if(fKing & fUnderAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board, false);
 
     fPinnedPieces.clear(); // Empty the vector from the last call
@@ -689,7 +685,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
         const U64 moveOrigin = GetMoveOrigin(m);
         const U64 moveTarget = GetMoveTarget(m);
         // King cant move to squares the opponent attacks
-        if((board->GetMovePiece(m) == Piece::King) && (moveTarget & underAttack)) {
+        if((board->GetMovePiece(m) == Piece::King) && (moveTarget & fUnderAttack)) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
@@ -702,7 +698,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
                     iMove--;
                 }
             }
-        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsEmpty(moveTarget))) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -737,7 +733,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
 }
 
 void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, Direction d) {
-    // Make artificial occupancy to block in the king and only get the north ray
+    // Make artificial occupancy to block in the king and only get ray in the specified direction
     const U8 lsb = __builtin_ctzll(fKing);
     U64 rayOccupancy = board->GetBoard(fOtherColor);
     const U64 defendingRook = board->GetBoard(fOtherColor, Piece::Rook);

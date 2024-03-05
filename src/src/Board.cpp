@@ -73,7 +73,6 @@ Board::Board(const Board& other) : fPawnPhase(0), fKnightPhase(1), fBishopPhase(
     this->fTotalPhase = other.fTotalPhase;
 
     // Copy over the game state variables
-    this->fUnique = other.fUnique;
     this->fMadeMoves = other.fMadeMoves;
     this->fHalfMoves = other.fHalfMoves;
     this->fGameState = other.fGameState;
@@ -104,7 +103,6 @@ void Board::Reset() {
     fBoards[10] = RANK_8 & FILE_D; // Black queen
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
-    fUnique = 0;
     fHalfMoves = 0;
     fGameState = State::Play;
     fWhiteKingMoved = 0;
@@ -248,7 +246,6 @@ void Board::UndoMove() {
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
-    fUnique--;
 }
 
 void Board::MakeMove(const U16 move) {
@@ -265,15 +262,11 @@ void Board::MakeMove(const U16 move) {
     // Set the piece at the new position
     set_bit(*origin, targetLSB);
 
-    // Handle en-passant happening (the takenPiece counts as null)
+    // Find the special move type (if any)
     if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
         clear_bit(*GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, Piece::Pawn), __builtin_ctzll(get_rank(start) & get_file(target)));
-    }
-
-    // Handle pieces being taken
-    if(takenPiece != Piece::Null) {
+    } else if(takenPiece != Piece::Null) { // Could be promotion AND taking
         U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, takenPiece);
-        // Check, move could be en-passant
         clear_bit(*targ, targetLSB);
         if(takenPiece == Piece::Rook) { // Taking the rook counts as it "moving" so no castling available
             if(target & SQUARE_H1) {
@@ -286,7 +279,12 @@ void Board::MakeMove(const U16 move) {
                 fBlackQueensideRookMoved++;
             }
         }
-    } else if(GetMoveIsCastling(move)) { // Need to move the rook as well
+        if(GetMoveIsPromotion(move)) {
+            clear_bit(*origin, targetLSB); // Undo the setting that already happened
+            U64 *targBoard = GetBoardPointer(fColorToMove, GetMovePromotionPiece(move));
+            set_bit(*targBoard, targetLSB);
+        }
+    } else if(GetMoveIsCastling(move)) {
         U64 *rook = GetBoardPointer(fColorToMove, Piece::Rook);
         // See where the origin was (that tells us which rook needs moving and to where)
         if(target & SQUARE_G1) { // Kingside white castling (rook h1 -> f1)
@@ -306,7 +304,12 @@ void Board::MakeMove(const U16 move) {
             set_bit(*rook, __builtin_ctzll(SQUARE_D8));
             fBlackQueensideRookMoved++;
         }
-    }
+    } else if(GetMoveIsPromotion(move)) {
+        // Promotion, without taking
+        clear_bit(*origin, targetLSB); // Undo the setting that already happened
+        U64 *targBoard = GetBoardPointer(fColorToMove, GetMovePromotionPiece(move));
+        set_bit(*targBoard, targetLSB);
+    } // else condition already fulfilled by initial clear and set
 
     if(movedPiece == Piece::King)
         fColorToMove == Color::White ? fWhiteKingMoved++ : fBlackKingMoved++;
@@ -327,12 +330,6 @@ void Board::MakeMove(const U16 move) {
         }
     }
 
-    if(GetMoveIsPromotion(move)) {
-        clear_bit(*origin, targetLSB); // Undo the setting that already happened
-        U64 *targBoard = GetBoardPointer(fColorToMove, GetMovePromotionPiece(move) == Piece::Null ? Piece::Queen : GetMovePromotionPiece(move));
-        set_bit(*targBoard, targetLSB);
-    }
-
     fHalfMoves++;
     if(movedPiece == Piece::Pawn || takenPiece != Piece::Null)
         fHalfMoves = 0;
@@ -341,7 +338,6 @@ void Board::MakeMove(const U16 move) {
     fMadeMoves.push_back(move);
     fMovedPieces.push_back(movedPiece);
     fTakenPieces.push_back(takenPiece);
-    fUnique++;
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
@@ -632,4 +628,8 @@ void Board::PrintFEN() const {
     fen << nFullMoves;
 
     std::cout << fen.str() << "\n";
+}
+
+bool Board::GetIsEmpty(U64 position) {
+    return position & std::accumulate(fBoards, fBoards + 12, 0ULL, std::bit_or<U64>());
 }

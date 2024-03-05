@@ -195,7 +195,7 @@ class Generator {
          * @param board The board configuration to generate moves for.
          * @return True if castling with these masks is possible.
         */
-        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask);
         /**
          * @brief Get the bitboard of all possible attacks by the specified colour assuming they are the next colour to move. Does not take into account absolutely positioned pieces.
          * @param board The board configuration to generate moves for.
@@ -239,6 +239,7 @@ class Generator {
         Color fOtherColor; ///< The colour who has just moved.
         U64 fOccupancy; ///< Total occupancy of the board represented as a single bitboard for ray occupancy calculations.
         U64 fKing; ///< Position of the king whose colour it is to move.
+        U64 fUnderAttack; ///< Position of all squares attacked by enemy pieces. Does not include absolute pins!
 
         std::vector<std::pair<U64, U64>> fPinnedPieces; ///< The position of the absolutely pinned piece and the ray pinning it including the position of the pinning piece.
         U64 fPinnedPositions; ///< Accumulation of first elements of fPinnedPieces.
