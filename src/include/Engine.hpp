@@ -36,13 +36,13 @@ class Engine {
         /***
          * @brief Get a random legal move, testing purposes only. Must generate legal moves first!
         */
-        U32 GetRandomMove();
+        U16 GetRandomMove();
 
         float Evaluate(); // Static evaluation of a board
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U32 GetBestMove(bool verbose);
+        U16 GetBestMove(bool verbose);
     private:
         int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
@@ -197,7 +197,7 @@ class Engine {
         float EvaluateBishopPositions();
 
         float GetMaterialEvaluation();
-        void OrderMoves(std::vector<U32> &moves);
+        void OrderMoves(std::vector<U16> &moves);
 
 };
 

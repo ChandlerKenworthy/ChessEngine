@@ -167,9 +167,9 @@ void Renderer::DrawChessPiece(const Piece piece, const Color color, const int ra
     fWindow->draw(pieceSprite);
 }
 
-U32 Renderer::ReadUserMove() const {
+U16 Renderer::ReadUserMove() const {
     // Simply read in user moves in the format "[ORIGIN] [TARGET]" e.g. "c2 h3"
-    U32 move{0};
+    U16 move{0};
     std::string userInput;
     bool isValid = false;
     while(!isValid) {

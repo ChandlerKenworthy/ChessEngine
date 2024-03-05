@@ -117,24 +117,57 @@ void Board::Reset() {
     fEnPassantFENTarget = 0;
     fColorToMove = Color::White;
 
+    fMovedPieces = {};
+    fTakenPieces = {};
+
     fMadeMoves.clear();
+}
+
+Piece Board::GetMovePiece(const U16 move) const {
+    const U64 origin = GetMoveOrigin(move);
+    return GetIsOccupied(origin).second;
+}
+
+Piece Board::GetMoveTakenPiece(const U16 move) const {
+    const U64 target = GetMoveTarget(move);
+    return GetIsOccupied(target).second;
+}
+
+bool Board::GetMoveIsEnPassant(const U16 move, const Piece movedPiece, const bool targetIsNull) const {
+    // To be en-passant we must be moving a pawn -- assumes move has not yet happened!
+    if(movedPiece != Piece::Pawn)
+        return false;
+    
+    const U64 origin = GetMoveOrigin(move);
+    const U64 target = GetMoveTarget(move);
+
+    // Move is diagonally forwards, regardless of colour
+    if(!((north_east(origin) | north_west(origin) | south_west(origin) | south_east(origin)) & target))
+        return false;
+
+    // TODO: Square we land on must not haveb been occupied by any other piece when the move was made, only true for en-passant
+    if(targetIsNull)
+        return true;
+
+    return false;
 }
 
 void Board::UndoMove() {
     // Essentially just does the inverse of MakeMove
-    if(fMadeMoves.size() < 1)
+    if(fMadeMoves.size() < 1) {
         Reset(); // Cannot undo more moves than exist in the move tree
+        return;
+    }
+
     // Last move in the stack will be from player of opposing colour
-
     const Color movingColor = fColorToMove == Color::White ? Color::Black : Color::White;
-    U32 move = fMadeMoves.back();
+    U16 move = fMadeMoves.back();
 
-    const Piece movedPiece = GetMovePiece(move);
-    const Piece takenPiece = GetMoveTakenPiece(move);
+    const Piece movedPiece = fMovedPieces.back();
+    const Piece takenPiece = fTakenPieces.back();
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const uint8_t targetLSB = __builtin_ctzll(target);
-
+    const U8 targetLSB = __builtin_ctzll(target);
     U64 *origin = GetBoardPointer(movingColor, movedPiece);
     
     // Set piece back at the starting position
@@ -143,26 +176,26 @@ void Board::UndoMove() {
     // Clear the piece at the target position
     clear_bit(*origin, targetLSB);
 
+    // Handle en-passant properly
+    if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
+        // special case old bit-board already re-instated need to put piece back in correct place now
+        // crossing of the origin RANK and target FILE = taken piece position 
+        set_bit(*GetBoardPointer(fColorToMove, Piece::Pawn), __builtin_ctzll(get_rank(start) & get_file(target)));
+    }
+
     // Handle pieces being taken
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove, takenPiece);
-        // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move)) {
-            // special case old bit-board already re-instated need to put piece back in correct place now
-            // crossing of the origin RANK and target FILE = taken piece position 
-            set_bit(*targ, __builtin_ctzll(get_rank(start) & get_file(target)));
-        } else {
-            set_bit(*targ, targetLSB); // Put the piece back
-            if(takenPiece == Piece::Rook) { // Rook being taken counts as a move for the rook if not moved before
-                if(target & SQUARE_H1) {
-                    fWhiteKingsideRookMoved--;
-                } else if(target & SQUARE_A1) {
-                    fWhiteQueensideRookMoved--;
-                } else if(target & SQUARE_H8) {
-                    fBlackKingsideRookMoved--;
-                } else if(target & SQUARE_A8) {
-                    fBlackQueensideRookMoved--;
-                }
+        set_bit(*targ, targetLSB); // Put the piece back
+        if(takenPiece == Piece::Rook) { // Rook being taken counts as a move for the rook if not moved before
+            if(target & SQUARE_H1) {
+                fWhiteKingsideRookMoved--;
+            } else if(target & SQUARE_A1) {
+                fWhiteQueensideRookMoved--;
+            } else if(target & SQUARE_H8) {
+                fBlackKingsideRookMoved--;
+            } else if(target & SQUARE_A8) {
+                fBlackQueensideRookMoved--;
             }
         }
     } else if(GetMoveIsCastling(move)) { // Need to move the rook as well
@@ -210,18 +243,20 @@ void Board::UndoMove() {
     if(movedPiece == Piece::Pawn || takenPiece != Piece::Null)
         fHalfMoves = 0;
 
+    fMovedPieces.pop_back();
+    fTakenPieces.pop_back();
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
     fUnique--;
 }
 
-void Board::MakeMove(const U32 move) {
+void Board::MakeMove(const U16 move) {
     const Piece movedPiece = GetMovePiece(move);
     const Piece takenPiece = GetMoveTakenPiece(move);
     const U64 start = GetMoveOrigin(move);
     const U64 target = GetMoveTarget(move);
-    const uint8_t targetLSB = __builtin_ctzll(target);
+    const U8 targetLSB = __builtin_ctzll(target);
     U64 *origin = GetBoardPointer(fColorToMove, movedPiece);
     
     // Remove piece from the starting position
@@ -230,24 +265,25 @@ void Board::MakeMove(const U32 move) {
     // Set the piece at the new position
     set_bit(*origin, targetLSB);
 
+    // Handle en-passant happening (the takenPiece counts as null)
+    if(GetMoveIsEnPassant(move, movedPiece, takenPiece == Piece::Null)) {
+        clear_bit(*GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, Piece::Pawn), __builtin_ctzll(get_rank(start) & get_file(target)));
+    }
+
     // Handle pieces being taken
     if(takenPiece != Piece::Null) {
         U64 *targ = GetBoardPointer(fColorToMove == Color::White ? Color::Black : Color::White, takenPiece);
         // Check, move could be en-passant
-        if(GetMoveIsEnPassant(move)) {
-            clear_bit(*targ, __builtin_ctzll(get_rank(start) & get_file(target)));
-        } else {
-            clear_bit(*targ, targetLSB);
-            if(takenPiece == Piece::Rook) { // Taking the rook counts as it "moving" so no castling available
-                if(target & SQUARE_H1) {
-                    fWhiteKingsideRookMoved++;
-                } else if(target & SQUARE_A1) {
-                    fWhiteQueensideRookMoved++;
-                } else if(target & SQUARE_H8) {
-                    fBlackKingsideRookMoved++;
-                } else if(target & SQUARE_A8) {
-                    fBlackQueensideRookMoved++;
-                }
+        clear_bit(*targ, targetLSB);
+        if(takenPiece == Piece::Rook) { // Taking the rook counts as it "moving" so no castling available
+            if(target & SQUARE_H1) {
+                fWhiteKingsideRookMoved++;
+            } else if(target & SQUARE_A1) {
+                fWhiteQueensideRookMoved++;
+            } else if(target & SQUARE_H8) {
+                fBlackKingsideRookMoved++;
+            } else if(target & SQUARE_A8) {
+                fBlackQueensideRookMoved++;
             }
         }
     } else if(GetMoveIsCastling(move)) { // Need to move the rook as well
@@ -303,6 +339,8 @@ void Board::MakeMove(const U32 move) {
 
     fColorToMove = fColorToMove == Color::White ? Color::Black : Color::White;
     fMadeMoves.push_back(move);
+    fMovedPieces.push_back(movedPiece);
+    fTakenPieces.push_back(takenPiece);
     fUnique++;
 }
 
@@ -331,6 +369,8 @@ U64 Board::GetBoard(const Piece piece) {
 }
 
 U64* Board::GetBoardPointer(const Color color, const Piece piece) {
+    if(piece == Piece::Null)
+        return nullptr;
     return color == Color::White ? &fBoards[(int)piece - 1] : &fBoards[(int)piece + 5];
 }
 
@@ -432,7 +472,7 @@ void Board::LoadFEN(const std::string &fen) {
     fBlackQueensideRookMoved = blackQueensideRookMoved;
 }
 
-std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) const {
     for (int iBoard = 0; iBoard < 12; iBoard++) {
         if(pos & fBoards[iBoard]) {
             // We already know the mapping e.g. 0 = pawn, bishop, knight, rook, queen, king (white, black)
@@ -443,7 +483,7 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos) {
     return std::make_pair(Color::White, Piece::Null);
 }
 
-std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
+std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) const {
     // Similar to GetIsOccupied(pos) but only searches the boards of the provided color
     U8 offset = color == Color::White ? 0 : 6;
     for (int iBoard = offset; iBoard < offset + 6; iBoard++) {
@@ -455,7 +495,8 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) {
     return std::make_pair(color, Piece::Null);
 }
 
-void Board::PrintDetailedMove(U32 move) {
+void Board::PrintDetailedMove(U16 move) {
+    // TODO: These functions don't work anymore
     U64 target = GetMoveTarget(move);
     U64 origin = GetMoveOrigin(move);
     Piece piece = GetMovePiece(move);
@@ -570,16 +611,13 @@ void Board::PrintFEN() const {
     // Available en-passant
     bool wasEnPassant = false;
     if(fMadeMoves.size() > 0) {
-        U32 move = fMadeMoves.back();
+        U16 move = fMadeMoves.back();
         const U64 origin = GetMoveOrigin(move);
         const U64 target = GetMoveTarget(move);
-        bool wasPawn = GetMovePiece(move) == Piece::Pawn;
-        bool doubleForward = ((fColorToMove == Color::White) && (origin & RANK_7) && (target & RANK_5)) || ((fColorToMove == Color::Black) && (origin & RANK_2) && (target & RANK_4));
-        bool captureAvailable = (fColorToMove == Color::White ? fBoards[(int)Piece::Pawn - 1] : fBoards[(int)Piece::Pawn + 5]) & (east(target) | west(target));
-        if(wasPawn && doubleForward && captureAvailable) {
+        wasEnPassant = GetMoveIsEnPassant(move, fMovedPieces.back(), fTakenPieces.back() == Piece::Null);
+        if(wasEnPassant) {
             int offset = fColorToMove == Color::White ? 1 : -1;
             fen << get_file_char(origin) << get_rank_number(target) + offset;
-            wasEnPassant = true;
         }
     }
 
