@@ -148,8 +148,8 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
     U64 kingAttacks = fKingAttacks[__builtin_ctzll(fKing)] & fEnemy;
     while(kingAttacks) {
         const U64 attack = 1ULL << __builtin_ctzll(kingAttacks);
-        U32 move = 0;
-        SetMove(move, fKing, attack, Piece::King, board->GetIsOccupied(attack, fOtherColor).second);
+        U16 move = 0;
+        SetMove(move, fKing, attack);
         fCaptureMoves.push_back(move);
         kingAttacks &= kingAttacks - 1; // Clear the lowest set bit
     }
@@ -162,8 +162,8 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
         U64 attacks = fKnightAttacks[lsb] & fEnemy;
         while(attacks) {
             const U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, knight, attack, Piece::Knight, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, knight, attack);
             fCaptureMoves.push_back(move);
             attacks &= attacks - 1; // Clear the lowest set bit
         }
@@ -178,8 +178,8 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
         U64 attacks = (hypQuint(rook, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, fOccupancy, fSecondaryStraightAttacks[lsb])) & fEnemy;
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, rook, attack, Piece::Rook, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, rook, attack);
             fCaptureMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -194,8 +194,8 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
         U64 attacks = (hypQuint(bishop, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, fOccupancy, fSecondaryDiagonalAttacks[lsb])) & fEnemy;
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, bishop, attack, Piece::Bishop, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, bishop, attack);
             fCaptureMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -210,8 +210,8 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
         U64 attacks = (hypQuint(queen, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryDiagonalAttacks[lsb])) & fEnemy;
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, queen, attack, Piece::Queen, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, queen, attack);
             fCaptureMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -226,8 +226,8 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
         U64 attacks = (fColor == Color::White ? (north_east(pawn) | north_west(pawn)) : (south_east(pawn) | south_west(pawn))) & fEnemy;
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, pawn, attack);
             fCaptureMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -252,22 +252,22 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
         }
         while(attackSquares) {
             U64 pawn = 1ULL << __builtin_ctzll(attackSquares);
-            U32 move = 0;
-            SetMove(move, pawn, target, Piece::Pawn, Piece::Pawn);
-            SetMoveIsEnPassant(move, true);
+            U16 move = 0;
+            SetMove(move, pawn, target);
             fCaptureMoves.push_back(move);
             attackSquares &= attackSquares - 1;
         }
     }
 
     // Can't be wrapped in an else bracket due to undoing moves
-    U32 lastMove = board->GetLastMove();
+    U16 lastMove = board->GetLastMove();
     U64 lastMoveTarget = GetMoveTarget(lastMove);
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove))
         return;
+    // TODO: Add if last move was en-passant then early return  || board->GetMoveIsEnPassant(lastMove, ...)
 
     U64 enPassantPawns = 0;
     U64 attackingPawns = board->GetBoard(fColor, Piece::Pawn);
@@ -278,14 +278,8 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
 
     while(enPassantPawns) {
         const U64 pawn = 1ULL << __builtin_ctzll(enPassantPawns);
-        U32 move = 0;
-        SetMove(
-            move, 
-            pawn, 
-            fColor == Color::White ? north(lastMoveTarget) : south(lastMoveTarget), Piece::Pawn, 
-            Piece::Pawn
-        );
-        SetMoveIsEnPassant(move, true);
+        U16 move = 0;
+        SetMove(move, pawn, fColor == Color::White ? north(lastMoveTarget) : south(lastMoveTarget));
         fCaptureMoves.push_back(move);
         enPassantPawns &= enPassantPawns - 1;
     }
@@ -311,23 +305,24 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
     );
 
     for(int iMove = 0; iMove < (int)fCaptureMoves.size(); iMove++) {
-        const U32 m = fCaptureMoves[iMove];
+        const U16 m = fCaptureMoves[iMove];
         const U64 moveOrigin = GetMoveOrigin(m);
+        const U64 moveTarget = GetMoveTarget(m);
         // King cant move to squares the opponent attacks
-        if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
+        if((board->GetMovePiece(m) == Piece::King) && (moveTarget & underAttack)) {
             fCaptureMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
             for(const std::pair<U64, U64> &pins : fPinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
-                if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                if((moveOrigin & pins.first) && (moveTarget & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
                     fCaptureMoves.erase(std::begin(fCaptureMoves) + iMove);
                     iMove--;
                 }
             }
-        } else if(GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -363,7 +358,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
 
 void Generator::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
     GeneratePawnPseudoLegalMoves(board);
-    GenerateKingPseudoLegalMoves(board);
+    GenerateKingPseudoLegalMoves();
     GenerateKnightPseudoLegalMoves(board);
     GenerateBishopPseudoLegalMoves(board);
     GenerateRookPseudoLegalMoves(board);
@@ -371,17 +366,17 @@ void Generator::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
 
     // Erase all moves moving onto a square of its own colour
     const U64 selfOccupancy = board->GetBoard(fColor);
-    fLegalMoves.erase(std::remove_if(fLegalMoves.begin(), fLegalMoves.end(), [&](U32 move) {
+    fLegalMoves.erase(std::remove_if(fLegalMoves.begin(), fLegalMoves.end(), [&](U16 move) {
         return GetMoveTarget(move) & selfOccupancy;
     }), fLegalMoves.end());
 }
 
-void Generator::GenerateKingPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateKingPseudoLegalMoves() {
     U64 attacks = fKingAttacks[__builtin_ctzll(fKing)];
     while(attacks) {
         const U64 attack = 1ULL << __builtin_ctzll(attacks);
-        U32 move = 0;
-        SetMove(move, fKing, attack, Piece::King, board->GetIsOccupied(attack, fOtherColor).second);
+        U16 move = 0;
+        SetMove(move, fKing, attack);
         fLegalMoves.push_back(move);
         attacks &= attacks - 1; // Clear the lowest set bit
     }
@@ -395,8 +390,8 @@ void Generator::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &boa
         U64 attacks = fKnightAttacks[lsb];
         while(attacks) {
             const U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, knight, attack, Piece::Knight, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, knight, attack);
             fLegalMoves.push_back(move);
             attacks &= attacks - 1; // Clear the lowest set bit
         }
@@ -412,8 +407,8 @@ void Generator::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board
         U64 attacks = (hypQuint(rook, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(rook, fOccupancy, fSecondaryStraightAttacks[lsb]));
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, rook, attack, Piece::Rook, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, rook, attack);
             fLegalMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -429,8 +424,8 @@ void Generator::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &boa
         U64 attacks = (hypQuint(bishop, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(bishop, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, bishop, attack, Piece::Bishop, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, bishop, attack);
             fLegalMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -446,8 +441,8 @@ void Generator::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &boar
         U64 attacks = (hypQuint(queen, fOccupancy, fPrimaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryStraightAttacks[lsb]) | hypQuint(queen, fOccupancy, fPrimaryDiagonalAttacks[lsb]) | hypQuint(queen, fOccupancy, fSecondaryDiagonalAttacks[lsb]));
         while(attacks) {
             U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, queen, attack, Piece::Queen, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, queen, attack);
             fLegalMoves.push_back(move);
             attacks &= attacks - 1;
         }
@@ -469,10 +464,9 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
 
         while(attacks) {
             const U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, pawn, attack, Piece::Pawn, board->GetIsOccupied(attack, fOtherColor).second);
+            U16 move = 0;
+            SetMove(move, pawn, attack);
             if(attack & promotionRank) {
-                SetMoveIsPromotion(move, true);
                 for(Piece p : PROMOTION_PIECES) {
                     SetMovePromotionPiece(move, p);
                     fLegalMoves.push_back(move);
@@ -492,10 +486,9 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
 
         while(attacks) {
             const U64 attack = 1ULL << __builtin_ctzll(attacks);
-            U32 move = 0;
-            SetMove(move, pawn, attack, Piece::Pawn, Piece::Null); // Forward moves don't take pieces
+            U16 move = 0;
+            SetMove(move, pawn, attack); // Forward moves don't take pieces
             if(attack & promotionRank) {
-                SetMoveIsPromotion(move, true);
                 for(Piece p : PROMOTION_PIECES) {
                     SetMovePromotionPiece(move, p);
                     fLegalMoves.push_back(move);
@@ -514,19 +507,19 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     if(board->GetNMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
         return;
 
-    U32 move = 0;
+    U16 move = 0;
     if(fColor == Color::White && !board->GetWhiteKingMoved()) {
         if(!board->GetWhiteKingsideRookMoved() && 
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_WHITE, KING_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) 
         {
-            SetMove(move, fKing, SQUARE_G1, Piece::King, Piece::Null);
+            SetMove(move, fKing, SQUARE_G1);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
         }
         if(!board->GetWhiteQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_WHITE, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_WHITE, board)) {
-            SetMove(move, fKing, SQUARE_C1, Piece::King, Piece::Null);
+            SetMove(move, fKing, SQUARE_C1);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
@@ -535,7 +528,7 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         if(!board->GetBlackKingsideRookMoved() &&
             IsCastlingPossible(KING_SIDE_CASTLING_MASK_BLACK, KING_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
         {
-            SetMove(move, fKing, SQUARE_G8, Piece::King, Piece::Null);
+            SetMove(move, fKing, SQUARE_G8);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
@@ -543,7 +536,7 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
         if (!board->GetBlackQueensideRookMoved() &&
             IsCastlingPossible(QUEEN_SIDE_CASTLING_MASK_BLACK, QUEEN_SIDE_CASTLING_OCCUPANCY_MASK_BLACK, board)) 
         {
-            SetMove(move, fKing, SQUARE_C8, Piece::King, Piece::Null);
+            SetMove(move, fKing, SQUARE_C8);
             SetMoveIsCastling(move, true);
             fLegalMoves.push_back(move);
             move = 0;
@@ -617,11 +610,11 @@ U64 Generator::GetAttacks(const std::unique_ptr<Board> &board, const Color attac
 void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     // En-passant not possible so throw away early
     if((!board->GetWasLoadedFromFEN() && board->GetNMoves() < MIN_MOVES_FOR_ENPASSANT) || 
-        (board->GetWasLoadedFromFEN() && board->GetNMoves() < 1))
+        (board->GetWasLoadedFromFEN() && !board->GetEnPassantFEN() && board->GetNMoves() < 1))
         return;
 
     // FEN loaded position with en-passant move immediately available
-    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN()) {
+    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN() && board->GetNMoves() < 1) {
         U64 attackSquares = 0;
         U64 target = board->GetEnPassantFEN();
         if(fColor == Color::White) {
@@ -632,28 +625,25 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 
         while(attackSquares) {
             U64 pawn = 1ULL << __builtin_ctzll(attackSquares);
-            U32 move = 0;
-            SetMove(
-                move, 
-                pawn, 
-                target, 
-                Piece::Pawn, 
-                Piece::Pawn
-            );
-            SetMoveIsEnPassant(move, true);
+            U16 move = 0;
+            SetMove(move, pawn, target);
             fLegalMoves.push_back(move);
             attackSquares &= attackSquares - 1;
         }
     }
 
+    // No en-passant possible if no previous moves (e.g. FEN loaded position)
+    if(board->GetNMoves() < 1) 
+        return;
+
     // Can't be wrapped in an else bracket due to undoing moves
     // Now run the usual code
-    U32 lastMove = board->GetLastMove();
+    U16 lastMove = board->GetLastMove();
     U64 lastMoveTarget = GetMoveTarget(lastMove);
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(GetMovePiece(lastMove) != Piece::Pawn || GetMoveIsEnPassant(lastMove) || GetMoveIsCastling(lastMove))
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
         return;
 
     U64 enPassantPawns = 0;
@@ -665,14 +655,8 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
 
     while(enPassantPawns) {
         const U64 pawn = 1ULL << __builtin_ctzll(enPassantPawns);
-        U32 move = 0;
-        SetMove(
-            move, 
-            pawn, 
-            fColor == Color::White ? north(lastMoveTarget) : south(lastMoveTarget), Piece::Pawn, 
-            Piece::Pawn
-        );
-        SetMoveIsEnPassant(move, true);
+        U16 move = 0;
+        SetMove(move, pawn, fColor == Color::White ? north(lastMoveTarget) : south(lastMoveTarget));
         fLegalMoves.push_back(move);
         enPassantPawns &= enPassantPawns - 1;
     }
@@ -684,6 +668,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const U64 underAttack = GetAttacks(board, fOtherColor);
 
+    // TODO: lost a flippin pawn in here somehow
     if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board, false);
 
@@ -700,23 +685,24 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     );
 
     for(int iMove = 0; iMove < (int)fLegalMoves.size(); iMove++) {
-        const U32 m = fLegalMoves[iMove];
+        const U16 m = fLegalMoves[iMove];
         const U64 moveOrigin = GetMoveOrigin(m);
+        const U64 moveTarget = GetMoveTarget(m);
         // King cant move to squares the opponent attacks
-        if((GetMovePiece(m) == Piece::King) && (GetMoveTarget(m) & underAttack)) {
+        if((board->GetMovePiece(m) == Piece::King) && (moveTarget & underAttack)) {
             fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
             iMove--;
         } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
             for(const std::pair<U64, U64> &pins : fPinnedPieces) {
                 // !Piece moving from pinned position to somewhere on the associated pinning ray (incl capture)
-                if((moveOrigin & pins.first) && (GetMoveTarget(m) & ~pins.second)) {
+                if((moveOrigin & pins.first) && (moveTarget & ~pins.second)) {
                     // Moving to somewhere off the absolutely pinning ray (illegal)
                     fLegalMoves.erase(std::begin(fLegalMoves) + iMove);
                     iMove--;
                 }
             }
-        } else if(GetMoveIsEnPassant(m)) { // Need to be manually checked due to rook rays
+        } else if(board->GetMoveIsEnPassant(m, board->GetMovePiece(m), board->GetIsOccupied(moveTarget).second == Piece::Null)) { // Need to be manually checked due to rook rays
             U64 activeRank = get_rank(moveOrigin);
             U64 kingOnRank = fKing & activeRank; // King shares the rank with the en-passanting pawn
             U64 rookOnRank = activeRank & (board->GetBoard(fOtherColor, Piece::Rook) | board->GetBoard(fOtherColor, Piece::Queen)); // Rook or queen have sliding straight attacks
@@ -732,7 +718,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
                 int attackingRookBit = kingMSB < rookMSB ? 63 - rookMSB : __builtin_ctzll(rookOnRank);
                 U64 rook = 1ULL << attackingRookBit; // Again could be a queen but it doesn't matter, this is the one checking king if move happens
                 U64 rookShift = kingMSB < rookMSB ? east(rook) : west(rook);
-                U64 takenPawn = fColor == Color::White ? south(GetMoveTarget(m)) : north(GetMoveTarget(m));
+                U64 takenPawn = fColor == Color::White ? south(moveTarget) : north(moveTarget);
 
                 // Make a custom occupancy mask to cut the rook ray down
                 U64 mask = fKing | rook | rookShift;
@@ -834,15 +820,16 @@ U64 Generator::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToM
 }
 
 void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board, const bool copyToCapures) {
-    std::vector<U32> validMoves;
-    for (U32 move : fLegalMoves) {
+    std::vector<U16> validMoves;
+    for (U16 move : fLegalMoves) {
         if (GetMoveIsCastling(move)) {
             continue; // Skip castling moves
         }
+        bool pieceIsKing = board->GetMovePiece(move) == Piece::King;
         board->MakeMove(move);
         U64 underAttack = GetAttacks(board, fColor == Color::White ? Color::Black : Color::White);
         // King may have moved so can't use fActiveKing
-        U64 newKing = GetMovePiece(move) == Piece::King ? board->GetBoard(fColor, Piece::King) : fKing;
+        U64 newKing = pieceIsKing ? board->GetBoard(fColor, Piece::King) : fKing;
         if(!(underAttack & newKing)) {
             validMoves.push_back(move); // Move is legal, add it to the vector
         }
@@ -856,11 +843,11 @@ void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board, const bool 
     }
 }
 
-bool Generator::GetMoveIsLegal(U32 &move) {
+bool Generator::GetMoveIsLegal(U16 &move) {
     const U64 moveOrigin = GetMoveOrigin(move);
     const U64 moveTarget = GetMoveTarget(move);
 
-    for(U32 m : fLegalMoves) {
+    for(U16 m : fLegalMoves) {
         if((moveOrigin & GetMoveOrigin(m)) && (moveTarget & GetMoveTarget(m))) {
             move = m;
             return true;

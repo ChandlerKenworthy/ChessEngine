@@ -93,7 +93,7 @@ class Board {
          * 
          * Updates all the bit boards and required game state variables to make the requested move.
          */
-        void MakeMove(const U32 move);
+        void MakeMove(const U16 move);
         /**
          * @brief Undoes the actions of the last move.
          */
@@ -108,14 +108,14 @@ class Board {
          * @param pos The position on the board to check.
          * @return The color and piece type occupying the square. If nothing will return a white null piece.
         */
-        std::pair<Color, Piece> GetIsOccupied(const U64 pos);
+        std::pair<Color, Piece> GetIsOccupied(const U64 pos) const;
         /**
         * @brief Get the Color and type of piece (if any) occupying the position
         * @param pos The position on the board to check
         * @param color The color whose pieces occupancy should be checked.
         * @return The color and piece of the occupying piece (if any) else Null piece is given.
         */
-        std::pair<Color, Piece> GetIsOccupied(const U64 pos, const Color color);
+        std::pair<Color, Piece> GetIsOccupied(const U64 pos, const Color color) const;
         /**
         * @brief Get the number of completed moves full moves (e.g. both black and white have had a turn)
         * @return The number of completed turns (i.e. one move for white and one move for black)
@@ -165,7 +165,7 @@ class Board {
          * @brief Get the last move made on the board.
          * @return The 32-bit move word. If no moves are made will return an empty 32-bit word.
         */
-        U32 GetLastMove() { return fMadeMoves.size() > 0 ? fMadeMoves.back() : U32(0); }
+        U16 GetLastMove() { return fMadeMoves.size() > 0 ? fMadeMoves.back() : U16(0); }
         /**
          * @brief Overwrite the bitboard for the specified piece and colour with a new bitboard.
          * @param color The color of the piece.
@@ -196,7 +196,7 @@ class Board {
          * @brief Print to the console the supplied move in the standard notation, assumes move is not yet made.
          * @param move The move that will be printed.
         */
-        void PrintDetailedMove(U32 move); 
+        void PrintDetailedMove(U16 move); 
         /**
          * @brief Returns a value between 0 and 1. Higher values indiciate a position closer to the "endgame".
         */
@@ -206,6 +206,30 @@ class Board {
         */
         void PrintFEN() const;
         /**
+         * @brief Get the type of piece at the ORIGIN of the specified move for the current board. (Assumes move has not happened).
+         * @param move The move.
+         * @return The piece type being moved.
+        */
+        Piece GetMovePiece(const U16 move) const;
+        /**
+         * @brief Get the type of piece being taken for the specified move. I.e. queries what is at TARGET. (Assumes move has not happened).
+         * @param move The move.
+         * @return The piece type being taken, null if no piece is taken.
+        */
+        Piece GetMoveTakenPiece(const U16 move) const;
+        /**
+         * @brief Get if the move is an en-passant move.
+         * @param move The move to check.
+         * @param targetIsNull True if the tile being moved to when this move is happening is occupied by the null piece.
+         * @return True if the move is en-passant.
+        */
+        bool GetMoveIsEnPassant(const U16 move, const Piece movedPiece, const bool targetIsNull) const;
+        /**
+         * @brief Get the type of the last piece moved.
+         * @return The type of piece last moved.
+        */
+        Piece GetLastPieceMoved() { return fMovedPieces.back(); };
+        /**
          * @brief Calculates a semi-unique hash using the Zobrist keys previously generated for the current board state.
         */
         U64 GetHash();
@@ -214,8 +238,12 @@ class Board {
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, bishop, knight, rook, queen, king)
         int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
         // Move tracking
-        std::vector<U32> fMadeMoves; ///< Vector of moves made with the back of the vector being the last made move.
+        std::vector<U16> fMadeMoves; ///< Vector of moves made with the back of the vector being the last made move.
         unsigned short fHalfMoves; ///< The half-move clock for enforcing the 50 move rule
+
+        // For better move undoing
+        std::vector<Piece> fMovedPieces;
+        std::vector<Piece> fTakenPieces;
 
         // Game state variables
         State fGameState; ///< Current state of play in the game e.g. stalemate

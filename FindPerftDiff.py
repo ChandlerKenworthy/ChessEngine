@@ -13,11 +13,21 @@ isDiff = False
 
 # Search for differences in the index
 missing_from_gen = [i for i in stockfish.index if i not in generator.index]
+excess_from_gen = [i for i in generator.index if i not in stockfish.index]
+
 if len(missing_from_gen) > 0:
     print(f"Generator failed to find {len(missing_from_gen)} initial nodes: ")
     for nodeName in missing_from_gen:
         isDiff = True
         print(f"Missing a node: {nodeName}")
+    
+if len(excess_from_gen) > 0:
+    print(f"Generator found {len(missing_from_gen)} excess initial nodes: ")
+    for nodeName in excess_from_gen:
+        isDiff = True
+        print(f"Excess node: {nodeName}")
+
+if len(missing_from_gen) > 0 or len(excess_from_gen) > 0:
     exit()
 
 # Search for differences in number of nodes after each initial move

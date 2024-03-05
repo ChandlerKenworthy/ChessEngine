@@ -63,7 +63,7 @@ class Renderer {
          * @brief Request and read from the console the user input and translate into a 32-bit move word.
          * @return 32-bit move word consistent with what the user entered.
         */
-        U32 ReadUserMove() const;
+        U16 ReadUserMove() const;
     private:
         const int fWindowWidth; ///< Width (and height) of the GUI window in pixels
         int fSquareWidth; ///< Width (and height) of each individual chess square in the GUI in pixels.
