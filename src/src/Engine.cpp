@@ -190,34 +190,30 @@ void Engine::OrderMoves(std::vector<U16> &moves) {
     });
 }
 
-std::pair<float, int> Engine::SearchAllCaptures(float alpha, float beta) {
-    // Called when minimax hits maximum depth
-    // TODO: Count the number of moves this seaches and send back to minimax
-    int nMovesSearched = 1;
+float Engine::SearchAllCaptures(float alpha, float beta) {
+    // TODO: Should this extend the search for checks as well?
+    // TODO: Test this is actually working
     float eval = Evaluate();
     if(eval >= beta) {
-        //std::cout << "Search all broke early since eval >= beta\n";
-        return std::make_pair(eval, nMovesSearched);
+        return beta;
     }
     alpha = std::max(alpha, eval);
-
-    fGenerator->GenerateCaptureMoves(fBoard);
+    fGenerator->GenerateCaptureMoves(fBoard); // TODO: Not sure if this function works
     std::vector<U16> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
-    //std::cout << "Generated " << captureMoves.size() << " captures for colour " << (int)fBoard->GetColorToMove() << "\n";
+
+    // Speed up pruning by doing a quick rough move ordering
     OrderMoves(captureMoves);
 
     for(U16 move : captureMoves) {
         fBoard->MakeMove(move);
-        fBoard->PrintDetailedMove(move);
-        std::pair<float, int> result = SearchAllCaptures(-alpha, -beta);
-        eval = -result.first;
-        nMovesSearched += result.second;
+        eval = -SearchAllCaptures(-beta, -alpha);
         fBoard->UndoMove();
+        fNMovesSearched++;
         if(eval >= beta)
-            return std::make_pair(alpha, nMovesSearched);
+            return beta;
         alpha = std::max(alpha, eval);
     }
-    return std::make_pair(alpha, nMovesSearched);
+    return alpha;
 }
 
 float Engine::Search(U8 depth, float alpha, float beta) {
@@ -227,7 +223,7 @@ float Engine::Search(U8 depth, float alpha, float beta) {
     // is based on the negamax function.
     if(depth == 0) {
         fNMovesSearched++;
-        return Evaluate();
+        return SearchAllCaptures(alpha, beta);
     }
 
     fGenerator->GenerateLegalMoves(fBoard);

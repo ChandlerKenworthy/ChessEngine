@@ -238,11 +238,11 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
 void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &board) {
     // En-passant not possible so throw away early
     if((!board->GetWasLoadedFromFEN() && board->GetNMoves() < MIN_MOVES_FOR_ENPASSANT) || 
-        (board->GetWasLoadedFromFEN() && board->GetNMoves() < 1))
+        (board->GetWasLoadedFromFEN() && !board->GetEnPassantFEN() && board->GetNMoves() < 1))
         return;
 
     // FEN loaded position with en-passant move immediately available
-    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN()) {
+    if(board->GetWasLoadedFromFEN() && board->GetEnPassantFEN() && board->GetNMoves() < 1) {
         U64 attackSquares = 0;
         U64 target = board->GetEnPassantFEN();
         if(fColor == Color::White) {
@@ -250,24 +250,29 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
         } else {
             attackSquares = (north_east(target) | north_west(target)) & board->GetBoard(Color::Black, Piece::Pawn);
         }
+
         while(attackSquares) {
             U64 pawn = 1ULL << __builtin_ctzll(attackSquares);
             U16 move = 0;
             SetMove(move, pawn, target);
-            fCaptureMoves.push_back(move);
+            fLegalMoves.push_back(move);
             attackSquares &= attackSquares - 1;
         }
     }
 
+    // No en-passant possible if no previous moves (e.g. FEN loaded position)
+    if(board->GetNMoves() < 1) 
+        return;
+
     // Can't be wrapped in an else bracket due to undoing moves
+    // Now run the usual code
     U16 lastMove = board->GetLastMove();
     U64 lastMoveTarget = GetMoveTarget(lastMove);
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove))
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
         return;
-    // TODO: Add if last move was en-passant then early return  || board->GetMoveIsEnPassant(lastMove, ...)
 
     U64 enPassantPawns = 0;
     U64 attackingPawns = board->GetBoard(fColor, Piece::Pawn);
@@ -280,23 +285,23 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
         const U64 pawn = 1ULL << __builtin_ctzll(enPassantPawns);
         U16 move = 0;
         SetMove(move, pawn, fColor == Color::White ? north(lastMoveTarget) : south(lastMoveTarget));
-        fCaptureMoves.push_back(move);
+        fLegalMoves.push_back(move);
         enPassantPawns &= enPassantPawns - 1;
     }
 }
 
 void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
+    // Check all the illegal moves, e.g. do they result in your own king being in check?
     const U64 underAttack = GetAttacks(board, fOtherColor);
 
+    // TODO: lost a flippin pawn in here somehow
     if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board, true);
-
     fPinnedPieces.clear(); // Empty the vector from the last call
     for(Direction d : DIRECTIONS) {
         AddAbolsutePins(board, d);
     }
-
     fPinnedPositions = std::accumulate(
         fPinnedPieces.begin(), fPinnedPieces.end(), U64(0),
         [](U64 acc, const std::pair<U64, U64>& p) {
@@ -310,7 +315,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
         const U64 moveTarget = GetMoveTarget(m);
         // King cant move to squares the opponent attacks
         if((board->GetMovePiece(m) == Piece::King) && (moveTarget & underAttack)) {
-            fCaptureMoves.erase(std::begin(fLegalMoves) + iMove);
+            fCaptureMoves.erase(std::begin(fCaptureMoves) + iMove);
             iMove--;
         } else if(fPinnedPositions & moveOrigin) { // Piece originates from a pinned position
             // Absolutely pinned pieces may not move, unless it is a capture of that piece or along pinning ray
@@ -338,7 +343,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
                 int attackingRookBit = kingMSB < rookMSB ? 63 - rookMSB : __builtin_ctzll(rookOnRank);
                 U64 rook = 1ULL << attackingRookBit; // Again could be a queen but it doesn't matter, this is the one checking king if move happens
                 U64 rookShift = kingMSB < rookMSB ? east(rook) : west(rook);
-                U64 takenPawn = fColor == Color::White ? south(GetMoveTarget(m)) : north(GetMoveTarget(m));
+                U64 takenPawn = fColor == Color::White ? south(moveTarget) : north(moveTarget);
 
                 // Make a custom occupancy mask to cut the rook ray down
                 U64 mask = fKing | rook | rookShift;
@@ -348,7 +353,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
                 rookRay ^= (moveOrigin | takenPawn | fKing | rookShift);
 
                 if(!(rookRay & fOccupancy)) { // No pieces on the ray so if en-passant happens king will be in check
-                    fCaptureMoves.erase(std::begin(fLegalMoves) + iMove);
+                    fCaptureMoves.erase(std::begin(fCaptureMoves) + iMove);
                     iMove--;
                 }
             }
@@ -821,7 +826,7 @@ U64 Generator::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToM
 
 void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board, const bool copyToCapures) {
     std::vector<U16> validMoves;
-    for (U16 move : fLegalMoves) {
+    for (U16 move : (copyToCapures ? fCaptureMoves : fLegalMoves)) {
         if (GetMoveIsCastling(move)) {
             continue; // Skip castling moves
         }

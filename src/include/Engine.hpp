@@ -173,7 +173,7 @@ class Engine {
          * @param beta Current value of beta from minimax.
          * @return Evaluation of the position.
         */
-        std::pair<float, int> SearchAllCaptures(float alpha, float beta);
+        float SearchAllCaptures(float alpha, float beta);
         /**
          * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
          * @param board The board to evaluate.
