@@ -10,23 +10,23 @@ Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_pt
 
 
 float Engine::Evaluate() {
-    fGamePhase = fBoard->GetGamePhase();
+    //fGamePhase = fBoard->GetGamePhase();
     // See if we have evaluated this board before (via a transposition)
     // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
-    const U64 thisHash = fBoard->GetHash();
+    //const U64 thisHash = fBoard->GetHash();
     const int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
-
-    auto it = fEvaluationCache.find(thisHash);
-    if(it != fEvaluationCache.end()) {
-        fNHashesFound++;
-        return it->second * perspective;
-    }
+    // Search the transposition table to see if we have evaluated this position before
+    //auto it = fEvaluationCache.find(thisHash);
+    //if(it != fEvaluationCache.end()) {
+    //    fNHashesFound++;
+    //    return it->second * perspective;
+    //}
 
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
-    float evaluation = GetMaterialEvaluation();
-    evaluation += ForceKingToCornerEndgame();
-    fEvaluationCache[thisHash] = evaluation;
-    return evaluation * perspective; // Return in centipawns rather than pawns
+    float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
+    //evaluation += ForceKingToCornerEndgame();
+    //fEvaluationCache[thisHash] = evaluation; // TODO: Prune the evaluation cache size to stop it exponentially increasing
+    return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
 }
 
 float Engine::ForceKingToCornerEndgame() {
@@ -53,12 +53,16 @@ float Engine::ForceKingToCornerEndgame() {
 float Engine::GetMaterialEvaluation() {
     // Counts material and respects the position of the material e.g. knights in the centre are stronger
     float material = 0.;
-    material += EvaluateKnightPositions();
-    material += EvaluateQueenPositions();
-    material += EvaluateRookPositions();
-    material += EvaluateBishopPositions();
-    material += EvaluateKingPositions();
+    //material += EvaluateKnightPositions();
+    //material += EvaluateQueenPositions();
+    //material += EvaluateRookPositions();
+    //material += EvaluateBishopPositions();
+    //material += EvaluateKingPositions();
 
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Knight))) * VALUE_PAWN;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Bishop))) * VALUE_PAWN;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Rook))) * VALUE_PAWN;
+    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
     material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
     return material;
 }
@@ -143,13 +147,13 @@ void Engine::OrderMoves(std::vector<U16> &moves) {
 
     std::sort(moves.begin(), moves.end(), [&](U16 move1, U16 move2) {
         float move1ScoreEstimate = 0.;
+        float move2ScoreEstimate = 0.;
         const int pieceType1 = (int)fBoard->GetMovePiece(move1);
         const int takenPieceType1 = (int)fBoard->GetMoveTakenPiece(move1);
-        float move2ScoreEstimate = 0.;
         const int pieceType2 = (int)fBoard->GetMovePiece(move2);
         const int takenPieceType2 = (int)fBoard->GetMoveTakenPiece(move2);
 
-        // Prioritise capturing opponent's most valudable pieces with our least valuable piece
+        // Prioritise capturing opponent's most valuable pieces with our least valuable piece
         if(takenPieceType1 != (int)Piece::Null)
             move1ScoreEstimate += 10. * PIECE_VALUES[takenPieceType1] - PIECE_VALUES[pieceType1];
         if(takenPieceType2 != (int)Piece::Null)
@@ -201,41 +205,91 @@ std::pair<float, int> Engine::SearchAllCaptures(float alpha, float beta) {
     return std::make_pair(alpha, nMovesSearched);
 }
 
-std::pair<float, int> Engine::Minimax(int depth, float alpha, float beta) {
-    // Return the evaluation up to depth [depth] and the number of moves explicitly searched
-    if(depth == 0) //  ...(Evaluate(), 1) 
-        return std::make_pair(Evaluate(), 1); //std::make_pair(Evaluate(), 1); 
+float Engine::Search(U8 depth, float alpha, float beta) {
+    // Returns the evaluation of a position after searching to the specified depth. 
+    // Evaluations are returned in centi-pawns (100 cp = 1 pawn). Larger positive
+    // values are better for white. This function includes alpha-beta pruning and
+    // is based on the negamax function.
+    if(depth == 0) {
+        fNMovesSearched++;
+        return Evaluate();
+    }
 
-    int movesSearched = 0;
-    fGenerator->GenerateLegalMoves(fBoard); // Move has been made in GetBestMove so need to find legal moves again
-    std::vector<U16> moves = fGenerator->GetLegalMoves(); // Set of legal moves for this position
-    //std::cout << "Depth: " << depth << " Moves: " << moves.size() << "\n";
+    fGenerator->GenerateLegalMoves(fBoard);
+    std::vector<U16> moves = fGenerator->GetLegalMoves();
 
-    Color movingColor = fBoard->GetColorToMove(); // These can change on recursive calls
-    Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
+    const Color movingColor = fBoard->GetColorToMove();
+
     if(moves.size() == 0) {
-        if(fGenerator->IsUnderAttack(fBoard->GetBoard(movingColor, Piece::King), otherColor, fBoard))
-            return std::make_pair(movingColor == Color::White ? -MAX_EVAL/depth : MAX_EVAL/depth, movesSearched); // Checkmate loss, always chose the fastest path to mate
-        return std::make_pair(0., movesSearched); // Stalemate
-    } 
-    // For speed up, order the generated moves each iteration
+         // These can change on recursive calls
+        const Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
+        const bool inCheck = fGenerator->IsUnderAttack(fBoard->GetBoard(movingColor, Piece::King), otherColor, fBoard);
+        if(inCheck) { // No legal moves and you are in check(mate) so negative infinity in correct "direction"
+            return movingColor == Color::White ? MIN_EVAL : MAX_EVAL; 
+        } else { // Must be a stalemate - so completely even position
+            return 0.0;
+        }
+    }
+
+    // Order moves to speed-up alpha-beta pruning
     OrderMoves(moves);
-    for(U16 move : moves) { // Search through all the possible moves
+
+    for(U16 move : moves) {
         fBoard->MakeMove(move);
-        //std::cout << "Depth = " << fMaxDepth - depth << " ";
-        //fBoard->PrintDetailedMove(move);
-        std::pair<float, int> result = Minimax(depth - 1, -beta, -alpha);
-        float evaluation = -result.first;
-        movesSearched += result.second;
+        // Minus sign to flip perspective (what is good for our opponent is bad for us -- negamax)
+        float evaluation = -Search(depth - 1, -beta, -alpha); // opposite way around to args of function
         fBoard->UndoMove();
         if(evaluation >= beta)
-            return std::make_pair(beta, movesSearched);
+            return beta;
         alpha = std::max(alpha, evaluation);
     }
-    return std::make_pair(alpha, movesSearched);
+    return alpha;
 }
 
-U16 Engine::GetBestMove(bool verbose) {
+U16 Engine::GetBestMove() {
+    // TODO: Add hash table stuff
+    const U8 searchDepth = 4;
+    auto start = std::chrono::high_resolution_clock::now();
+    U16 bestMove = 0;
+    // Must take into account colour such that more negative values are better for black
+    Color colorToMove = fBoard->GetColorToMove();
+    float bestEvaluation = colorToMove == Color::White ? MIN_EVAL : MAX_EVAL;
+    fNMovesSearched = 0;
+
+    // Get the legal moves that we have to choose from (i.e. depth = 1 moves)
+    std::vector<U16> primaryMoves = fGenerator->GetLegalMoves();
+
+    // Order moves to speed up alpha-beta pruning
+    OrderMoves(primaryMoves);
+
+    for(U16 primaryMove : primaryMoves) {
+        //PrintMove(primaryMove);
+        //std::cout << "\n";
+        fBoard->MakeMove(primaryMove);
+        float evaluation = Search(searchDepth - 1, MIN_EVAL, MAX_EVAL);
+        std::cout << "eval = " << evaluation * 0.01 << "\n";
+        fBoard->UndoMove();
+        if(colorToMove == Color::White && evaluation > bestEvaluation) { // Use > not >= to prefer faster paths to mate
+            bestEvaluation = evaluation;
+            bestMove = primaryMove;
+        } else if(colorToMove == Color::Black && evaluation < bestEvaluation) {
+            bestEvaluation = evaluation;
+            bestMove = primaryMove;
+        }
+    }
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Search took " << duration.count() << " ms (" << duration.count() * 0.001 <<" s)\n";
+    std::cout << "Evaluation = " << bestEvaluation / 100.0 << "\n";
+    std::cout << "Positions searched = " << fNMovesSearched << "\n";
+
+    // TODO: Catch if best move was never updated such that we yield all zeros (null/invalid move)
+    return bestMove;
+}
+
+
+/*U16 Engine::GetBestMove(bool verbose) {
     fNHashesFound = 0;
     auto start = std::chrono::high_resolution_clock::now();
     U16 bestMove{0};
@@ -272,7 +326,7 @@ U16 Engine::GetBestMove(bool verbose) {
         std::cout << "Evaluated: " << nMovesSearched << " positions (" << fNHashesFound << " hashes used)\n";
     }
     return bestMove;
-}
+}*/
 
 U16 Engine::GetRandomMove() {   
     std::random_device seeder;

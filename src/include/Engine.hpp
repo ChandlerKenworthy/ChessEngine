@@ -38,12 +38,16 @@ class Engine {
         */
         U16 GetRandomMove();
 
+
+        float Search(U8 depth, float alpha, float beta);
+
         float Evaluate(); // Static evaluation of a board
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U16 GetBestMove(bool verbose);
+        U16 GetBestMove();
     private:
+        int fNMovesSearched;
         int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
