@@ -4,8 +4,10 @@
 
 #include "Engine.hpp"
 
-Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxDepth(maxDepth) {
+Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxCacheSize(400000), fMaxDepth(maxDepth) {
     fEvaluationCache.clear();
+    const size_t initialBucketCount = fMaxCacheSize / 0.75; // Load factor of 0.75 is typically used for unordered_maps
+    fEvaluationCache.reserve(initialBucketCount);
 }
 
 
@@ -13,19 +15,32 @@ float Engine::Evaluate() {
     //fGamePhase = fBoard->GetGamePhase();
     // See if we have evaluated this board before (via a transposition)
     // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
-    //const U64 thisHash = fBoard->GetHash();
+    const U64 thisHash = fBoard->GetHash();
     const int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
     // Search the transposition table to see if we have evaluated this position before
-    //auto it = fEvaluationCache.find(thisHash);
-    //if(it != fEvaluationCache.end()) {
-    //    fNHashesFound++;
-    //    return it->second * perspective;
-    //}
+    auto it = fEvaluationCache.find(thisHash);
+    if(it != fEvaluationCache.end()) {
+        fNHashesFound++;
+        // Update LRU list
+        fLruList.erase(it->second.second); // Remove from current position
+        fLruList.push_front(thisHash); // Move to front (most recently used)
+        it->second.second = fLruList.begin(); // Update iterator in the map
+        return it->second.first * perspective;
+    }
 
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
     //evaluation += ForceKingToCornerEndgame();
-    //fEvaluationCache[thisHash] = evaluation; // TODO: Prune the evaluation cache size to stop it exponentially increasing
+
+    // Store evaluation in the cache
+    fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
+    // Evict least recently used evaluations if cache exceeds maximum size
+    if (fEvaluationCache.size() > fMaxCacheSize) {
+        U64 toRemove = fLruList.back(); // Get the least recently used hash
+        fLruList.pop_back(); // Remove from the end of LRU list
+        fEvaluationCache.erase(toRemove); // Remove from the cache
+    }
+
     return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
 }
 
@@ -247,10 +262,10 @@ float Engine::Search(U8 depth, float alpha, float beta) {
 }
 
 U16 Engine::GetBestMove() {
-    // TODO: Add hash table stuff
     const U8 searchDepth = 4;
     auto start = std::chrono::high_resolution_clock::now();
     U16 bestMove = 0;
+    fNHashesFound = 0;
     // Must take into account colour such that more negative values are better for black
     Color colorToMove = fBoard->GetColorToMove();
     float bestEvaluation = colorToMove == Color::White ? MIN_EVAL : MAX_EVAL;
@@ -263,11 +278,8 @@ U16 Engine::GetBestMove() {
     OrderMoves(primaryMoves);
 
     for(U16 primaryMove : primaryMoves) {
-        //PrintMove(primaryMove);
-        //std::cout << "\n";
         fBoard->MakeMove(primaryMove);
         float evaluation = Search(searchDepth - 1, MIN_EVAL, MAX_EVAL);
-        std::cout << "eval = " << evaluation * 0.01 << "\n";
         fBoard->UndoMove();
         if(colorToMove == Color::White && evaluation > bestEvaluation) { // Use > not >= to prefer faster paths to mate
             bestEvaluation = evaluation;
@@ -282,51 +294,11 @@ U16 Engine::GetBestMove() {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     std::cout << "Search took " << duration.count() << " ms (" << duration.count() * 0.001 <<" s)\n";
     std::cout << "Evaluation = " << bestEvaluation / 100.0 << "\n";
-    std::cout << "Positions searched = " << fNMovesSearched << "\n";
+    std::cout << "Positions searched = " << fNMovesSearched << " Hashes used = " << fNHashesFound << "\n";
 
     // TODO: Catch if best move was never updated such that we yield all zeros (null/invalid move)
     return bestMove;
 }
-
-
-/*U16 Engine::GetBestMove(bool verbose) {
-    fNHashesFound = 0;
-    auto start = std::chrono::high_resolution_clock::now();
-    U16 bestMove{0};
-    Color colorToMove = fBoard->GetColorToMove();
-    // If white is playing the worst eval is -999 (i.e. black completely winning)
-    float bestEval = colorToMove == Color::White ? -MAX_EVAL : MAX_EVAL;
-    int nMovesSearched = 0;
-
-    // For each of the moves we want to find the "best" evaluation
-    std::vector<U16> moves = fGenerator->GetLegalMoves();
-    // Order the moves for faster searching
-    OrderMoves(moves);
-    for(U16 move : moves) { // this loop accounts for one order of depth already
-        fBoard->MakeMove(move);
-        //std::cout << "Depth: " << 0 << " ";  
-        //fBoard->PrintDetailedMove(move);
-        std::pair<float, int> result = Minimax(fMaxDepth - 1, -MAX_EVAL, MAX_EVAL);
-        fBoard->UndoMove();
-        float eval = result.first;
-        nMovesSearched += result.second;
-        if(colorToMove == Color::White && eval >= bestEval) {
-            bestEval = eval;
-            bestMove = move;
-        } else if(colorToMove == Color::Black && eval <= bestEval) {
-            bestEval = eval;
-            bestMove = move;
-        }
-    }
-
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    if(verbose) {
-        std::cout << "Time: " << duration.count() / 1000. << " seconds\n";
-        std::cout << "Evaluated: " << nMovesSearched << " positions (" << fNHashesFound << " hashes used)\n";
-    }
-    return bestMove;
-}*/
 
 U16 Engine::GetRandomMove() {   
     std::random_device seeder;

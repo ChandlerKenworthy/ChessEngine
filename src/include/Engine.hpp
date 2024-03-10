@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <list>
 #include <unordered_map>
 
 #include "Constants.hpp"
@@ -52,7 +53,15 @@ class Engine {
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
         Color fOtherColor;
-        std::unordered_map<U64, float> fEvaluationCache;
+
+        // Transposition tables for storing evaluations, faster to lookup than recompute
+        // <Hash, <Evaluation, Iterator to LRU list>>
+        std::unordered_map<U64, std::pair<float, std::list<U64>::iterator>> fEvaluationCache; 
+        std::list<U64> fLruList; // List to keep track of LRU (least recently used) order
+        const std::size_t fMaxCacheSize; // Maximum size of the cache (N evaluations)
+
+        int fMaxDepth;
+
         float fGamePhase;
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
@@ -157,7 +166,6 @@ class Engine {
         }}; ///< Value modifier for the king based on its position on the board 0 = white early game, 1 = black early game, 2 = white endgame, 3 = black endgame
 
         //std::random_device fRandomDevice;
-        int fMaxDepth;
 
         /**
          * @brief Search until no more captures are available.
