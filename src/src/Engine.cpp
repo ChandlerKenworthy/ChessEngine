@@ -31,6 +31,7 @@ float Engine::Evaluate() {
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
     evaluation += ForceKingToCornerEndgame();
+    evaluation += EvaluatePassedPawns();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -42,6 +43,35 @@ float Engine::Evaluate() {
     }
 
     return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
+}
+
+float Engine::EvaluatePassedPawns() {
+    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
+    U64 enemyPawns = fBoard->GetBoard(fOtherColor, Piece::Pawn);
+    const U8 promotionRankNumber = fOtherColor == Color::Black ? 8 : 1;
+    float bonus = 0.0;
+    while(myPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
+        const U8 rankNo = get_rank_number(pawn);
+        U64 passedMask = get_file(pawn);
+        passedMask |= (east(passedMask) | west(passedMask));
+        // Now only allow ranks higher than yours in the defined attacking direction
+        for(int iRank = 0; iRank < 8; ++iRank) {
+            if(fOtherColor == Color::Black) { // You are white
+                if(iRank <= rankNo - 1)
+                    passedMask &= !RANKS[iRank];
+            } else { // You are black
+                if(iRank >= rankNo - 1)
+                    passedMask &= !RANKS[iRank];
+            }
+        }
+        if(passedMask & !enemyPawns) {
+            // this is in range [1, 6] so -1 to put in range of lookup table
+            bonus += fPassPawnBonus[abs(promotionRankNumber - rankNo) - 1]; 
+        }
+        myPawns &= myPawns - 1;
+    }
+    return bonus;
 }
 
 float Engine::ForceKingToCornerEndgame() {
