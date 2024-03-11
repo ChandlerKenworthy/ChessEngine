@@ -12,7 +12,7 @@ Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_pt
 
 
 float Engine::Evaluate() {
-    //fGamePhase = fBoard->GetGamePhase();
+    fGamePhase = fBoard->GetGamePhase();
     // See if we have evaluated this board before (via a transposition)
     // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
     const U64 thisHash = fBoard->GetHash();
@@ -30,7 +30,7 @@ float Engine::Evaluate() {
 
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
     float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
-    //evaluation += ForceKingToCornerEndgame();
+    evaluation += ForceKingToCornerEndgame();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -68,16 +68,16 @@ float Engine::ForceKingToCornerEndgame() {
 float Engine::GetMaterialEvaluation() {
     // Counts material and respects the position of the material e.g. knights in the centre are stronger
     float material = 0.;
-    //material += EvaluateKnightPositions();
-    //material += EvaluateQueenPositions();
-    //material += EvaluateRookPositions();
-    //material += EvaluateBishopPositions();
+    material += EvaluateKnightPositions();
+    material += EvaluateQueenPositions();
+    material += EvaluateRookPositions();
+    material += EvaluateBishopPositions();
     //material += EvaluateKingPositions();
 
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Knight))) * VALUE_PAWN;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Bishop))) * VALUE_PAWN;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Rook))) * VALUE_PAWN;
-    material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
+    //material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Knight)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Knight))) * VALUE_PAWN;
+    //material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Bishop)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Bishop))) * VALUE_PAWN;
+    //material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Rook)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Rook))) * VALUE_PAWN;
+    //material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Queen)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Queen))) * VALUE_QUEEN;
     material += (__builtin_popcountll(fBoard->GetBoard(Color::White, Piece::Pawn)) - __builtin_popcountll(fBoard->GetBoard(Color::Black, Piece::Pawn))) * VALUE_PAWN;
     return material;
 }
@@ -257,7 +257,7 @@ float Engine::Search(U8 depth, float alpha, float beta) {
     return alpha;
 }
 
-U16 Engine::GetBestMove() {
+U16 Engine::GetBestMove(const bool verbose) {
     const U8 searchDepth = 4;
     auto start = std::chrono::high_resolution_clock::now();
     U16 bestMove = 0;
@@ -288,9 +288,11 @@ U16 Engine::GetBestMove() {
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "Search took " << duration.count() << " ms (" << duration.count() * 0.001 <<" s)\n";
-    std::cout << "Evaluation = " << bestEvaluation / 100.0 << "\n";
-    std::cout << "Positions searched = " << fNMovesSearched << " Hashes used = " << fNHashesFound << "\n";
+    if(verbose) {
+        std::cout << "Search took " << duration.count() << " ms (" << duration.count() * 0.001 <<" s)\n";
+        std::cout << "Evaluation = " << bestEvaluation / 100.0 << "\n";
+        std::cout << "Positions searched = " << fNMovesSearched << " Hashes used = " << fNHashesFound << "\n";
+    }
 
     // TODO: Catch if best move was never updated such that we yield all zeros (null/invalid move)
     return bestMove;

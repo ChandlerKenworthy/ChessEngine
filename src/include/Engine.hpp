@@ -46,7 +46,7 @@ class Engine {
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U16 GetBestMove();
+        U16 GetBestMove(const bool verbose);
     private:
         int fNMovesSearched;
         int fNHashesFound;

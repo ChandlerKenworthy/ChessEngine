@@ -84,7 +84,7 @@ void PlaySelf(int nGames, int depth) {
 
             U16 move{0};
             if(board->GetColorToMove() == Color::White) {
-                move = engine->GetBestMove(); 
+                move = engine->GetBestMove(false); 
             } else {
                 move = engine->GetRandomMove(); // For now black is a random agent
             }
@@ -150,7 +150,7 @@ void Play(const std::string &fen, Color userColor, int depth) {
             } else {
                 // Compcuter chooses a move
                 //move = engine->GetRandomMove();
-                move = engine->GetBestMove();
+                move = engine->GetBestMove(true);
                 // Print out the move to the console
                 board->PrintDetailedMove(move);
             }
