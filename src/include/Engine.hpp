@@ -68,7 +68,7 @@ class Engine {
 
         float fGamePhase;
 
-        const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
+        const int fPassPawnBonus[6] = {70, 60, 50, 40, 30, 15}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)

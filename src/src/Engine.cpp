@@ -59,10 +59,10 @@ float Engine::EvaluatePassedPawns() {
         for(int iRank = 0; iRank < 8; ++iRank) {
             if(fOtherColor == Color::Black) { // You are white
                 if(iRank <= rankNo - 1)
-                    passedMask &= !RANKS[iRank];
+                    passedMask &= ~RANKS[iRank];
             } else { // You are black
                 if(iRank >= rankNo - 1)
-                    passedMask &= !RANKS[iRank];
+                    passedMask &= ~RANKS[iRank];
             }
         }
         if(passedMask & !enemyPawns) {
