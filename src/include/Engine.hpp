@@ -42,6 +42,11 @@ class Engine {
          * @return The bonus to add to the evaluation in centipawns.
         */
         float EvaluatePassedPawns();
+        /**
+         * @brief Apply a penalty to isolated pawns (i.e pawns with no friendly pawns on adjacent files). Also applies a penalty for backwards pawns.
+         * @return The penalty to apply based on the number of isolated pawns. Value in centipawns.
+        */
+        float EvaluateIsolatedPawns();
 
 
         float Search(U8 depth, float alpha, float beta);
@@ -68,6 +73,7 @@ class Engine {
 
         float fGamePhase;
 
+        const int fIsolatedPawnPenalty[8] = {-30,-40,-50,-60,-60,-50,-40,-30}; ///< Penalty to apply to isolated pawns based on the file
         const int fPassPawnBonus[6] = {70, 60, 50, 40, 30, 15}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board

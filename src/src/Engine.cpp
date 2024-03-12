@@ -29,9 +29,11 @@ float Engine::Evaluate() {
     }
 
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
+    // Perform all the evaluations
     float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
     evaluation += ForceKingToCornerEndgame();
     evaluation += EvaluatePassedPawns();
+    evaluation += EvaluateIsolatedPawns();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -72,6 +74,28 @@ float Engine::EvaluatePassedPawns() {
         myPawns &= myPawns - 1;
     }
     return bonus;
+}
+
+float Engine::EvaluateIsolatedPawns() {
+    // TODO: backwards pawns
+    // TODO: isolated pawns on half-open or open files are very weak
+    float penalty = 0.0;
+
+    // Find isolated pawns (those with no friendly pawns on adjacent files)
+    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
+    const U64 myPawnsRef = myPawns;
+    while(myPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
+        U64 mask = get_file(pawn);
+        mask |= east(mask) | west(mask);
+        if(~(mask & (myPawnsRef ^ pawn))) {
+            // Mask does not contain any of your own pawns, this pawn is isolated
+            // isolated central pawns are "worse" than those on edge files
+            penalty -= fIsolatedPawnPenalty[get_file_number(pawn) - 1];
+        }
+        myPawns &= myPawns - 1;
+    }
+    return penalty;
 }
 
 float Engine::ForceKingToCornerEndgame() {
