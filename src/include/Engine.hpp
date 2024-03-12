@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <list>
 #include <unordered_map>
 
 #include "Constants.hpp"
@@ -31,25 +32,43 @@ class Engine {
          * @param depth The maximum search depth of the engine.
         */
         explicit Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth);
-
-
         /***
          * @brief Get a random legal move, testing purposes only. Must generate legal moves first!
         */
         U16 GetRandomMove();
+        /**
+         * @brief Add a bonus to the evaluation score for each passed pawn. This is especially true when the phase
+         * of the game is endgame-like.
+         * @return The bonus to add to the evaluation in centipawns.
+        */
+        float EvaluatePassedPawns();
+
+
+        float Search(U8 depth, float alpha, float beta);
 
         float Evaluate(); // Static evaluation of a board
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
         void SetMaxDepth(int depth) { fMaxDepth = depth; };
         int GetMaxDepth() { return fMaxDepth; };
-        U16 GetBestMove(bool verbose);
+        U16 GetBestMove(const bool verbose);
     private:
+        int fNMovesSearched;
         int fNHashesFound;
         const std::unique_ptr<Generator> &fGenerator;
         const std::unique_ptr<Board> &fBoard;
         Color fOtherColor;
-        std::unordered_map<U64, float> fEvaluationCache;
+
+        // Transposition tables for storing evaluations, faster to lookup than recompute
+        // <Hash, <Evaluation, Iterator to LRU list>>
+        std::unordered_map<U64, std::pair<float, std::list<U64>::iterator>> fEvaluationCache; 
+        std::list<U64> fLruList; // List to keep track of LRU (least recently used) order
+        const std::size_t fMaxCacheSize; // Maximum size of the cache (N evaluations)
+
+        int fMaxDepth;
+
         float fGamePhase;
+
+        const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)
@@ -153,7 +172,6 @@ class Engine {
         }}; ///< Value modifier for the king based on its position on the board 0 = white early game, 1 = black early game, 2 = white endgame, 3 = black endgame
 
         //std::random_device fRandomDevice;
-        int fMaxDepth;
 
         /**
          * @brief Search until no more captures are available.
@@ -161,7 +179,7 @@ class Engine {
          * @param beta Current value of beta from minimax.
          * @return Evaluation of the position.
         */
-        std::pair<float, int> SearchAllCaptures(float alpha, float beta);
+        float SearchAllCaptures(float alpha, float beta);
         /**
          * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
          * @param board The board to evaluate.

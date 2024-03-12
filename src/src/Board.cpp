@@ -56,10 +56,22 @@ U64 Board::GetHash() {
             hash ^= fKeys.castlingKeys[3];
     }
 
-    // En passant square
-    //if (enPassantSquare != -1) {
-    //    hash ^= zobristKeys.enPassantKey;
-    //}
+    // En passant square (i.e. en-passant now available)
+    if(fMadeMoves.size() > 0) {
+        const U16 lastMove = GetLastMove();
+        const U64 target = GetMoveTarget(lastMove);
+        const U8 startRank = get_rank_number(GetMoveOrigin(lastMove));
+        const U8 endRank = get_rank_number(target);
+        bool wasPawnMoved = GetIsOccupied(target).second == Piece::Pawn;
+        const bool wasDoubeMove = fColorToMove == Color::White ? (startRank == 7 && endRank == 5) : (startRank == 2 && endRank == 4);
+
+        if(wasPawnMoved && wasDoubeMove) {
+            // potential for en-passant if either of the fColorToMove pieces pawns directly adjacent
+            U64 pawns = GetBoard(fColorToMove, Piece::Pawn);
+            if((east(target) | west(target)) & pawns)
+                hash ^= fKeys.enPassantKey;
+        }
+    }
 
     return hash;
 }

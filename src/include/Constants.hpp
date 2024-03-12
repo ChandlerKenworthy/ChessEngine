@@ -124,8 +124,6 @@ enum class Piece {
     King,   ///< King piece.
 };
 
-constexpr float MAX_EVAL = 99999.0;
-
 constexpr int NSQUARES = 64;
 constexpr int BITS_PER_FILE = 8;
 constexpr int MIN_MOVES_FOR_CASTLING = 6;
@@ -137,6 +135,9 @@ const float VALUE_KNIGHT = 320.;
 const float VALUE_ROOK = 500.;
 const float VALUE_QUEEN = 900.;
 const float VALUE_KING = 99999.;
+
+constexpr float MAX_EVAL = std::numeric_limits<float>::max();
+constexpr float MIN_EVAL = -std::numeric_limits<float>::max();
 
 const float PIECE_VALUES[7] = {0., VALUE_PAWN, VALUE_BISHOP, VALUE_KNIGHT, VALUE_ROOK, VALUE_QUEEN, VALUE_KING};
 const std::vector<Piece> PROMOTION_PIECES = {Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen};
