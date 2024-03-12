@@ -88,7 +88,7 @@ float Engine::EvaluateIsolatedPawns() {
         const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
         U64 mask = get_file(pawn);
         mask |= east(mask) | west(mask);
-        if(~(mask & (myPawnsRef ^ pawn))) {
+        if((mask & (myPawnsRef ^ pawn)) == 0) {
             // Mask does not contain any of your own pawns, this pawn is isolated
             // isolated central pawns are "worse" than those on edge files
             penalty -= fIsolatedPawnPenalty[get_file_number(pawn) - 1];
