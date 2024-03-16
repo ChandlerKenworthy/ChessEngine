@@ -1,12 +1,12 @@
 #include "Renderer.hpp"
 
 Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
-    fPieceHeight = fTileWidth * 0.8;
+    fPieceHeight = fTileWidth * 0.75;
     fPieces.reserve(32);
     fDraggedPiece = nullptr;
 
     // Resize the window on opening
-    resize(750, 750);
+    resize(fBoardWidth, fBoardHeight);
 
     // Set the scene
     setScene(fScene);
@@ -18,43 +18,6 @@ Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Ge
 
     // Set up chessboard
     DrawChessBoard();
-
-
-    //QVBoxLayout *layout = new QVBoxLayout(this);
-    
-    // Max Depth
-    //QHBoxLayout *depthLayout = new QHBoxLayout;
-    //QLabel *depthLabel = new QLabel("Max Depth:", this);
-    //depthSpinBox = new QSpinBox(this);
-    //depthLayout->addWidget(depthLabel);
-    //depthLayout->addWidget(depthSpinBox);
-    
-    // Max Time
-    //QHBoxLayout *timeLayout = new QHBoxLayout;
-    //QLabel *timeLabel = new QLabel("Max Time (seconds):", this);
-    //timeSpinBox = new QDoubleSpinBox(this);
-    //timeSpinBox->setDecimals(1); // Adjust as needed
-    //timeLayout->addWidget(timeLabel);
-    //timeLayout->addWidget(timeSpinBox);
-    
-    // Engine Version
-    //QHBoxLayout *versionLayout = new QHBoxLayout;
-    //QLabel *versionLabel = new QLabel("Engine Version:", this);
-    //versionComboBox = new QComboBox(this);
-    //versionComboBox->addItem("Version 1");
-    //versionComboBox->addItem("Version 2");
-    //versionLayout->addWidget(versionLabel);
-    //versionLayout->addWidget(versionComboBox);
-    
-    // Add layouts to main layout
-    //layout->addLayout(depthLayout);
-    //layout->addLayout(timeLayout);
-    //layout->addLayout(versionLayout);
-    
-    // Add buttons
-    //QPushButton *startButton = new QPushButton("Start", this);
-    //connect(startButton, &QPushButton::clicked, this, &Renderer::startSearch);
-    //layout->addWidget(startButton);
 }
 
 void Renderer::gameLoopSlot() {
@@ -86,6 +49,23 @@ void Renderer::DrawChessBoard() {
             QColor color = (i + j) % 2 == 0 ? fLightSquare : fDarkSquare;
             QGraphicsRectItem *square = fScene->addRect(i * fTileWidth, j * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
         }
+    }
+
+    // Add rank labels
+    for(int i = 0; i < 8; ++i) {
+        QString label = QString::number(8 - i);
+        QGraphicsTextItem *rankLabel = fScene->addText(label);
+        rankLabel->setPos(0, i * fTileWidth);
+        rankLabel->setDefaultTextColor(i % 2 == 0 ? fDarkSquare : fLightSquare);
+    }
+
+    // Add file labels
+    QString files = "abcdefgh";
+    for(int i = 0; i < 8; ++i) {
+        QString label = files.at(i);
+        QGraphicsTextItem *fileLabel = fScene->addText(label);
+        fileLabel->setPos(i * fTileWidth, (8 * fTileWidth) - (fileLabel->boundingRect().height()));
+        fileLabel->setDefaultTextColor(i % 2 == 0 ? fLightSquare : fDarkSquare);
     }
 }
 
