@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 
-Renderer::Renderer(const std::unique_ptr<Board> &board, QWidget *parent) : QGraphicsView(parent), fBoard(board), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
+Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
     fPieceHeight = fTileWidth * 0.8;
     fPieces.reserve(32);
     fDraggedPiece = nullptr;
@@ -57,13 +57,26 @@ Renderer::Renderer(const std::unique_ptr<Board> &board, QWidget *parent) : QGrap
     //layout->addWidget(startButton);
 }
 
-void Renderer::startSearch() {
-    int maxDepth = depthSpinBox->value();
-    double maxTime = timeSpinBox->value();
-    QString engineVersion = versionComboBox->currentText();
-        
-    // Call your chess engine with the selected parameters
-    // YourEngineClass::search(maxDepth, maxTime, engineVersion);
+void Renderer::gameLoopSlot() {
+    while (fBoard->GetState() == State::Play) {
+        if(fBoard->GetColorToMove() != fUserColor) { // The engine makes a move
+            // Re-generate possible moves
+            fGenerator->GenerateLegalMoves(fBoard);
+
+            // Find the engine's best move
+            U16 move = fEngine->GetBestMove(true);
+
+            // Make the move
+            fBoard->MakeMove(move);
+
+            // Update the GUI accordingly
+            DrawPieces();
+        } else {
+            fGenerator->GenerateLegalMoves(fBoard);
+        } // User has to make a move, handled inside of mousePress/Release event
+        // Ensure to call QApplication::processEvents() periodically to keep the GUI responsive
+        QApplication::processEvents();
+    }
 }
 
 void Renderer::DrawChessBoard() {
@@ -174,7 +187,12 @@ void Renderer::mouseReleaseEvent(QMouseEvent *event) {
     // also update the GUI based on the new board updates
     U16 move = 0;
     SetMove(move, fStartSquare, fEndSquare);
-    fBoard->MakeMove(move);
+    // TODO: Before making any move check it is legal, if it is not send the clicked piece back to the start square
+    bool isLegal = fGenerator->GetMoveIsLegal(move);
+    if(isLegal) {
+        fBoard->MakeMove(move);
+    }
+    
     DrawPieces();
 
     fIsDragging = false;

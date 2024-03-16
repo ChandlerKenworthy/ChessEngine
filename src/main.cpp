@@ -117,15 +117,22 @@ void PlaySelf(int nGames, int depth) {
     std::cout << "Draws by insufficient material: " << materialDraw << "\n";
 }
 
-void Play(const std::string &/*fen*/, Color /*userColor*/, int /*depth*/) {
-    //const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initalise the main game board (game state handling)
-    //const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(); // For handling the GUI
+void Play(const std::string &fen, Color userColor, int depth) {
+    //const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initalise the main game board
     //const std::unique_ptr<Generator> generator = std::make_unique<Generator>();
     //const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, depth);
+    //    const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(board); // For handling the GUI
+    //gui->setWindowTitle("Chess Engine: Player v Computer");
+    //gui->show();
 
     // If the FEN exists load the board with the FEN
     //if(fen.size() > 0)
     //    board->LoadFEN(fen);
+
+    // Play the game
+    //while(board->GetState() == State::Play) {
+        // do something
+    //}
 
     //gui->Update(board); // Draw board initially
     /*
@@ -194,19 +201,41 @@ int main(int argc, char* argv[]) {
         unsigned long int result = myTest.GetNodes(perftDepth, fenString, doFinePrint);
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {
-        Play(fenString, userColor, maxDepth);
+        QApplication app(argc, argv);
+        const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initialize the main game board
+        const std::unique_ptr<Generator> generator = std::make_unique<Generator>(); // Initialize the main game board
+        const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, maxDepth);
+        const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(board, generator, engine); // For handling the GUI
+        gui->setWindowTitle("Chess Engine: Player v Computer");
+        gui->setUserColor(userColor);
+        gui->show();
+
+        // If the FEN exists load the board with the FEN
+        if (fenString.size() > 0)
+            board->LoadFEN(fenString);
+
+        gui->DrawPieces();
+
+        // Connect a custom signal to the game loop slot in the renderer
+        QObject::connect(gui.get(), &Renderer::gameLoopSignal, gui.get(), &Renderer::gameLoopSlot);
+
+         // Start the game loop by emitting the signal
+        emit gui->gameLoopSignal();
+
+        // Start the event loop
+        return app.exec();
     } else if(playSelf != 0) {
         PlaySelf(playSelf, maxDepth);
     } else {
-        std::unique_ptr<Board> b = std::make_unique<Board>();
-        QApplication app(argc, argv);
-        Renderer window(b);
-        window.setWindowTitle("Chess Engine");
-        window.show();
+        //std::unique_ptr<Board> b = std::make_unique<Board>();
+        //QApplication app(argc, argv);
+        //Renderer window(b);
+        //window.setWindowTitle("Chess Engine");
+        //window.show();
 
-        window.DrawPieces();
+        //window.DrawPieces();
 
-        return app.exec();
+        //return app.exec();
     }
     return 0;
 }

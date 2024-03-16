@@ -17,6 +17,8 @@
 #include <QMouseEvent>
 #include "Constants.hpp"
 #include "Board.hpp"
+#include "Engine.hpp"
+#include "Generator.hpp"
 
 /**
  * @class Renderer
@@ -28,18 +30,24 @@
 class Renderer : public QGraphicsView {
         Q_OBJECT
     public:
-        Renderer(const std::unique_ptr<Board> &board, QWidget *parent = nullptr);
+        Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent = nullptr);
         void DrawPieces();
+        void setUserColor(const Color color) { fUserColor = color; };
+    public slots:
+        void gameLoopSlot();
+    signals:
+        void gameLoopSignal();
     protected:
         void mousePressEvent(QMouseEvent *event) override;
         void mouseReleaseEvent(QMouseEvent *event) override;
         void mouseMoveEvent(QMouseEvent *event) override;
-    private slots:
-        void startSearch();
     private:
         const std::unique_ptr<Board> &fBoard;
+        const std::unique_ptr<Generator> &fGenerator;
+        const std::unique_ptr<Engine> &fEngine;
         const int fTileWidth;
         int fPieceHeight;
+        Color fUserColor;
 
         const int fBoardWidth;
         const int fBoardHeight;
