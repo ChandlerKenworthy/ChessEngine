@@ -24,8 +24,14 @@ add_executable(ChessEngine
 target_include_directories(ChessEngine PRIVATE 
     src 
     include
-    ${Qt5Widgets_INCLUDE_DIRS}
+    ${Qt6Widgets_INCLUDE_DIRS}
 )
+
+# Use MOC to process header files containing Q_OBJECT
+qt6_wrap_cpp(MOC_SOURCES include/Renderer.hpp)
+
+# Add generated MOC files to the target
+target_sources(ChessEngine PRIVATE ${MOC_SOURCES})
 
 # Link against SFML libraries
 target_link_libraries(ChessEngine PRIVATE 

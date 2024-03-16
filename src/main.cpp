@@ -200,11 +200,11 @@ int main(int argc, char* argv[]) {
     } else {
         std::unique_ptr<Board> b = std::make_unique<Board>();
         QApplication app(argc, argv);
-        Renderer window;
+        Renderer window(b);
         window.setWindowTitle("Chess Engine");
         window.show();
 
-        window.DrawPieces(b);
+        window.DrawPieces();
 
         return app.exec();
     }

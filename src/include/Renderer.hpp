@@ -14,6 +14,7 @@
 #include <QtWidgets>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QMouseEvent>
 #include "Constants.hpp"
 #include "Board.hpp"
 
@@ -24,15 +25,24 @@
  * The Renderer class provides an interface to easily display, update and handle GUI based events. It should be used only for handling GUI elements and not be involved in updating e.g. bitboards based on player input.
  */ 
 
-class Renderer : public QWidget {
+class Renderer : public QGraphicsView {
+        Q_OBJECT
     public:
-        Renderer(QWidget *parent = nullptr);
-        void DrawPieces(const std::unique_ptr<Board> &board);
+        Renderer(const std::unique_ptr<Board> &board, QWidget *parent = nullptr);
+        void DrawPieces();
+    protected:
+        void mousePressEvent(QMouseEvent *event) override;
+        void mouseReleaseEvent(QMouseEvent *event) override;
+        void mouseMoveEvent(QMouseEvent *event) override;
     private slots:
         void startSearch();
     private:
+        const std::unique_ptr<Board> &fBoard;
         const int fTileWidth;
         int fPieceHeight;
+
+        const int fBoardWidth;
+        const int fBoardHeight;
 
         QSpinBox *depthSpinBox;
         QDoubleSpinBox *timeSpinBox;
@@ -42,10 +52,19 @@ class Renderer : public QWidget {
         QColor fLightSquare;
         QColor fDarkSquare;
 
+        // For handling piece movement (drag and drop style)
+        bool fIsDragging;
+        U64 fStartSquare;
+        U64 fEndSquare;
+        QGraphicsPixmapItem *fSelectedPiece;
+        std::vector<std::pair<U8, QGraphicsPixmapItem*>> fPieces;
+        QGraphicsPixmapItem *fDraggedPiece;
+
         // Create graphics view and scene
         QGraphicsScene *fScene;
 
         void DrawChessBoard();
+        void DoMoveUpdate();
 };
 
 #endif
