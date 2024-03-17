@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 
-Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
+Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
     fPieceHeight = fTileWidth * 0.75;
     fPieces.reserve(32);
     fDraggedPiece = nullptr;
@@ -48,6 +48,7 @@ void Renderer::DrawChessBoard() {
         for (int j = 0; j < 8; ++j) {
             QColor color = (i + j) % 2 == 0 ? fLightSquare : fDarkSquare;
             QGraphicsRectItem *square = fScene->addRect(i * fTileWidth, j * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
+            square->setZValue((int)ZLevel::RegularTile);
         }
     }
 
@@ -55,6 +56,7 @@ void Renderer::DrawChessBoard() {
     for(int i = 0; i < 8; ++i) {
         QString label = QString::number(8 - i);
         QGraphicsTextItem *rankLabel = fScene->addText(label);
+        rankLabel->setZValue((int)ZLevel::TileText);
         rankLabel->setPos(0, i * fTileWidth);
         rankLabel->setDefaultTextColor(i % 2 == 0 ? fDarkSquare : fLightSquare);
     }
@@ -64,6 +66,7 @@ void Renderer::DrawChessBoard() {
     for(int i = 0; i < 8; ++i) {
         QString label = files.at(i);
         QGraphicsTextItem *fileLabel = fScene->addText(label);
+        fileLabel->setZValue((int)ZLevel::TileText);
         fileLabel->setPos(i * fTileWidth, (8 * fTileWidth) - (fileLabel->boundingRect().height()));
         fileLabel->setDefaultTextColor(i % 2 == 0 ? fLightSquare : fDarkSquare);
     }
@@ -96,6 +99,7 @@ void Renderer::DrawPieces() {
             int scaledWidth = fPieceHeight * pixmap.width() / pixmap.height();
             QPixmap scaledPixmap = pixmap.scaled(scaledWidth, fPieceHeight);
             QGraphicsPixmapItem *chessPiece = fScene->addPixmap(scaledPixmap);
+            chessPiece->setZValue((int)ZLevel::Piece);
             fPieces.push_back(std::make_pair(__builtin_ctzll(thisPiece), chessPiece));
 
             int posX = ((file - 1) * fTileWidth) + ((fTileWidth - scaledWidth) / 2);
@@ -113,6 +117,7 @@ void Renderer::DrawPieces() {
             int scaledWidth = fPieceHeight * pixmap.width() / pixmap.height();
             QPixmap scaledPixmap = pixmap.scaled(scaledWidth, fPieceHeight);
             QGraphicsPixmapItem *chessPiece = fScene->addPixmap(scaledPixmap);
+            chessPiece->setZValue((int)ZLevel::Piece);
             fPieces.push_back(std::make_pair(__builtin_ctzll(thisPiece), chessPiece));
 
             int posX = ((file - 1) * fTileWidth) + ((fTileWidth - scaledWidth) / 2);
@@ -138,6 +143,9 @@ void Renderer::mousePressEvent(QMouseEvent *event) {
     const U8 dragPieceLSB = __builtin_ctzll(fStartSquare);
     fIsDragging = true; // True whilst mouse is clicked
 
+    // Highlight the squares which represent legal moves
+    HighlightLegalMoves();
+
     // Get the piece being dragged 
     auto it = std::find_if(fPieces.begin(), fPieces.end(), [dragPieceLSB](const std::pair<U8, QGraphicsPixmapItem*>& element) {
         return element.first == dragPieceLSB;
@@ -151,8 +159,39 @@ void Renderer::mousePressEvent(QMouseEvent *event) {
     QGraphicsView::mousePressEvent(event);
 }
 
+void Renderer::HighlightLegalMoves() {
+    // Search the legal moves vector for all moves starting on fStartSquare
+    fHighlighted.clear();
+    std::vector<U64> legalEndTiles{};
+
+    std::vector<U16> legalMoves = fGenerator->GetLegalMoves();
+    for(std::size_t iMove = 0; iMove < legalMoves.size(); ++iMove) {
+        if(GetMoveOrigin(legalMoves[iMove]) & fStartSquare) {
+            legalEndTiles.push_back(GetMoveTarget(legalMoves[iMove]));
+        }
+    }
+
+    // TODO: We know all the tiles to highlight, now let's highlight them
+    // this is actually just drawing another rectangle over the board but under the pieces & labels
+    for(U64 endTile : legalEndTiles) {
+        const int rank = get_rank_number(endTile) - 1;
+        const int file = get_file_number(endTile) - 1;
+        QColor color = (rank + file) % 2 == 0 ? fLightYellow : fDarkYellow;
+        QGraphicsRectItem *square = fScene->addRect(file * fTileWidth, (8 - (rank + 1)) * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
+        square->setZValue((int)ZLevel::HighlightTile);
+        fHighlighted.push_back(square);
+    }
+}
+
 void Renderer::mouseReleaseEvent(QMouseEvent *event) {
     QPointF scenePos = mapToScene(event->pos());
+
+    // Clear all highlighted tiles
+    for(auto tile : fHighlighted) {
+        fScene->removeItem(tile);
+        delete tile;
+    }
+    fHighlighted.clear();
 
     // Convert the scene position to integer coordinates
     int x = static_cast<int>(scenePos.x());

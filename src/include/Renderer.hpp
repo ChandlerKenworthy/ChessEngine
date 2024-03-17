@@ -59,6 +59,8 @@ class Renderer : public QGraphicsView {
 
         QColor fLightSquare;
         QColor fDarkSquare;
+        QColor fLightYellow;
+        QColor fDarkYellow;
 
         // For handling piece movement (drag and drop style)
         bool fIsDragging;
@@ -66,6 +68,7 @@ class Renderer : public QGraphicsView {
         U64 fEndSquare;
         QGraphicsPixmapItem *fSelectedPiece;
         std::vector<std::pair<U8, QGraphicsPixmapItem*>> fPieces;
+        std::vector<QGraphicsRectItem*> fHighlighted;
         QGraphicsPixmapItem *fDraggedPiece;
 
         // Create graphics view and scene
@@ -73,6 +76,14 @@ class Renderer : public QGraphicsView {
 
         void DrawChessBoard();
         void DoMoveUpdate();
+        void HighlightLegalMoves();
+};
+
+enum class ZLevel {
+    RegularTile,
+    HighlightTile,
+    TileText,
+    Piece
 };
 
 #endif
