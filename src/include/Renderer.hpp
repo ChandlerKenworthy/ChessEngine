@@ -11,9 +11,14 @@
 #include <string>
 #include <iostream>
 
-#include <SFML/Graphics.hpp>
+#include <QtWidgets>
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QMouseEvent>
 #include "Constants.hpp"
 #include "Board.hpp"
+#include "Engine.hpp"
+#include "Generator.hpp"
 
 /**
  * @class Renderer
@@ -21,80 +26,77 @@
  * 
  * The Renderer class provides an interface to easily display, update and handle GUI based events. It should be used only for handling GUI elements and not be involved in updating e.g. bitboards based on player input.
  */ 
-class Renderer {
+
+class Renderer : public QGraphicsView {
+        Q_OBJECT
     public:
         /**
-         * @brief Construct a renderer object to handle GUI actions
+         * @brief Construct a Qt-based renderer object. This will not make the window appear. To draw the window use the show() method. 
+         * @param board The board to display in the viewport. 
+         * @param generator The backend move generator.
+         * @param engine The instance of the computer game engine.
+         * @param parent The QWidget parent.
         */
-        explicit Renderer();
+        Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent = nullptr);
+        /**
+         * @brief Destructs the renderer object safely ensuring all raw pointers are deleted.
+        */
         ~Renderer();
         /**
-         * @brief Clears the window and re-draws the chess board.
-         * @param board The chess game to draw on the board.
+         * @brief Draw all the pieces as they are in the current board instance passed to the constructor. 
         */
-        void Update(const std::unique_ptr<Board> &board);
+        void DrawPieces();
         /**
-         * @brief Get whether the GUI windows is currently open
+         * @brief Set the colour of the human user. Will disable moving the opposing colours.
+         * @param color The colour the user is to play as.
         */
-        bool GetWindowIsOpen() { return fWindow->isOpen(); };
-        /**
-         * @brief Return the bitboard with a set bit at the square the user clicked the mouse in
-         * @return Bitboard with clicked square set to on.
-        */
-        U64 GetClickedSquare(sf::Event &event);
-        /**
-         * @brief Close the currently open window (if it exists)
-        */
-        void CloseWindow() { fWindow->close(); };
-        /**
-         * @brief Poll the given event and pop it to the top of the event queue
-         * @param event Address of the event that happened
-        */
-        bool PollEvent(sf::Event &event) { return fWindow->pollEvent(event); };
-        /**
-         * @brief Get the width of the current window
-        */
-        int GetWindowWidth() const { return fWindowWidth; };
-        /**
-         * @brief Get the size of each individual tile on the GUI chess board
-        */
-        float GetSquareSize() const { return (float)fWindowWidth / 8.; };
-        /**
-         * @brief Request and read from the console the user input and translate into a 32-bit move word.
-         * @return 32-bit move word consistent with what the user entered.
-        */
-        U16 ReadUserMove() const;
+        void setUserColor(const Color color) { fUserColor = color; };
+    public slots:
+        void gameLoopSlot();
+    signals:
+        void gameLoopSignal();
+    protected:
+        void mousePressEvent(QMouseEvent *event) override;
+        void mouseReleaseEvent(QMouseEvent *event) override;
+        void mouseMoveEvent(QMouseEvent *event) override;
     private:
-        const int fWindowWidth; ///< Width (and height) of the GUI window in pixels
-        int fSquareWidth; ///< Width (and height) of each individual chess square in the GUI in pixels.
-        //std::vector<std::pair<int, int>> fHighlightedSquares;
-        sf::RenderWindow *fWindow;  ///< The window object for the GUI
-        sf::Font fFont; ///< Font to use for rendering the rank and file numbers
-        const sf::Color fLightColor; ///< Color of the light squares on the GUI
-        const sf::Color fDarkColor; ///< Color of the dark squares on the GUI
+        const std::unique_ptr<Board> &fBoard;
+        const std::unique_ptr<Generator> &fGenerator;
+        const std::unique_ptr<Engine> &fEngine;
+        const int fTileWidth; ///< The width (and height since tiles are square) of tiles on the board.
+        int fPieceHeight; ///< The height of pieces (used when drawing the board, must be less than fTileWidth).
+        Color fUserColor; ///< The colour of pieces the human user controls.
 
-        //const sf::Color fYellowLightColor; ///< Color of the light squares on the GUI
-        //const sf::Color fYellowDarkColor; ///< Color of the light squares on the GUI
+        const int fBoardWidth; ///< The height/width of the board (they are interchangeable).
+        const int fBoardHeight; ///< The height/width of the board (they are interchangeable).
 
-        /**
-         * @brief Draw the chess board on the window.
-         * @param board The board to display.
-        */
-        void DrawChessBoard(const std::unique_ptr<Board> &board);
-        /**
-         * @brief Draw a singular chess piece on the board at the specified rank and file.
-         * @param piece The type of piece to draw.
-         * @param color The colour of the piece to draw.
-         * @param rank The integer rank in the range [1,8].
-         * @param file The integer file in the range [1,8].
-        */
-        void DrawChessPiece(const Piece piece, const Color color, const int rank, const int file);
-        /**
-         * @brief Wrapper function to make calls to DrawChessPiece more efficiently.
-         * @param board Board from which piece positions should be drawn.
-         * @param piece The type of piece to draw.
-        */
-        void DrawPieces(const std::unique_ptr<Board> &board, Piece piece);
+        QColor fLightSquare; ///< Colour for drawing the squares.
+        QColor fDarkSquare; ///< Colour for drawing the squares.
+        QColor fLightYellow; ///< Colour for drawing the squares.
+        QColor fDarkYellow; ///< Colour for drawing the squares.
+
+        // For handling piece movement (drag and drop style)
+        bool fIsDragging;
+        U64 fStartSquare;
+        U64 fEndSquare;
+        QGraphicsPixmapItem *fSelectedPiece;
+        std::vector<std::pair<U8, QGraphicsPixmapItem*>> fPieces;
+        std::vector<QGraphicsRectItem*> fHighlighted;
+        QGraphicsPixmapItem *fDraggedPiece;
+
+        // Create graphics view and scene
+        QGraphicsScene *fScene;
+
+        void DrawChessBoard();
+        void DoMoveUpdate();
+        void HighlightLegalMoves();
+};
+
+enum class ZLevel {
+    RegularTile,
+    HighlightTile,
+    TileText,
+    Piece
 };
 
 #endif

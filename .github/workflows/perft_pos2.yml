@@ -22,10 +22,11 @@ jobs:
       with:
         cmake-version: '3.27'
 
-    - name: Install SFML
-      run: |
-        sudo apt-get update
-        sudo apt-get install libsfml-dev
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.2.*'
+        host: 'linux'
 
     - name: Configure and build
       run: |
@@ -44,5 +45,5 @@ jobs:
         echo "position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" > sf_commands.txt
         echo "go perft 6" >> sf_commands.txt
         /usr/games/stockfish < sf_commands.txt > stockfish_output.txt
-        /usr/bin/xvfb-run -a ./build/ChessEngine --perft 6 --fen "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" --no-gui > engine_output.txt
+        ./build/ChessEngine --perft 6 --fen "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" --no-gui > engine_output.txt
         python ComparePerftResults.py engine_output.txt stockfish_output.txt

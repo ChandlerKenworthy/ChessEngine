@@ -1,206 +1,246 @@
 #include "Renderer.hpp"
 
-Renderer::Renderer() : 
-fWindowWidth{800},
-fLightColor{sf::Color(255, 206, 158)}, 
-fDarkColor{sf::Color(209, 139, 71)}
-//fYellowLightColor{sf::Color(245, 235, 138)},
-//fYellowDarkColor{sf::Color(216, 196, 100)},
-//fHighlightedSquares{} 
-{
-    fWindow = new sf::RenderWindow(sf::VideoMode(fWindowWidth, fWindowWidth), "Chess Board");
-    if (!fFont.loadFromFile("../assets/Roboto-Bold.ttf")) {
-        // Handle the case where the font cannot be loaded
-    }
-    fSquareWidth = (float)fWindowWidth / 8.;
+Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
+    fPieceHeight = fTileWidth * 0.75;
+    fPieces.reserve(32);
+    fDraggedPiece = nullptr;
+
+    // Resize the window on opening
+    resize(fBoardWidth, fBoardHeight);
+
+    // Set the scene
+    setScene(fScene);
+    fScene->setSceneRect(0, 0, fBoardWidth, fBoardHeight);
+
+    // Set render hints
+    setRenderHint(QPainter::Antialiasing);
+    setMouseTracking(true);
+
+    // Set up chessboard
+    DrawChessBoard();
 }
 
 Renderer::~Renderer() {
-    delete fWindow;
+    delete fScene;
+    delete fDraggedPiece;
+    delete fSelectedPiece;
+    fHighlighted.clear();
+    fPieces.clear();
 }
 
-void Renderer::Update(const std::unique_ptr<Board> &board) {
-    fWindow->clear();
-    DrawChessBoard(board);
-    fWindow->display();
+void Renderer::gameLoopSlot() {
+    while (fBoard->GetState() == State::Play) {
+        if(fBoard->GetColorToMove() != fUserColor) { // The engine makes a move
+            // Re-generate possible moves
+            fGenerator->GenerateLegalMoves(fBoard);
+
+            // Find the engine's best move
+            U16 move = fEngine->GetBestMove(true);
+
+            // Make the move
+            fBoard->MakeMove(move);
+
+            // Update the GUI accordingly
+            DrawPieces();
+        } else {
+            fGenerator->GenerateLegalMoves(fBoard);
+        } // User has to make a move, handled inside of mousePress/Release event
+        // Ensure to call QApplication::processEvents() periodically to keep the GUI responsive
+        QApplication::processEvents();
+    }
 }
 
-U64 Renderer::GetClickedSquare(sf::Event &event) {
-    float x = event.mouseButton.x;
-    float y = event.mouseButton.y;
-
-    int rank = 9 - (y / (float)fSquareWidth); // Span range [1,8]
-    int file = (x / (float)fSquareWidth) + 1; // Span range [1,8]
-
-    return get_rank_from_number(rank) & get_file_from_number(file);
-}
-
-void Renderer::DrawChessBoard(const std::unique_ptr<Board> &board) {
-    for (int iFile = 0; iFile < BITS_PER_FILE; ++iFile) {
-        for (int iRank = 0; iRank < BITS_PER_FILE; ++iRank) {
-            sf::RectangleShape square(sf::Vector2f(fSquareWidth, fSquareWidth));
-            square.setPosition(iFile * fSquareWidth, iRank * fSquareWidth);
-            square.setFillColor((iRank + iFile) % 2 == 0 ? fLightColor : fDarkColor);
-
-            //for(int n = 0; n < fHighlightedSquares.size(); n++) {
-            //    std::pair<int, int> *thisSquare = &fHighlightedSquares[n];
-            //    if((7 - j) == thisSquare->first && i == thisSquare->second)
-            //        square.setFillColor((i + j) % 2 == 0 ? fYellowLightColor : fYellowDarkColor);
-            //}
-            fWindow->draw(square);
-
-            if(iFile == 7) {
-                // Draw rank numbers on the left side of the board
-                sf::Text fileText(std::to_string(8 - iRank), fFont, 18);
-                fileText.setPosition(0.1 * fSquareWidth, (iRank + 0.05) * fSquareWidth);
-                fileText.setFillColor((iRank + iFile) % 2 == 0 ? fLightColor : fDarkColor);
-                fWindow->draw(fileText);
-            }
-
-            if(iRank == 7) {
-                // Draw file letters at the bottom of the board
-                char fileLetter;
-                if(iFile == 0) {
-                    fileLetter = 'A';
-                } else if(iFile == 1) {
-                    fileLetter = 'B';
-                } else if(iFile == 2) {
-                    fileLetter = 'C';
-                } else if(iFile == 3) {
-                    fileLetter = 'D';
-                } else if(iFile== 4) {
-                    fileLetter = 'E';
-                } else if(iFile == 5) {
-                    fileLetter = 'F';
-                } else if(iFile == 6) {
-                    fileLetter = 'G';
-                } else {
-                    fileLetter = 'H';
-                }
-                sf::Text rankText(fileLetter, fFont, 18);
-                rankText.setPosition((iFile + 0.8) * fSquareWidth, (iRank + 0.75) * fSquareWidth);
-                rankText.setFillColor((iFile + iRank) % 2 == 0 ? fDarkColor : fLightColor);
-                fWindow->draw(rankText);
-            }
+void Renderer::DrawChessBoard() {
+    // Add chessboard squares
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            QColor color = (i + j) % 2 == 0 ? fLightSquare : fDarkSquare;
+            QGraphicsRectItem *square = fScene->addRect(i * fTileWidth, j * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
+            square->setZValue((int)ZLevel::RegularTile);
         }
     }
 
-    DrawPieces(board, Piece::Queen);
-    DrawPieces(board, Piece::King);
-    DrawPieces(board, Piece::Rook);
-    DrawPieces(board, Piece::Rook);
-    DrawPieces(board, Piece::Bishop);
-    DrawPieces(board, Piece::Knight);
-    DrawPieces(board, Piece::Pawn);
-}
-
-void Renderer::DrawPieces(const std::unique_ptr<Board> &board, Piece piece) {
-    // Rooks, bishops, knights, pawns (or queens due to possible promotion)
-    U64 white = board->GetBoard(Color::White, piece);
-    U64 black = board->GetBoard(Color::Black, piece);
-
-    while(white) {
-        U64 pos = 0;
-        set_bit(pos, pop_LSB(white));
-        DrawChessPiece(piece, Color::White, get_rank_number(pos), get_file_number(pos));
+    // Add rank labels
+    for(int i = 0; i < 8; ++i) {
+        QString label = QString::number(8 - i);
+        QGraphicsTextItem *rankLabel = fScene->addText(label);
+        rankLabel->setZValue((int)ZLevel::TileText);
+        rankLabel->setPos(0, i * fTileWidth);
+        rankLabel->setDefaultTextColor(i % 2 == 0 ? fDarkSquare : fLightSquare);
     }
-    while(black) {
-        U64 pos = 0;
-        set_bit(pos, pop_LSB(black));
-        DrawChessPiece(piece, Color::Black,  get_rank_number(pos), get_file_number(pos));
+
+    // Add file labels
+    QString files = "abcdefgh";
+    for(int i = 0; i < 8; ++i) {
+        QString label = files.at(i);
+        QGraphicsTextItem *fileLabel = fScene->addText(label);
+        fileLabel->setZValue((int)ZLevel::TileText);
+        fileLabel->setPos(i * fTileWidth, (8 * fTileWidth) - (fileLabel->boundingRect().height()));
+        fileLabel->setDefaultTextColor(i % 2 == 0 ? fLightSquare : fDarkSquare);
     }
 }
 
-void Renderer::DrawChessPiece(const Piece piece, const Color color, const int rank, const int file) {
-    sf::Texture pieceTexture;
-    std::string filename;
+void Renderer::DrawPieces() {
+    // Empty all the old pieces off of the board
+    for(auto currentPiece : fPieces) {
+        fScene->removeItem(currentPiece.second);
+        delete currentPiece.second;
+    }
+    fPieces.clear();
 
-    // Determine the filename based on piece type and color
-    switch(piece) {
-        case Piece::Pawn:
-            filename = (color == Color::White) ? "pawn_white.png" : "pawn_black.png";
-            break;
-        case Piece::Bishop:
-            filename = (color == Color::White) ? "bishop_white.png" : "bishop_black.png";
-            break;
-        case Piece::Knight:
-            filename = (color == Color::White) ? "knight_white.png" : "knight_black.png";
-            break;
-        case Piece::Rook:
-            filename = (color == Color::White) ? "rook_white.png" : "rook_black.png";
-            break;
-        case Piece::Queen:
-            filename = (color == Color::White) ? "queen_white.png" : "queen_black.png";
-            break;
-        case Piece::King:
-            filename = (color == Color::White) ? "king_white.png" : "king_black.png";
-            break;
-        default:
-            // Handle an unknown piece type
-            std::cout << "Unknown piece type\n";
-            return;
+    // Draw the current board pieces
+    for(Piece p : PIECES) {
+        U64 whitePieces = fBoard->GetBoard(Color::White, p);
+        U64 blackPieces = fBoard->GetBoard(Color::Black, p);
+
+        std::string assetPathWhite = "/Users/chandler/Documents/Coding/ChessEngine/assets/" + GetPieceString(p);
+        assetPathWhite += "_white.png";
+        std::string assetPathBlack = "/Users/chandler/Documents/Coding/ChessEngine/assets/" + GetPieceString(p);
+        assetPathBlack += "_black.png";
+
+        while(whitePieces) {
+            U64 thisPiece = 1ULL << __builtin_ctzll(whitePieces);
+            const U8 rank = get_rank_number(thisPiece);
+            const U8 file = get_file_number(thisPiece);
+
+            QPixmap pixmap(assetPathWhite.c_str());
+            int scaledWidth = fPieceHeight * pixmap.width() / pixmap.height();
+            QPixmap scaledPixmap = pixmap.scaled(scaledWidth, fPieceHeight);
+            QGraphicsPixmapItem *chessPiece = fScene->addPixmap(scaledPixmap);
+            chessPiece->setZValue((int)ZLevel::Piece);
+            fPieces.push_back(std::make_pair(__builtin_ctzll(thisPiece), chessPiece));
+
+            int posX = ((file - 1) * fTileWidth) + ((fTileWidth - scaledWidth) / 2);
+            int posY = ((8 - rank) * fTileWidth) + ((fTileWidth - fPieceHeight) / 2);
+            chessPiece->setPos(posX, posY);
+            whitePieces &= whitePieces - 1;
+        }
+
+        while(blackPieces) {
+            U64 thisPiece = 1ULL << __builtin_ctzll(blackPieces);
+            const U8 rank = get_rank_number(thisPiece);
+            const U8 file = get_file_number(thisPiece);
+
+            QPixmap pixmap(assetPathBlack.c_str());
+            int scaledWidth = fPieceHeight * pixmap.width() / pixmap.height();
+            QPixmap scaledPixmap = pixmap.scaled(scaledWidth, fPieceHeight);
+            QGraphicsPixmapItem *chessPiece = fScene->addPixmap(scaledPixmap);
+            chessPiece->setZValue((int)ZLevel::Piece);
+            fPieces.push_back(std::make_pair(__builtin_ctzll(thisPiece), chessPiece));
+
+            int posX = ((file - 1) * fTileWidth) + ((fTileWidth - scaledWidth) / 2);
+            int posY = ((8 - rank) * fTileWidth) + ((fTileWidth - fPieceHeight) / 2);
+            chessPiece->setPos(posX, posY);
+            blackPieces &= blackPieces - 1;
+        }
+    }
+}
+
+void Renderer::mousePressEvent(QMouseEvent *event) {
+    fDraggedPiece = nullptr;
+    QPointF scenePos = mapToScene(event->pos());
+
+    // Convert the scene position to integer coordinates
+    int x = static_cast<int>(scenePos.x());
+    int y = static_cast<int>(scenePos.y());
+
+    // Calculate the row and column of the clicked square
+    U64 rank = get_rank_from_number(8 - (y / fTileWidth));
+    U64 file = get_file_from_number((x / fTileWidth) + 1);
+    fStartSquare = rank & file;
+    const U8 dragPieceLSB = __builtin_ctzll(fStartSquare);
+    fIsDragging = true; // True whilst mouse is clicked
+
+    // Highlight the squares which represent legal moves
+    HighlightLegalMoves();
+
+    // Get the piece being dragged 
+    auto it = std::find_if(fPieces.begin(), fPieces.end(), [dragPieceLSB](const std::pair<U8, QGraphicsPixmapItem*>& element) {
+        return element.first == dragPieceLSB;
+    });
+
+    if(it != fPieces.end()) {
+        fDraggedPiece = it->second;
     }
 
-    // Load the texture from file
-    if (!pieceTexture.loadFromFile("../assets/" + filename)) {
-        // Handle the case where the texture cannot be loadeds
+    // Call the base class implementation to handle the event further
+    QGraphicsView::mousePressEvent(event);
+}
+
+void Renderer::HighlightLegalMoves() {
+    // Search the legal moves vector for all moves starting on fStartSquare
+    fHighlighted.clear();
+    std::vector<U64> legalEndTiles{};
+
+    std::vector<U16> legalMoves = fGenerator->GetLegalMoves();
+    for(std::size_t iMove = 0; iMove < legalMoves.size(); ++iMove) {
+        if(GetMoveOrigin(legalMoves[iMove]) & fStartSquare) {
+            legalEndTiles.push_back(GetMoveTarget(legalMoves[iMove]));
+        }
+    }
+
+    // TODO: We know all the tiles to highlight, now let's highlight them
+    // this is actually just drawing another rectangle over the board but under the pieces & labels
+    for(U64 endTile : legalEndTiles) {
+        const int rank = get_rank_number(endTile) - 1;
+        const int file = get_file_number(endTile) - 1;
+        QColor color = (rank + file) % 2 == 0 ? fLightYellow : fDarkYellow;
+        QGraphicsRectItem *square = fScene->addRect(file * fTileWidth, (8 - (rank + 1)) * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
+        square->setZValue((int)ZLevel::HighlightTile);
+        fHighlighted.push_back(square);
+    }
+}
+
+void Renderer::mouseReleaseEvent(QMouseEvent *event) {
+    QPointF scenePos = mapToScene(event->pos());
+
+    // Clear all highlighted tiles
+    for(auto tile : fHighlighted) {
+        fScene->removeItem(tile);
+        delete tile;
+    }
+    fHighlighted.clear();
+
+    // Convert the scene position to integer coordinates
+    int x = static_cast<int>(scenePos.x());
+    int y = static_cast<int>(scenePos.y());
+
+    // Calculate the row and column of the clicked square
+    U64 rank = get_rank_from_number(8 - (y / fTileWidth));
+    U64 file = get_file_from_number((x / fTileWidth) + 1);
+    fEndSquare = rank & file;
+
+    // TODO: Call a function to call the board and make the move
+    // also update the GUI based on the new board updates
+    U16 move = 0;
+    SetMove(move, fStartSquare, fEndSquare);
+    // TODO: Before making any move check it is legal, if it is not send the clicked piece back to the start square
+    bool isLegal = fGenerator->GetMoveIsLegal(move);
+    if(isLegal) {
+        fBoard->MakeMove(move);
+    }
+    
+    DrawPieces();
+
+    fIsDragging = false;
+    fStartSquare = 0;
+    QGraphicsView::mouseReleaseEvent(event);
+}
+
+void Renderer::mouseMoveEvent(QMouseEvent *event) {
+    // If a piece is being dragged, update its position
+    if(!fIsDragging || fDraggedPiece == nullptr)
         return;
-    }
 
-    // Create a sprite and set its position
-    sf::Sprite pieceSprite(pieceTexture);
-    const float squareSize = static_cast<float>(fWindowWidth) / 8.;
-    int posy = 8 - rank;
-    int posx = file - 1;
+    QPointF scenePos = mapToScene(event->pos());
 
-    // Scale the sprite to fit the square, with some additional padding
-    // Via the max width/height 
-    float maxLength = std::max(pieceTexture.getSize().x, pieceTexture.getSize().y);
-    float scale = squareSize * 0.68 / maxLength;
-    float xmargin = (squareSize - (pieceTexture.getSize().x * scale)) / 2;
-    float ymargin = (squareSize - (pieceTexture.getSize().y * scale)) / 2;
+    // Adjust the scenePos to center of the piece
+    qreal offsetX = -fDraggedPiece->boundingRect().width() / 2.0;
+    qreal offsetY = -fDraggedPiece->boundingRect().height() / 2.0;
+    QPointF adjustedScenePos = scenePos + QPointF(offsetX, offsetY);
 
-    pieceSprite.setPosition((posx * squareSize) + xmargin, (posy * squareSize) + ymargin);
-    pieceSprite.setScale(scale, scale);
+    fDraggedPiece->setPos(adjustedScenePos);
 
-    // Draw the piece on the window
-    fWindow->draw(pieceSprite);
-}
-
-U16 Renderer::ReadUserMove() const {
-    // Simply read in user moves in the format "[ORIGIN] [TARGET]" e.g. "c2 h3"
-    U16 move{0};
-    std::string userInput;
-    bool isValid = false;
-    while(!isValid) {
-        std::cout << "Enter move in format \"[ORIGIN] [TARGET]\": ";
-        std::getline(std::cin, userInput);
-
-        if(userInput.size() == 5 && userInput[2] == ' ') {
-            if(std::isalpha(userInput[0]) && std::isalpha(userInput[3])) { // Files are present
-                if(std::isdigit(userInput[1]) && std::isdigit(userInput[4])) {
-                    // Check the rank numbers are in the range [1,8]
-                    int originRank = userInput[1] - '0';
-                    int targetRank = userInput[4] - '0';
-                    if(originRank < 1 || originRank > 8 || targetRank < 1 || targetRank > 8)
-                        continue;
-                    
-                    char originFile = std::toupper(userInput[0]);
-                    char targetFile = std::toupper(userInput[3]);
-
-                    if(originFile < 'A' || originFile > 'H' || targetFile < 'A' || targetFile > 'H')
-                        continue;
-
-                    // Get the origin/target positions add build them into the move
-                    U64 origin = get_rank_from_number(originRank) & get_file_from_char(originFile);
-                    U64 target = get_rank_from_number(targetRank) & get_file_from_char(targetFile);
-                    SetMoveOrigin(move, origin);
-                    SetMoveTarget(move, target);
-
-                    isValid = true;
-                }
-            }
-        }
-    }
-    return move;
+    // Call the base class implementation to handle the event further
+    QGraphicsView::mouseMoveEvent(event);
 }

@@ -5,8 +5,8 @@ Test::Test(bool useGUI) {
     fGenerator = std::make_unique<Generator>();
     fUseGUI = useGUI;
     fDoFinePrint = false;
-    if(fUseGUI)
-        fGUI = std::make_unique<Renderer>();
+    //if(fUseGUI)
+    //    fGUI = std::make_unique<Renderer>();
     fPrintDepth = 999;
 
     fExpectedGeneration = {
@@ -29,19 +29,6 @@ unsigned long int Test::GetNodes(int depth, std::string fen, bool doFinePrint) {
     if(fen.length() > 0)
         fBoard->LoadFEN(fen);
     SetPrintDepth(depth);
-    // Display board to user and await confirmation that is looks okay 
-    if(fUseGUI) {
-        fGUI->Update(fBoard);
-        while(fGUI->GetWindowIsOpen()) {
-            sf::Event event;
-            while(fGUI->PollEvent(event)) {
-                fGUI->Update(fBoard);
-                if(event.type == sf::Event::Closed) {
-                    fGUI->CloseWindow();
-                }
-            }
-        } // User closing the window means they are "happy" with the position
-    }
     unsigned long moves = MoveGeneration(depth);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
