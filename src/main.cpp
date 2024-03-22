@@ -117,68 +117,6 @@ void PlaySelf(int nGames, int depth) {
     std::cout << "Draws by insufficient material: " << materialDraw << "\n";
 }
 
-void Play(const std::string &fen, Color userColor, int depth) {
-    //const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initalise the main game board
-    //const std::unique_ptr<Generator> generator = std::make_unique<Generator>();
-    //const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, depth);
-    //    const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(board); // For handling the GUI
-    //gui->setWindowTitle("Chess Engine: Player v Computer");
-    //gui->show();
-
-    // If the FEN exists load the board with the FEN
-    //if(fen.size() > 0)
-    //    board->LoadFEN(fen);
-
-    // Play the game
-    //while(board->GetState() == State::Play) {
-        // do something
-    //}
-
-    //gui->Update(board); // Draw board initially
-    /*
-    while(gui->GetWindowIsOpen()) {
-        sf::Event event;
-        while(gui->PollEvent(event)) {
-            if(event.type == sf::Event::Closed) {
-                gui->CloseWindow();
-            }
-        }
-        // For now, don't use GUI do it all in the command line - later use a GUI
-        generator->GenerateLegalMoves(board);
-        while(board->GetState() == State::Play) {
-            U16 move{0};
-            if(board->GetColorToMove() == userColor) {
-                // Human player chooses a move
-                move = gui->ReadUserMove(); // Reads the users console input and translates into a move
-                while(!generator->GetMoveIsLegal(move)) { // Protection against illegal user moves
-                    std::cout << "[Warning] Illegal move entered. Please enter a valid move.\n";
-                    move = gui->ReadUserMove();
-                }
-            } else {
-                // Compcuter chooses a move
-                //move = engine->GetRandomMove();
-                move = engine->GetBestMove(true);
-                // Print out the move to the console
-                board->PrintDetailedMove(move);
-            }
-            
-            // Make the move
-            board->MakeMove(move);
-
-            // Update the GUI
-            gui->Update(board);
-
-            // Updates checkmate states to potentially get an early exit
-            generator->GenerateLegalMoves(board);
-        }
-
-        std::cout << "Game terminated normally in state " << (int)board->GetState() << "\n";
-        board->PrintFEN();
-        gui->CloseWindow();
-    }
-    */
-}
-
 int main(int argc, char* argv[]) {
 
     bool useGUI = true; 

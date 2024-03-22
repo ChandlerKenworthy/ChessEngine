@@ -20,6 +20,14 @@ Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Ge
     DrawChessBoard();
 }
 
+Renderer::~Renderer() {
+    delete fScene;
+    delete fDraggedPiece;
+    delete fSelectedPiece;
+    fHighlighted.clear();
+    fPieces.clear();
+}
+
 void Renderer::gameLoopSlot() {
     while (fBoard->GetState() == State::Play) {
         if(fBoard->GetColorToMove() != fUserColor) { // The engine makes a move
