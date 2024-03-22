@@ -22,10 +22,11 @@ jobs:
       with:
         cmake-version: '3.27'
 
-    - name: Install SFML
-      run: |
-        sudo apt-get update
-        sudo apt-get install libsfml-dev
+    - name: Install Qt6
+      uses: jurplel/setup-qt@v1
+      with:
+        qt-version: '6.x'
+        dist: 'focal' # Ubuntu 20.04
 
     - name: Configure and build
       run: |
@@ -44,5 +45,5 @@ jobs:
         echo "position startpos" > sf_commands.txt
         echo "go perft 7" >> sf_commands.txt
         /usr/games/stockfish < sf_commands.txt > stockfish_output.txt
-        /usr/bin/xvfb-run -a ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
+        ./build/ChessEngine --perft 7 --no-gui > engine_output.txt
         python ComparePerftResults.py engine_output.txt stockfish_output.txt
