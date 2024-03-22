@@ -23,10 +23,9 @@ jobs:
         cmake-version: '3.27'
 
     - name: Install Qt6
-      uses: jurplel/setup-qt@v1
-      with:
-        qt-version: '6.x'
-        dist: 'focal' # Ubuntu 20.04
+      run: |
+        sudo apt-get update
+        sudo apt-get install qt6-default qt6-qmake
 
     - name: Configure and build
       run: |
