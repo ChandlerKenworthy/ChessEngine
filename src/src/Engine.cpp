@@ -32,6 +32,7 @@ float Engine::Evaluate() {
     float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
     evaluation += ForceKingToCornerEndgame();
     evaluation += EvaluatePassedPawns();
+    evaluation += EvaluateIsolatedPawns();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -43,6 +44,25 @@ float Engine::Evaluate() {
     }
 
     return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
+}
+
+float Engine::EvaluateIsolatedPawns() {
+    float penalty = 0.0;
+    int nIsolated = 0;
+    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
+    const U64 myPawnsStatic = myPawns;
+    while(myPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
+        const U64 file = get_file(myPawns);
+        const U8 fileNumber = get_file_number(pawn);
+        if(((east(file) | west(file)) & myPawnsStatic) == 0) {
+            // Isolated pawn, add penalty based on position, pawns at centre are weaker
+            penalty += fIsolatedPawnPenaltyByFile[fileNumber - 1]; // Values of fIsolatedPawnPenaltyByFile are negative
+            nIsolated++;
+        }
+        myPawns &= myPawns - 1;
+    }
+    return penalty * (1.0 + (((float)nIsolated - 1.0) / 2.5));
 }
 
 float Engine::EvaluatePassedPawns() {

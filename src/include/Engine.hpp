@@ -42,6 +42,11 @@ class Engine {
          * @return The bonus to add to the evaluation in centipawns.
         */
         float EvaluatePassedPawns();
+        /**
+         * @brief Add a penalty for isolated pawns. Especially those towards the centre as they are more vulnerable.
+         * @return Penalty to apply (negative value) to the evaluation.
+        */
+        float EvaluateIsolatedPawns();
 
 
         float Search(U8 depth, float alpha, float beta);
@@ -69,6 +74,7 @@ class Engine {
         float fGamePhase;
 
         const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
+        const int fIsolatedPawnPenaltyByFile[8] = {-10, -15, -25, -30, -30, -25, -15, -10};
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)
