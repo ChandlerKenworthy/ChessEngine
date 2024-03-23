@@ -33,6 +33,7 @@ float Engine::Evaluate() {
     evaluation += ForceKingToCornerEndgame();
     evaluation += EvaluatePassedPawns();
     evaluation += EvaluateIsolatedPawns();
+    evaluation += EvaluateBadBishops();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -44,6 +45,39 @@ float Engine::Evaluate() {
     }
 
     return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
+}
+
+float Engine::EvaluateBadBishops() {
+    float penalty = 0.0;
+    const U64 myBishops = fBoard->GetBoard(Piece::Bishop);
+    U64 whiteBishops = myBishops & WHITE_SQUARES;
+    U64 blackBishops = myBishops & BLACK_SQUARES;
+    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
+
+    // First search your white squared bishop
+    const int step = fOtherColor == Color::Black ? 1 : -1;
+    const int maxRank = fOtherColor == Color::Black ? 8 : 1;
+    int j = 0;
+
+    for(U64 bishops : {whiteBishops, blackBishops}) {
+        while(bishops) {
+            const U64 bishop = 1ULL << __builtin_ctzll(bishops);
+            const U64 rank = get_rank(bishop);
+            const U64 squares = j == 0 ? WHITE_SQUARES : BLACK_SQUARES;
+            const U64 rankNo = get_rank_number(bishop);
+            for(int i = 1; rank <= abs(maxRank - rankNo); i += step) {
+                const U64 thisRank = RANKS[(rankNo + (i * step)) - 1];
+                while(thisRank & myPawns & squares) { // Pawns on both sides can block the bishop
+                    penalty -= fBadBishopPawnRankAwayPenalty[i - 1];
+                    myPawns &= myPawns - 1;
+                }
+            }
+            bishops &= bishops - 1;
+        }
+        j++;
+    }
+
+    return penalty;
 }
 
 float Engine::EvaluateIsolatedPawns() {
