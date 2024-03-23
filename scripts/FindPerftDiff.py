@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
 
-stockfish = pd.read_csv("./perft/fish3.txt", header=None, sep=":")
+stockfish = pd.read_csv("../perft/fish3.txt", header=None, sep=":")
 stockfish.columns = ["InitialMove", "Nodes"]
 stockfish.set_index("InitialMove", inplace=True)
 
-generator = pd.read_csv("./perft/gen3.txt", header=None, sep=":")
+generator = pd.read_csv("../perft/gen3.txt", header=None, sep=":")
 generator.columns = ["InitialMove", "Nodes"]
 generator.set_index("InitialMove", inplace=True)
 
