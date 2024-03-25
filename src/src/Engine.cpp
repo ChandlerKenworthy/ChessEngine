@@ -56,7 +56,7 @@ float Engine::EvaluateBadBishops() {
 
     // First search your white squared bishop
     const int step = fOtherColor == Color::Black ? 1 : -1;
-    const int maxRank = fOtherColor == Color::Black ? 8 : 1;
+    const U8 maxRank = fOtherColor == Color::Black ? 8 : 1;
     int j = 0;
 
     for(U64 bishops : {whiteBishops, blackBishops}) {
@@ -64,7 +64,7 @@ float Engine::EvaluateBadBishops() {
             const U64 bishop = 1ULL << __builtin_ctzll(bishops);
             const U64 rank = get_rank(bishop);
             const U64 squares = j == 0 ? WHITE_SQUARES : BLACK_SQUARES;
-            const U64 rankNo = get_rank_number(bishop);
+            const U8 rankNo = get_rank_number(bishop);
             for(int i = 1; rank <= abs(maxRank - rankNo); i += step) {
                 const U64 thisRank = RANKS[(rankNo + (i * step)) - 1];
                 while(thisRank & myPawns & squares) { // Pawns on both sides can block the bishop

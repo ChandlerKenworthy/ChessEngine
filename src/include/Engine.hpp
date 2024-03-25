@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <cmath>
 #include <list>
 #include <unordered_map>
 
