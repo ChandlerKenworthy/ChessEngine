@@ -32,6 +32,8 @@ float Engine::Evaluate() {
     float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
     evaluation += ForceKingToCornerEndgame();
     evaluation += EvaluatePassedPawns();
+    evaluation += EvaluateIsolatedPawns();
+    evaluation += EvaluateBadBishops();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -43,6 +45,58 @@ float Engine::Evaluate() {
     }
 
     return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
+}
+
+float Engine::EvaluateBadBishops() {
+    float penalty = 0.0;
+    const U64 myBishops = fBoard->GetBoard(Piece::Bishop);
+    U64 whiteBishops = myBishops & WHITE_SQUARES;
+    U64 blackBishops = myBishops & BLACK_SQUARES;
+    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
+
+    // First search your white squared bishop
+    const int step = fOtherColor == Color::Black ? 1 : -1;
+    const U8 maxRank = fOtherColor == Color::Black ? 8 : 1;
+    int j = 0;
+
+    for(U64 bishops : {whiteBishops, blackBishops}) {
+        while(bishops) {
+            const U64 bishop = 1ULL << __builtin_ctzll(bishops);
+            const U64 rank = get_rank(bishop);
+            const U64 squares = j == 0 ? WHITE_SQUARES : BLACK_SQUARES;
+            const U8 rankNo = get_rank_number(bishop);
+            for(int i = 1; rank <= abs(maxRank - rankNo); i += step) {
+                const U64 thisRank = RANKS[(rankNo + (i * step)) - 1];
+                while(thisRank & myPawns & squares) { // Pawns on both sides can block the bishop
+                    penalty -= fBadBishopPawnRankAwayPenalty[i - 1];
+                    myPawns &= myPawns - 1;
+                }
+            }
+            bishops &= bishops - 1;
+        }
+        j++;
+    }
+
+    return penalty;
+}
+
+float Engine::EvaluateIsolatedPawns() {
+    float penalty = 0.0;
+    int nIsolated = 0;
+    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
+    const U64 myPawnsStatic = myPawns;
+    while(myPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
+        const U64 file = get_file(myPawns);
+        const U8 fileNumber = get_file_number(pawn);
+        if(((east(file) | west(file)) & myPawnsStatic) == 0) {
+            // Isolated pawn, add penalty based on position, pawns at centre are weaker
+            penalty += fIsolatedPawnPenaltyByFile[fileNumber - 1]; // Values of fIsolatedPawnPenaltyByFile are negative
+            nIsolated++;
+        }
+        myPawns &= myPawns - 1;
+    }
+    return penalty * (1.0 + (((float)nIsolated - 1.0) / 2.5));
 }
 
 float Engine::EvaluatePassedPawns() {
@@ -258,7 +312,6 @@ float Engine::Search(U8 depth, float alpha, float beta) {
 
     fGenerator->GenerateLegalMoves(fBoard);
     std::vector<U16> moves = fGenerator->GetLegalMoves();
-
     const Color movingColor = fBoard->GetColorToMove();
 
     if(moves.size() == 0) {
@@ -276,7 +329,7 @@ float Engine::Search(U8 depth, float alpha, float beta) {
     OrderMoves(moves);
 
     for(U16 move : moves) {
-        fBoard->MakeMove(move);
+        fBoard->MakeMove(move); // TODO: Fails inside this call for some reaosn
         // Minus sign to flip perspective (what is good for our opponent is bad for us -- negamax)
         float evaluation = -Search(depth - 1, -beta, -alpha); // opposite way around to args of function
         fBoard->UndoMove();
@@ -299,6 +352,9 @@ U16 Engine::GetBestMove(const bool verbose) {
 
     // Get the legal moves that we have to choose from (i.e. depth = 1 moves)
     std::vector<U16> primaryMoves = fGenerator->GetLegalMoves();
+    if(primaryMoves.size() == 1) {
+        return primaryMoves.at(0);
+    }
 
     // Order moves to speed up alpha-beta pruning
     OrderMoves(primaryMoves);
