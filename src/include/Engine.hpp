@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <cmath>
 #include <list>
 #include <unordered_map>
 
@@ -42,6 +43,17 @@ class Engine {
          * @return The bonus to add to the evaluation in centipawns.
         */
         float EvaluatePassedPawns();
+        /**
+         * @brief Add a penalty for isolated pawns. Especially those towards the centre as they are more vulnerable.
+         * @return Penalty to apply (negative value) to the evaluation.
+        */
+        float EvaluateIsolatedPawns();
+        /**
+         * @brief Add a penalty for "bad" bishops i.e. those who are unable to progress forwards fully due to being blocked
+         * by your own pawns.
+         * @return Penalty to apply (negative value).
+        */
+        float EvaluateBadBishops();
 
 
         float Search(U8 depth, float alpha, float beta);
@@ -69,6 +81,8 @@ class Engine {
         float fGamePhase;
 
         const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
+        const int fIsolatedPawnPenaltyByFile[8] = {-10, -15, -25, -30, -30, -25, -15, -10};
+        const int fBadBishopPawnRankAwayPenalty[7] = {-200, -150, -100, -70, -50, -30, -20}; ///< Penalty to apply given number of ranks away pawn is so 0 (1 rank away is very bad)
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)
