@@ -312,7 +312,6 @@ float Engine::Search(U8 depth, float alpha, float beta) {
 
     fGenerator->GenerateLegalMoves(fBoard);
     std::vector<U16> moves = fGenerator->GetLegalMoves();
-
     const Color movingColor = fBoard->GetColorToMove();
 
     if(moves.size() == 0) {
@@ -330,7 +329,7 @@ float Engine::Search(U8 depth, float alpha, float beta) {
     OrderMoves(moves);
 
     for(U16 move : moves) {
-        fBoard->MakeMove(move);
+        fBoard->MakeMove(move); // TODO: Fails inside this call for some reaosn
         // Minus sign to flip perspective (what is good for our opponent is bad for us -- negamax)
         float evaluation = -Search(depth - 1, -beta, -alpha); // opposite way around to args of function
         fBoard->UndoMove();
@@ -353,6 +352,9 @@ U16 Engine::GetBestMove(const bool verbose) {
 
     // Get the legal moves that we have to choose from (i.e. depth = 1 moves)
     std::vector<U16> primaryMoves = fGenerator->GetLegalMoves();
+    if(primaryMoves.size() == 1) {
+        return primaryMoves.at(0);
+    }
 
     // Order moves to speed up alpha-beta pruning
     OrderMoves(primaryMoves);
