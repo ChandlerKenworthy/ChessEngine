@@ -33,15 +33,16 @@ void Renderer::gameLoopSlot() {
         if(fBoard->GetColorToMove() != fUserColor) { // The engine makes a move
             // Re-generate possible moves
             fGenerator->GenerateLegalMoves(fBoard); // Also updates State of board
+            if(fGenerator->GetNLegalMoves() != 0) {
+                // Find the engine's best move
+                U16 move = fEngine->GetBestMove(true);
 
-            // Find the engine's best move
-            U16 move = fEngine->GetBestMove(true);
+                // Make the move
+                fBoard->MakeMove(move);
 
-            // Make the move
-            fBoard->MakeMove(move);
-
-            // Update the GUI accordingly
-            DrawPieces();
+                // Update the GUI accordingly
+                DrawPieces();
+            }
         } else {
             fGenerator->GenerateLegalMoves(fBoard); // Also updates State of board
         } // User has to make a move, handled inside of mousePress/Release event
