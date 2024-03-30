@@ -32,7 +32,7 @@ void Renderer::gameLoopSlot() {
     while (fBoard->GetState() == State::Play) {
         if(fBoard->GetColorToMove() != fUserColor) { // The engine makes a move
             // Re-generate possible moves
-            fGenerator->GenerateLegalMoves(fBoard);
+            fGenerator->GenerateLegalMoves(fBoard); // Also updates State of board
 
             // Find the engine's best move
             U16 move = fEngine->GetBestMove(true);
@@ -43,11 +43,18 @@ void Renderer::gameLoopSlot() {
             // Update the GUI accordingly
             DrawPieces();
         } else {
-            fGenerator->GenerateLegalMoves(fBoard);
+            fGenerator->GenerateLegalMoves(fBoard); // Also updates State of board
         } // User has to make a move, handled inside of mousePress/Release event
         // Ensure to call QApplication::processEvents() periodically to keep the GUI responsive
         QApplication::processEvents();
+
+         // Check for checkmate condition and emit signal if true
+        if (fBoard->GetState() != State::Play) {
+            std::cout << "Game terminating due to " << get_string_state(fBoard->GetState()) << "\n";
+            emit gameEndSignal();
+        }
     }
+
 }
 
 void Renderer::DrawChessBoard() {

@@ -93,6 +93,35 @@ enum class State {
     Checkmate  ///< Game is checkmate.
 };
 
+inline std::string get_string_state(State s) {
+    switch(s) {
+        case State::Play: {
+            return "Play";
+            break;
+        }
+        case State::Stalemate: {
+            return "Stalemate";
+            break;
+        }
+        case State::InSufficientMaterial: {
+            return "Insufficient material";
+            break;
+        }
+        case State::MoveRepetition: {
+            return "Move repitition rule";
+            break;
+        }
+        case State::FiftyMoveRule: {
+            return "50-move rule";
+            break;
+        }
+        case State::Checkmate: {
+            return "Checkmate";
+            break;
+        }
+    }
+}
+
 /**
  * @brief Enumeration describing the compass directions of the board (North defined as increasing rank)
 */

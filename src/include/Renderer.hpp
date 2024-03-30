@@ -55,6 +55,7 @@ class Renderer : public QGraphicsView {
         void gameLoopSlot();
     signals:
         void gameLoopSignal();
+        void gameEndSignal();
     protected:
         void mousePressEvent(QMouseEvent *event) override;
         void mouseReleaseEvent(QMouseEvent *event) override;

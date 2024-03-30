@@ -156,6 +156,8 @@ int main(int argc, char* argv[]) {
 
         // Connect a custom signal to the game loop slot in the renderer
         QObject::connect(gui.get(), &Renderer::gameLoopSignal, gui.get(), &Renderer::gameLoopSlot);
+        // In your main window or application class constructor
+        QObject::connect(gui.get(), &Renderer::gameEndSignal, gui.get(), &Renderer::close);
 
          // Start the game loop by emitting the signal
         emit gui->gameLoopSignal();
