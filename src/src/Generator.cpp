@@ -92,6 +92,10 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) { // TOD
         return;
     if(CheckInsufficientMaterial(board))
         return;
+    if(CheckRepitition(board)) {
+        board->SetState(State::MoveRepetition);
+        return;
+    }
 
     fColor = board->GetColorToMove();
     fOtherColor = fColor == Color::White ? Color::Black : Color::White;
@@ -140,6 +144,16 @@ bool Generator::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
         board->SetState(State::InSufficientMaterial);
         return true;
     }
+    return false;
+}
+
+bool Generator::CheckRepitition(const std::unique_ptr<Board> &board) {
+    //std::unordered_map<U64, short> *positions = board->GetReachedPositions();
+    //for(const auto &pair : *positions) {
+    //    if(pair.second >= 3) {
+    //        return true;
+    //    }
+    //}
     return false;
 }
 

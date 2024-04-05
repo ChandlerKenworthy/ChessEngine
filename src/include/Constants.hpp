@@ -238,6 +238,9 @@ constexpr U64 SQUARE_D8 = FILE_D & RANK_8;
 constexpr U64 SQUARE_G8 = FILE_G & RANK_8;
 constexpr U64 SQUARE_C8 = FILE_C & RANK_8;
 
+constexpr U64 WHITE_KING_CORNERS = (FILE_A | FILE_B | FILE_C | FILE_G | FILE_H) & RANK_1;
+constexpr U64 BLACK_KING_CORNERS = (FILE_A | FILE_B | FILE_C | FILE_G | FILE_H) & RANK_8;
+
 const U64 WHITE_SQUARES = (FILE_A & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |
                             (FILE_B & (RANK_1 | RANK_3 | RANK_5 | RANK_7)) |
                             (FILE_C & (RANK_2 | RANK_4 | RANK_6 | RANK_8)) |

@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "Board.hpp"
 
 Board::Board() : fPawnPhase(0), fKnightPhase(1), fBishopPhase(1), fRookPhase(2), fQueenPhase(4) {
@@ -85,7 +83,6 @@ Board::Board(const Board& other) : fPawnPhase(0), fKnightPhase(1), fBishopPhase(
     this->fTotalPhase = other.fTotalPhase;
 
     // Copy over the game state variables
-    this->fUnique = other.fUnique;
     this->fMadeMoves = other.fMadeMoves;
     this->fHalfMoves = other.fHalfMoves;
     this->fGameState = other.fGameState;
@@ -116,7 +113,6 @@ void Board::Reset() {
     fBoards[10] = RANK_8 & FILE_D; // Black queen
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
-    fUnique = 0;
     fHalfMoves = 0;
     fGameState = State::Play;
     fWhiteKingMoved = 0;
@@ -260,7 +256,6 @@ void Board::UndoMove() {
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
-    fUnique--;
 }
 
 void Board::MakeMove(const U16 move) {
@@ -353,7 +348,6 @@ void Board::MakeMove(const U16 move) {
     fMadeMoves.push_back(move);
     fMovedPieces.push_back(movedPiece);
     fTakenPieces.push_back(takenPiece);
-    fUnique++;
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {

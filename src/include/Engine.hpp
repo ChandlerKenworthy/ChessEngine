@@ -84,6 +84,8 @@ class Engine {
         const int fIsolatedPawnPenaltyByFile[8] = {-10, -15, -25, -30, -30, -25, -15, -10};
         const int fBadBishopPawnRankAwayPenalty[7] = {-200, -150, -100, -70, -50, -30, -20}; ///< Penalty to apply given number of ranks away pawn is so 0 (1 rank away is very bad)
 
+        const float fPawnGuardKingEval[4] = {-200, 50, 100, 120};
+
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)
             -40,-20,  0,  5,  5,  0,-20,-40, // H2, ... A2
@@ -227,6 +229,13 @@ class Engine {
          * @return The value of the material with positive values favouring white.
         */
         float EvaluateBishopPositions();
+        /**
+         * @brief Considers the position of the current king and how safe that is considering the current phase of the game. 
+         * @return The value to enhance or reduce the evaluation of the position by based on the king safety (positive values are better).
+        */
+        float EvaluateKingSafety();
+
+        // TODO: Reward rook pair, bishop pair over knight pair, rooks on open files.
 
         float GetMaterialEvaluation();
         void OrderMoves(std::vector<U16> &moves);

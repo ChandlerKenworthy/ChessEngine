@@ -6,6 +6,7 @@
 #ifndef BOARD_HPP
 #define BOARD_HPP
 
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <string>
@@ -157,11 +158,6 @@ class Board {
         */
         bool GetBlackQueensideRookMoved() { return fBlackQueensideRookMoved > 0; };
         /**
-         * @brief (Defunct) Get the integer incremented everytime the board changes (+1 even for undo)
-         * @return Get a unique integer for each board position, not persistent between sessions.
-        */
-        int GetUnique() { return fUnique; };
-        /**
          * @brief Get the last move made on the board.
          * @return The 32-bit move word. If no moves are made will return an empty 32-bit word.
         */
@@ -236,7 +232,6 @@ class Board {
     private:
         ZobristKeys fKeys; ///< Struct to hold keys for Zobrist board hashing.
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, bishop, knight, rook, queen, king)
-        int fUnique; ///< Integer that is incremented everytime the board is changed, undone or modified in any way.
         // Move tracking
         std::vector<U16> fMadeMoves; ///< Vector of moves made with the back of the vector being the last made move.
         unsigned short fHalfMoves; ///< The half-move clock for enforcing the 50 move rule

@@ -34,6 +34,7 @@ float Engine::Evaluate() {
     evaluation += EvaluatePassedPawns();
     evaluation += EvaluateIsolatedPawns();
     evaluation += EvaluateBadBishops();
+    evaluation += EvaluateKingSafety();
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -45,6 +46,34 @@ float Engine::Evaluate() {
     }
 
     return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
+}
+
+float Engine::EvaluateKingSafety() {
+    float eval = 0.0;
+    // The king whose safety is being evaluated
+    const U64 king = fBoard->GetBoard(Piece::King);
+    const U64 pawns = fBoard->GetBoard(Piece::Pawn);
+
+    bool kingInCorner = fBoard->GetColorToMove() == Color::White ? king & WHITE_KING_CORNERS : king & BLACK_KING_CORNERS;
+    
+    // Count the number of pawns in front of a diaognally in front of the king
+    int nGuardingPawns = 0;
+    if(fBoard->GetColorToMove() == Color::White) {
+        nGuardingPawns = __builtin_popcountll(pawns & (north(king) | north_east(king) | north_west(king)));
+    } else {
+        nGuardingPawns = __builtin_popcountll(pawns & (south(king) | south_east(king) | south_west(king)));
+    }
+
+    if(fGamePhase < 0.5) {
+        // Early game reward kings that are safelty tucked in a corner behind the pawns
+        // Penalise kings running aimlessly around the board on a suicide mission
+        eval += kingInCorner ? 10.0 : -10.0;
+        eval += fPawnGuardKingEval[nGuardingPawns];
+    } else {
+        // Reverse of the above is true for later game phases
+        eval += kingInCorner ? -10.0 : 10.0;
+    }
+    return eval;
 }
 
 float Engine::EvaluateBadBishops() {
@@ -347,7 +376,7 @@ U16 Engine::GetBestMove(const bool verbose) {
     fNHashesFound = 0;
     // Must take into account colour such that more negative values are better for black
     Color colorToMove = fBoard->GetColorToMove();
-    float bestEvaluation = colorToMove == Color::White ? MIN_EVAL : MAX_EVAL;
+    float bestEvaluation = MAX_EVAL;
     fNMovesSearched = 0;
 
     // Get the legal moves that we have to choose from (i.e. depth = 1 moves)
@@ -363,10 +392,7 @@ U16 Engine::GetBestMove(const bool verbose) {
         fBoard->MakeMove(primaryMove);
         float evaluation = Search(searchDepth - 1, MIN_EVAL, MAX_EVAL);
         fBoard->UndoMove();
-        if(colorToMove == Color::White && evaluation > bestEvaluation) { // Use > not >= to prefer faster paths to mate
-            bestEvaluation = evaluation;
-            bestMove = primaryMove;
-        } else if(colorToMove == Color::Black && evaluation < bestEvaluation) {
+        if(evaluation < bestEvaluation) {
             bestEvaluation = evaluation;
             bestMove = primaryMove;
         }
