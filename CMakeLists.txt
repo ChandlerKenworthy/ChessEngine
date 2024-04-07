@@ -7,8 +7,20 @@ cmake_policy(SET CMP0148 NEW)
 set(Qt6_DIR "/Users/chandler/Qt/6.6.2/macos/lib/cmake/Qt6/")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 17)
-set(PYTHON_EXECUTABLE "/Users/chandler/miniconda/envs/tf/bin/python")
-set(pybind11_DIR "/Users/chandler/miniconda/lib/python3.10/site-packages/pybind11/share/cmake/pybind11")
+
+# Set Python executable path
+if(DEFINED ENV{PYTHON_EXECUTABLE})
+    set(PYTHON_EXECUTABLE $ENV{PYTHON_EXECUTABLE})
+else()
+    set(PYTHON_EXECUTABLE "/Users/chandler/miniconda/envs/tf/bin/python")
+endif()
+
+# Set pybind11 directory
+if(DEFINED ENV{PYBIND11_DIR})
+    set(pybind11_DIR $ENV{PYBIND11_DIR})
+else()
+    set(pybind11_DIR "/Users/chandler/miniconda/lib/python3.10/site-packages/pybind11/share/cmake/pybind11")
+endif()
 
 # Find Qt6 package
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
