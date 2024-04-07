@@ -31,12 +31,12 @@ class Generator {
          * @brief Generate all legal moves given a board configuration. Moves are stored in the fLegalMoves vector.
          * @param board The board configuration for which legal moves will be generated.
         */
-        void GenerateLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generates all legal moves involving a capture in the current position.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateCaptureMoves(const std::unique_ptr<Board> &board);
+        void GenerateCaptureMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Get the legal moves from the last move generation.
          * @return Reference to the fLegalMoves vector.
@@ -71,14 +71,14 @@ class Generator {
          * @param board The board configuration to generate moves for.
          * @return True if any of the squares in mask are under attack from the specified colour.
         */
-        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board);
+        bool IsUnderAttack(const U64 mask, const Color attackingColor, const std::shared_ptr<Board> &board);
         /**
          * @brief Find the attacks of the pawns for a particular colour. To be used for move ordering.
          * @param board The board configuration.
          * @param colorToMoveAttacks True if the attacking colour is the current colour to move on board.
          * @return Mask of all possible attacks of pawns from the specified colour.
         */
-        U64 GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks);
+        U64 GetPawnAttacks(const std::shared_ptr<Board> &board, bool colorToMoveAttacks);
         /**
          * @brief Get all moves that are captures in the current set of legal moves.
          * @return Vector of legal capture moves.
@@ -121,33 +121,33 @@ class Generator {
          * @param board The board to check.
          * @return True if the fifty move rule conditions have been met.
         */
-        bool CheckFiftyMoveDraw(const std::unique_ptr<Board> &board);
+        bool CheckFiftyMoveDraw(const std::shared_ptr<Board> &board);
         /**
          * @brief Check if the board has met the conditions for a draw by insufficient material.
          * @param board The board to check.
          * @return True if the conditions for insufficient material have been met.
         */
-        bool CheckInsufficientMaterial(const std::unique_ptr<Board> &board);
+        bool CheckInsufficientMaterial(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal moves for a given position and append to the fLegalMoves vector.
          * @param board The board configuration to generate moves for.
         */
-        void GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GeneratePseudoLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal capturing moves for a given position and append to the fLegalMoves vector.
          * @param board The board configuration to generate moves for.
         */
-        void GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &board);
+        void GeneratePseudoLegalCaptureMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the en-passant moves and append to fCaptureMoves
          * @param board The board configuration to generate moves for.
         */
-        void GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &board);
+        void GenerateEnPassantCaptureMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Remove illegal capturing moves (i.e. absolute pins, etc)
          * @param board The board configuration to generate moves for.
         */
-        void RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board); // TODO: These appened to fLegalMoves
+        void RemoveIllegalCaptureMoves(const std::shared_ptr<Board> &board); // TODO: These appened to fLegalMoves
         /**
          * @brief Generate the pseudo-legal moves for the king.
          * @param board The board configuration to generate moves for.
@@ -157,37 +157,37 @@ class Generator {
          * @brief Generate the pseudo-legal moves for all the knights.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateKnightPseudoLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal moves for all the rooks.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateRookPseudoLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal moves for all the bishops.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateBishopPseudoLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal moves for all the queens.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GenerateQueenPseudoLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal moves for all the pawns.
          * @param board The board configuration to generate moves for.
         */
-        void GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board);
+        void GeneratePawnPseudoLegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate en-passant moves.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateEnPassantMoves(const std::unique_ptr<Board> &board);
+        void GenerateEnPassantMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the set of possible castling moves.
          * @param board The board configuration to generate moves for.
         */
-        void GenerateCastlingMoves(const std::unique_ptr<Board> &board);
+        void GenerateCastlingMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Get whether a specific type of castling is possible. Effectively checks occupancy and attack masks.
          * @param castlingMask All squares that must be free from attack in order to permit castling (includes the king and end point and all squares in between).
@@ -195,31 +195,31 @@ class Generator {
          * @param board The board configuration to generate moves for.
          * @return True if castling with these masks is possible.
         */
-        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board);
+        bool IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::shared_ptr<Board> &board);
         /**
          * @brief Get the bitboard of all possible attacks by the specified colour assuming they are the next colour to move. Does not take into account absolutely positioned pieces.
          * @param board The board configuration to generate moves for.
          * @param attackingColor The colour to calculate attacks for (assumes they are colour to move).
          * @return Mask of all attacks by the attacking colour excluding absolute pins.
         */
-        U64 GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor);
+        U64 GetAttacks(const std::shared_ptr<Board> &board, const Color attackingColor);
         /**
          * @brief Removes illegal moves from the fLegalMoves vector. Does a complete check such as with absolute pins etc.
          * @param board The board configuration to generate moves for.
         */
-        void RemoveIllegalMoves(const std::unique_ptr<Board> &board);
+        void RemoveIllegalMoves(const std::shared_ptr<Board> &board);
         /**
          * @brief Fill a vetor with the position of all absolutely pinned pieces and the pinning ray they occupy.
          * @param board The board configuration to generate moves for.
          * @param v Vector to fill.
          * @param d Direction to search for pinning rays.
         */
-        void AddAbolsutePins(const std::unique_ptr<Board> &board, Direction d);
+        void AddAbolsutePins(const std::shared_ptr<Board> &board, Direction d);
         /**
          * @brief Remove moves from the fLegalMoves vector that do not resolve the check when the king is in check.
          * @param board The board configuration to generate moves for.
         */
-        void PruneCheckMoves(const std::unique_ptr<Board> &board, const bool copyToCapures);
+        void PruneCheckMoves(const std::shared_ptr<Board> &board, const bool copyToCapures);
 
         // Attack tables generated on instantiation
         U64 fKnightAttacks[64]; ///< All possible attacks of a knight at each position on the board.

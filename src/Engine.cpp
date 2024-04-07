@@ -4,7 +4,7 @@
 
 #include "Engine.hpp"
 
-Engine::Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxCacheSize(400000), fMaxDepth(maxDepth) {
+Engine::Engine(const std::shared_ptr<Generator> &generator, const std::shared_ptr<Board> &board, const int maxDepth) : fGenerator(generator), fBoard(board), fMaxCacheSize(400000), fMaxDepth(maxDepth) {
     fEvaluationCache.clear();
     const size_t initialBucketCount = fMaxCacheSize / 0.75; // Load factor of 0.75 is typically used for unordered_maps
     fEvaluationCache.reserve(initialBucketCount);

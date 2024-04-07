@@ -6,7 +6,7 @@ cmake_policy(SET CMP0148 NEW)
 # Set Qt6 installation path
 set(Qt6_DIR "/Users/chandler/Qt/6.6.2/macos/lib/cmake/Qt6/")
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(PYTHON_EXECUTABLE "/Users/chandler/miniconda/envs/tf/bin/python")
 set(pybind11_DIR "/Users/chandler/miniconda/lib/python3.10/site-packages/pybind11/share/cmake/pybind11")
 
@@ -43,6 +43,8 @@ target_sources(ChessEngine PRIVATE ${MOC_SOURCES})
 pybind11_add_module(chess_engine
     python_bindings/py_generator.cpp
     src/Board.cpp
+    src/Generator.cpp
+    src/Engine.cpp
 )
 
 # Include directories for the Python module
