@@ -31,6 +31,14 @@ void PrintBoard(Board *board) {
     std::cout << "    A   B   C   D   E   F   G   H  \n";
 }
 
+U64 MakeBitBoard(int rank, int file) {
+    if(rank > 8 || rank < 1 || file > 8 || file < 1) {
+        std::cout << "Warning: invalid rank or file specified. Rank and file should be in the range [1,8].\n";
+        return 0;
+    }
+    return RANKS[rank - 1] & FILES[file - 1];
+}
+
 namespace pybind11::detail {
     template <typename T>
     struct type_caster<std::unique_ptr<T>> : public type_caster_base<std::unique_ptr<T>> {
@@ -56,6 +64,8 @@ namespace pybind11::detail {
 
 PYBIND11_MODULE(chess_engine, m) {
     m.def("print_board", &PrintBoard, "Display a console-like version of the current chess board");
+    m.def("make_bit_board", &MakeBitBoard, py::arg("rank"), py::arg("file"));
+    m.def("print_bitset", &PrintBitset, py::arg("bitboard"));
 
     py::enum_<Color>(m, "Color")
         .value("WHITE", Color::White)
@@ -79,7 +89,7 @@ PYBIND11_MODULE(chess_engine, m) {
         .value("FIFTYMOVERULE", State::FiftyMoveRule)
         .value("CHECKMATE", State::Checkmate);
 
-    py::class_<Board, std::unique_ptr<Board>>(m, "Board")
+    py::class_<Board, std::shared_ptr<Board>>(m, "Board")
         .def(py::init<>())
         .def("get_hash", &Board::GetHash)
         .def("get_color_to_move", &Board::GetColorToMove)
@@ -93,8 +103,8 @@ PYBIND11_MODULE(chess_engine, m) {
     
     py::class_<Generator>(m, "Generator")
         .def(py::init<>())
-        //.def("generate_legal_moves", py::overload_cast<const Board*>(&Board::GenerateLegalMoves))
+        .def("generate_legal_moves", &Generator::GenerateLegalMoves, "Generates the set of legal moves for the current board", py::arg("board"))
         .def("get_legal_moves", &Generator::GetLegalMoves)
-        .def("get_n_legal_moves", &Generator::GetNLegalMoves);
-        //.def("is_under_attack", &Generator::IsUnderAttack);
+        .def("get_n_legal_moves", &Generator::GetNLegalMoves)
+        .def("is_under_attack", &Generator::IsUnderAttack);
 }
