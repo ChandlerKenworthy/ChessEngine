@@ -9,18 +9,25 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 17)
 
 # Set Python executable path
-if(DEFINED ENV{PYTHON_EXECUTABLE})
-    set(PYTHON_EXECUTABLE $ENV{PYTHON_EXECUTABLE})
-else()
+#if(DEFINED ENV{PYTHON_EXECUTABLE})
+#    set(PYTHON_EXECUTABLE $ENV{PYTHON_EXECUTABLE})
+#else()
+#    set(PYTHON_EXECUTABLE "/Users/chandler/miniconda/envs/tf/bin/python")
+#endif()
+
+if(APPLE)
     set(PYTHON_EXECUTABLE "/Users/chandler/miniconda/envs/tf/bin/python")
 endif()
 
 # Set pybind11 directory
-if(DEFINED ENV{PYBIND11_DIR})
-    set(pybind11_DIR $ENV{PYBIND11_DIR})
-else()
+if(APPLE)
     set(pybind11_DIR "/Users/chandler/miniconda/lib/python3.10/site-packages/pybind11/share/cmake/pybind11")
 endif()
+#if(DEFINED ENV{PYBIND11_DIR})
+#    set(pybind11_DIR $ENV{PYBIND11_DIR})
+#else()
+#    set(pybind11_DIR "/Users/chandler/miniconda/lib/python3.10/site-packages/pybind11/share/cmake/pybind11")
+#endif()
 
 # Find Qt6 package
 find_package(Qt6 COMPONENTS Widgets REQUIRED)

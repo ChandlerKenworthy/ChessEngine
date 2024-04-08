@@ -12,8 +12,6 @@ jobs:
   build:
     name: perft4
     runs-on: ubuntu-latest # You can also use macos-latest for macOS
-    env:
-      PYTHON_EXECUTABLE: ${{ env.PYTHON_EXECUTABLE }}
 
     steps:
     - name: Checkout code
