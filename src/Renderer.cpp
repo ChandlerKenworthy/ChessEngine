@@ -4,6 +4,7 @@ Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Ge
     fPieceHeight = fTileWidth * 0.75;
     fPieces.reserve(32);
     fDraggedPiece = nullptr;
+    fReachedPositions.clear();
 
     // Resize the window on opening
     resize(fBoardWidth, fBoardHeight);
@@ -39,6 +40,19 @@ void Renderer::gameLoopSlot() {
 
                 // Make the move
                 fBoard->MakeMove(move);
+                U64 hash = fBoard->GetHash();
+                if(fReachedPositions.find(hash) != fReachedPositions.end()) {
+                    // Position has already been reached before
+                    fReachedPositions[hash]++;
+                    if(fReachedPositions[hash] >= 3) {
+                        // Game is drawn due to repetition
+                        fBoard->SetState(State::MoveRepetition);
+                        break;
+                    }
+                } else {
+                    // First time reaching this position
+                    fReachedPositions[hash] = 1;
+                }
 
                 // Update the GUI accordingly
                 DrawPieces();
@@ -226,6 +240,18 @@ void Renderer::mouseReleaseEvent(QMouseEvent *event) {
     bool isLegal = fGenerator->GetMoveIsLegal(move);
     if(isLegal) {
         fBoard->MakeMove(move);
+        U64 hash = fBoard->GetHash();
+        if(fReachedPositions.find(hash) != fReachedPositions.end()) {
+            // Position has already been reached before
+            fReachedPositions[hash]++;
+            if(fReachedPositions[hash] >= 3) {
+                // Game is drawn due to repetition
+                fBoard->SetState(State::MoveRepetition);
+            }
+        } else {
+            // First time reaching this position
+            fReachedPositions[hash] = 1;
+        }
     }
     
     DrawPieces();

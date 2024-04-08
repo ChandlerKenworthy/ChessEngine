@@ -60,12 +60,14 @@ void DisplayHelp() {
               << "  ChessEngine --play\n";
 }
 
-void PlaySelf(int nGames, int depth) {
+void PlaySelf(int nGames, int depth, Color bestEngineColor) {
     int whiteWins = 0;
     int blackWins = 0;
     int stalemates = 0;
     int materialDraw = 0;
     int fiftyMoveDraw = 0;
+    int moveRepitition = 0;
+    int nOther = 0;
 
     const std::shared_ptr<Board> board = std::make_unique<Board>();
     const std::shared_ptr<Generator> generator = std::make_unique<Generator>();
@@ -73,6 +75,8 @@ void PlaySelf(int nGames, int depth) {
 
     for(int iGame = 0; iGame < nGames; ++iGame) {
         board->Reset();
+        std::unordered_map<U64, U8> reachedPositions;
+        reachedPositions[board->GetHash()] = 1;
 
         float percentage = 100. * ((float)iGame + 1.) / (float)nGames;
         std::cout << "Percentage completed " << percentage << "% [" << iGame + 1 << "/" << nGames << "]\n";
@@ -81,15 +85,26 @@ void PlaySelf(int nGames, int depth) {
             generator->GenerateLegalMoves(board);
             if(generator->GetNLegalMoves() == 0)
                 break;
-
             U16 move{0};
-            if(board->GetColorToMove() == Color::White) {
-                move = engine->GetBestMove(false); 
+            if(board->GetColorToMove() == bestEngineColor) {
+                move = engine->GetBestMove(false);  // userColor parameters controls "best" engine
             } else {
-                move = engine->GetRandomMove(); // For now black is a random agent
+                move = engine->GetRandomMove(); // other engine, for now, is the random agent
             }
-            
             board->MakeMove(move);
+            U64 hash = board->GetHash();
+            if(reachedPositions.find(hash) != reachedPositions.end()) {
+                // Position has already been reached before
+                reachedPositions[hash]++;
+                if(reachedPositions[hash] >= 3) {
+                    // Game is drawn due to repetition
+                    board->SetState(State::MoveRepetition);
+                    break;
+                }
+            } else {
+                // First time reaching this position
+                reachedPositions[hash] = 1;
+            }
         }
 
         if(board->GetState() == State::Checkmate) {
@@ -106,15 +121,20 @@ void PlaySelf(int nGames, int depth) {
             fiftyMoveDraw++;
         } else if(board->GetState() == State::InSufficientMaterial) {
             materialDraw++;
+        } else if(board->GetState() == State::MoveRepetition) {
+            moveRepitition++;
+        } else {
+            nOther++;
         }
     }
-
     std::cout << "\n========== Summary ==========\n";
     std::cout << "Checkmates by white:            " << whiteWins << "\n";
     std::cout << "Checkmates by black:            " << blackWins << "\n";
     std::cout << "Draws by stalemate:             " << stalemates << "\n";
     std::cout << "Draws by 50-move rule:          " << fiftyMoveDraw << "\n";
     std::cout << "Draws by insufficient material: " << materialDraw << "\n";
+    std::cout << "Draws by move repitition:       " << moveRepitition << "\n";
+    std::cout << "Other causes of end:            " << nOther << "\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -165,7 +185,7 @@ int main(int argc, char* argv[]) {
         // Start the event loop
         return app.exec();
     } else if(playSelf != 0) {
-        PlaySelf(playSelf, maxDepth);
+        PlaySelf(playSelf, maxDepth, userColor);
     } else {
         //std::shared_ptr<Board> b = std::make_unique<Board>();
         //QApplication app(argc, argv);
