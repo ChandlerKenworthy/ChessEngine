@@ -129,12 +129,6 @@ class Generator {
         */
         bool CheckInsufficientMaterial(const std::shared_ptr<Board> &board);
         /**
-         * @brief Get if the same position has been reached 3 times on the board i.e. a repeat.
-         * @param board The board to check.
-         * @return True if any position has been reached 3 times in the same game.
-        */
-        bool CheckRepitition(const std::unique_ptr<Board> &board);
-        /**
          * @brief Generate the pseudo-legal moves for a given position and append to the fLegalMoves vector.
          * @param board The board configuration to generate moves for.
         */

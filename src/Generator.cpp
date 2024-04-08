@@ -92,10 +92,6 @@ void Generator::GenerateLegalMoves(const std::shared_ptr<Board> &board) { // TOD
         return;
     if(CheckInsufficientMaterial(board))
         return;
-    if(CheckRepitition(board)) {
-        board->SetState(State::MoveRepetition);
-        return;
-    }
 
     fColor = board->GetColorToMove();
     fOtherColor = fColor == Color::White ? Color::Black : Color::White;
