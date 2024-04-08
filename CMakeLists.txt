@@ -24,7 +24,7 @@ endif()
 
 # Find Qt6 package
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
-find_package(Python REQUIRED COMPONENTS Interpreter Development)
+#find_package(Python REQUIRED COMPONENTS Interpreter Development)
 
 # Add your source files
 add_executable(ChessEngine 
