@@ -37,7 +37,7 @@ class Renderer : public QGraphicsView {
          * @param engine The instance of the computer game engine.
          * @param parent The QWidget parent.
         */
-        Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent = nullptr);
+        Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Generator> &generator, const std::shared_ptr<Engine> &engine, QWidget *parent = nullptr);
         /**
          * @brief Destructs the renderer object safely ensuring all raw pointers are deleted.
         */
@@ -61,9 +61,9 @@ class Renderer : public QGraphicsView {
         void mouseReleaseEvent(QMouseEvent *event) override;
         void mouseMoveEvent(QMouseEvent *event) override;
     private:
-        const std::unique_ptr<Board> &fBoard;
-        const std::unique_ptr<Generator> &fGenerator;
-        const std::unique_ptr<Engine> &fEngine;
+        const std::shared_ptr<Board> &fBoard;
+        const std::shared_ptr<Generator> &fGenerator;
+        const std::shared_ptr<Engine> &fEngine;
         const int fTileWidth; ///< The width (and height since tiles are square) of tiles on the board.
         int fPieceHeight; ///< The height of pieces (used when drawing the board, must be less than fTileWidth).
         Color fUserColor; ///< The colour of pieces the human user controls.

@@ -32,7 +32,7 @@ class Engine {
          * @brief Instantiate a new Engine class.
          * @param depth The maximum search depth of the engine.
         */
-        explicit Engine(const std::unique_ptr<Generator> &generator, const std::unique_ptr<Board> &board, const int maxDepth);
+        explicit Engine(const std::shared_ptr<Generator> &generator, const std::shared_ptr<Board> &board, const int maxDepth);
         /***
          * @brief Get a random legal move, testing purposes only. Must generate legal moves first!
         */
@@ -66,8 +66,8 @@ class Engine {
     private:
         int fNMovesSearched;
         int fNHashesFound;
-        const std::unique_ptr<Generator> &fGenerator;
-        const std::unique_ptr<Board> &fBoard;
+        const std::shared_ptr<Generator> &fGenerator;
+        const std::shared_ptr<Board> &fBoard;
         Color fOtherColor;
 
         // Transposition tables for storing evaluations, faster to lookup than recompute

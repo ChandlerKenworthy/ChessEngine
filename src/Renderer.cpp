@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 
-Renderer::Renderer(const std::unique_ptr<Board> &board, const std::unique_ptr<Generator> &generator, const std::unique_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
+Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Generator> &generator, const std::shared_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
     fPieceHeight = fTileWidth * 0.75;
     fPieces.reserve(32);
     fDraggedPiece = nullptr;

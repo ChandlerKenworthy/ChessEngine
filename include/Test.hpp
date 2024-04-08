@@ -42,7 +42,7 @@ class Test {
         /**
          * @brief Get the board instance used for the testing
         */
-        const std::unique_ptr<Board>& GetBoard() { return fBoard; };
+        const std::shared_ptr<Board>& GetBoard() { return fBoard; };
         /**
          * @brief Set the print depth for perft testing
         */
@@ -54,9 +54,9 @@ class Test {
         bool fUseGUI; ///< If true display GUI to user when performing the tests
         int fPrintDepth;
         bool fDoFinePrint; ///< Print out all moves at depth 1 during perft testing
-        std::unique_ptr<Board> fBoard;
-        std::unique_ptr<Generator> fGenerator;
-        std::unique_ptr<Renderer> fGUI;
+        std::shared_ptr<Board> fBoard;
+        std::shared_ptr<Generator> fGenerator;
+        std::shared_ptr<Renderer> fGUI;
         std::vector<unsigned long int> fExpectedGeneration; ///< Total number of possible moves after each depth level
 };
 

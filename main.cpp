@@ -67,9 +67,9 @@ void PlaySelf(int nGames, int depth) {
     int materialDraw = 0;
     int fiftyMoveDraw = 0;
 
-    const std::unique_ptr<Board> board = std::make_unique<Board>();
-    const std::unique_ptr<Generator> generator = std::make_unique<Generator>();
-    const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, depth);
+    const std::shared_ptr<Board> board = std::make_unique<Board>();
+    const std::shared_ptr<Generator> generator = std::make_unique<Generator>();
+    const std::shared_ptr<Engine> engine = std::make_unique<Engine>(generator, board, depth);
 
     for(int iGame = 0; iGame < nGames; ++iGame) {
         board->Reset();
@@ -140,10 +140,10 @@ int main(int argc, char* argv[]) {
         std::cout << "\nNodes searched: " << result << "\n";
     } else if(doGame) {
         QApplication app(argc, argv);
-        const std::unique_ptr<Board> board = std::make_unique<Board>(); // Initialize the main game board
-        const std::unique_ptr<Generator> generator = std::make_unique<Generator>(); // Initialize the main game board
-        const std::unique_ptr<Engine> engine = std::make_unique<Engine>(generator, board, maxDepth);
-        const std::unique_ptr<Renderer> gui = std::make_unique<Renderer>(board, generator, engine); // For handling the GUI
+        const std::shared_ptr<Board> board = std::make_unique<Board>(); // Initialize the main game board
+        const std::shared_ptr<Generator> generator = std::make_unique<Generator>(); // Initialize the main game board
+        const std::shared_ptr<Engine> engine = std::make_unique<Engine>(generator, board, maxDepth);
+        const std::shared_ptr<Renderer> gui = std::make_unique<Renderer>(board, generator, engine); // For handling the GUI
         gui->setWindowTitle("Chess Engine: Player v Computer");
         gui->setUserColor(userColor);
         gui->show();
@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
     } else if(playSelf != 0) {
         PlaySelf(playSelf, maxDepth);
     } else {
-        //std::unique_ptr<Board> b = std::make_unique<Board>();
+        //std::shared_ptr<Board> b = std::make_unique<Board>();
         //QApplication app(argc, argv);
         //Renderer window(b);
         //window.setWindowTitle("Chess Engine");
