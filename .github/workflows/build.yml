@@ -13,6 +13,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+
+    - name: Install pybind11
+      run: pip install pybind11
+    
+    - name: Initialize and update submodule
+      run: git submodule update --init --recursive
+
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v1.14
       with:
@@ -27,5 +38,5 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake ../src
+        cmake ../
         make

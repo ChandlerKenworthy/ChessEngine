@@ -66,7 +66,7 @@ void Generator::FillDiagonalAttackTables(const U64 pos) {
     fSecondaryDiagonalAttacks[lsb] = secondaryAttacks ^ pos;
 }
 
-void Generator::GenerateCaptureMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateCaptureMoves(const std::shared_ptr<Board> &board) {
     fCaptureMoves.clear();
     if(CheckFiftyMoveDraw(board))
         return;
@@ -86,7 +86,7 @@ void Generator::GenerateCaptureMoves(const std::unique_ptr<Board> &board) {
     RemoveIllegalCaptureMoves(board);
 }
 
-void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) { // TODO: Make me multi-threaded?
+void Generator::GenerateLegalMoves(const std::shared_ptr<Board> &board) { // TODO: Make me multi-threaded?
     fLegalMoves.clear();
     if(CheckFiftyMoveDraw(board))
         return;
@@ -114,7 +114,7 @@ void Generator::GenerateLegalMoves(const std::unique_ptr<Board> &board) { // TOD
     }
 }
 
-bool Generator::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
+bool Generator::CheckFiftyMoveDraw(const std::shared_ptr<Board> &board) {
     if(board->GetHalfMoveClock() == 100) {
         board->SetState(State::FiftyMoveRule);
         return true;
@@ -122,7 +122,7 @@ bool Generator::CheckFiftyMoveDraw(const std::unique_ptr<Board> &board) {
     return false;
 }
 
-bool Generator::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
+bool Generator::CheckInsufficientMaterial(const std::shared_ptr<Board> &board) {
     const U8 nBlackPieces = CountSetBits(board->GetBoard(Color::Black));
     const U8 nWhitePieces = CountSetBits(board->GetBoard(Color::White));
     if(nBlackPieces > 2 || nWhitePieces > 2)
@@ -143,7 +143,7 @@ bool Generator::CheckInsufficientMaterial(const std::unique_ptr<Board> &board) {
     return false;
 }
 
-void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &board) {
+void Generator::GeneratePseudoLegalCaptureMoves(const std::shared_ptr<Board> &board) {
     // King
     U64 kingAttacks = fKingAttacks[__builtin_ctzll(fKing)] & fEnemy;
     while(kingAttacks) {
@@ -235,7 +235,7 @@ void Generator::GeneratePseudoLegalCaptureMoves(const std::unique_ptr<Board> &bo
     }
 }
 
-void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateEnPassantCaptureMoves(const std::shared_ptr<Board> &board) {
     // En-passant not possible so throw away early
     if((!board->GetWasLoadedFromFEN() && board->GetNMoves() < MIN_MOVES_FOR_ENPASSANT) || 
         (board->GetWasLoadedFromFEN() && !board->GetEnPassantFEN() && board->GetNMoves() < 1))
@@ -290,7 +290,7 @@ void Generator::GenerateEnPassantCaptureMoves(const std::unique_ptr<Board> &boar
     }
 }
 
-void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
+void Generator::RemoveIllegalCaptureMoves(const std::shared_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const U64 underAttack = GetAttacks(board, fOtherColor);
@@ -361,7 +361,7 @@ void Generator::RemoveIllegalCaptureMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-void Generator::GeneratePseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GeneratePseudoLegalMoves(const std::shared_ptr<Board> &board) {
     GeneratePawnPseudoLegalMoves(board);
     GenerateKingPseudoLegalMoves();
     GenerateKnightPseudoLegalMoves(board);
@@ -387,7 +387,7 @@ void Generator::GenerateKingPseudoLegalMoves() {
     }
 }
 
-void Generator::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateKnightPseudoLegalMoves(const std::shared_ptr<Board> &board) {
     U64 knights = board->GetBoard(fColor, Piece::Knight);
     while(knights) {
         const U8 lsb = __builtin_ctzll(knights);
@@ -404,7 +404,7 @@ void Generator::GenerateKnightPseudoLegalMoves(const std::unique_ptr<Board> &boa
     }
 }
 
-void Generator::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateRookPseudoLegalMoves(const std::shared_ptr<Board> &board) {
     U64 rooks = board->GetBoard(fColor, Piece::Rook);
     while(rooks) {
         const U8 lsb = __builtin_ctzll(rooks);
@@ -421,7 +421,7 @@ void Generator::GenerateRookPseudoLegalMoves(const std::unique_ptr<Board> &board
     }
 }
 
-void Generator::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateBishopPseudoLegalMoves(const std::shared_ptr<Board> &board) {
     U64 bishops = board->GetBoard(fColor, Piece::Bishop);
     while(bishops) {
         const U8 lsb = __builtin_ctzll(bishops);
@@ -438,7 +438,7 @@ void Generator::GenerateBishopPseudoLegalMoves(const std::unique_ptr<Board> &boa
     }
 }
 
-void Generator::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateQueenPseudoLegalMoves(const std::shared_ptr<Board> &board) {
     U64 queens = board->GetBoard(fColor, Piece::Queen); // Could have multiple due to promotion
     while(queens) {
         const U8 lsb = __builtin_ctzll(queens);
@@ -455,7 +455,7 @@ void Generator::GenerateQueenPseudoLegalMoves(const std::unique_ptr<Board> &boar
     }
 }
 
-void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::GeneratePawnPseudoLegalMoves(const std::shared_ptr<Board> &board) {
     U64 pawns = board->GetBoard(fColor, Piece::Pawn);
     const U64 enemy = board->GetBoard(fOtherColor);
     const U64 promotionRank = fColor == Color::White ? RANK_8 : RANK_1;
@@ -507,7 +507,7 @@ void Generator::GeneratePawnPseudoLegalMoves(const std::unique_ptr<Board> &board
     }
 }
 
-void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateCastlingMoves(const std::shared_ptr<Board> &board) {
     // Return quickly if we know castling is not possible
     if(board->GetNMoves() < MIN_MOVES_FOR_CASTLING && !board->GetWasLoadedFromFEN())
         return;
@@ -549,17 +549,17 @@ void Generator::GenerateCastlingMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-bool Generator::IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::unique_ptr<Board> &board) {
+bool Generator::IsCastlingPossible(U64 castlingMask, U64 occupancyMask, const std::shared_ptr<Board> &board) {
     return !(fOccupancy & occupancyMask) && !IsUnderAttack(castlingMask, fOtherColor, board);
 }
 
-bool Generator::IsUnderAttack(const U64 mask, const Color attackingColor, const std::unique_ptr<Board> &board) {    
+bool Generator::IsUnderAttack(const U64 mask, const Color attackingColor, const std::shared_ptr<Board> &board) {    
     const U64 attacker = board->GetBoard(attackingColor);
     const U64 attacks = GetAttacks(board, attackingColor);
     return attacks & mask & ~attacker;
 }
 
-U64 Generator::GetAttacks(const std::unique_ptr<Board> &board, const Color attackingColor) {
+U64 Generator::GetAttacks(const std::shared_ptr<Board> &board, const Color attackingColor) {
     U64 attacks = 0;
     const U64 occ = board->GetOccupancy(); // Cannot replace with fOccupancy?????
 
@@ -612,7 +612,7 @@ U64 Generator::GetAttacks(const std::unique_ptr<Board> &board, const Color attac
     return attacks; // Don't exclude your own pieces since they are protected so king cannot take them
 }
 
-void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
+void Generator::GenerateEnPassantMoves(const std::shared_ptr<Board> &board) {
     // En-passant not possible so throw away early
     if((!board->GetWasLoadedFromFEN() && board->GetNMoves() < MIN_MOVES_FOR_ENPASSANT) || 
         (board->GetWasLoadedFromFEN() && !board->GetEnPassantFEN() && board->GetNMoves() < 1))
@@ -667,7 +667,7 @@ void Generator::GenerateEnPassantMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
+void Generator::RemoveIllegalMoves(const std::shared_ptr<Board> &board) {
     // TODO: Rewrite this from the ground up to make it faster and more readable...
 
     // Check all the illegal moves, e.g. do they result in your own king being in check?
@@ -741,7 +741,7 @@ void Generator::RemoveIllegalMoves(const std::unique_ptr<Board> &board) {
     }
 }
 
-void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, Direction d) {
+void Generator::AddAbolsutePins(const std::shared_ptr<Board> &board, Direction d) {
     // Make artificial occupancy to block in the king and only get the north ray
     const U8 lsb = __builtin_ctzll(fKing);
     U64 rayOccupancy = board->GetBoard(fOtherColor);
@@ -811,7 +811,7 @@ void Generator::AddAbolsutePins(const std::unique_ptr<Board> &board, Direction d
     }
 }
 
-U64 Generator::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToMoveAttacks) {
+U64 Generator::GetPawnAttacks(const std::shared_ptr<Board> &board, bool colorToMoveAttacks) {
     Color attackingColor = colorToMoveAttacks ? board->GetColorToMove() : (board->GetColorToMove() == Color::White ? Color::Black : Color::White);
     U64 pawns = board->GetBoard(attackingColor, Piece::Pawn);
     // Drop the absolutely pinned pawns for improved accuracy
@@ -824,7 +824,7 @@ U64 Generator::GetPawnAttacks(const std::unique_ptr<Board> &board, bool colorToM
     }
 }
 
-void Generator::PruneCheckMoves(const std::unique_ptr<Board> &board, const bool copyToCapures) {
+void Generator::PruneCheckMoves(const std::shared_ptr<Board> &board, const bool copyToCapures) {
     std::vector<U16> validMoves;
     for (U16 move : (copyToCapures ? fCaptureMoves : fLegalMoves)) {
         if (GetMoveIsCastling(move)) {

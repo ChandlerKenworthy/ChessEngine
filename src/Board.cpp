@@ -131,8 +131,7 @@ void Board::Reset() {
 
     fMovedPieces = {};
     fTakenPieces = {};
-
-    fMadeMoves.clear();
+    fMadeMoves = {};
 }
 
 Piece Board::GetMovePiece(const U16 move) const {
