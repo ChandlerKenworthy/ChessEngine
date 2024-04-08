@@ -129,6 +129,12 @@ class Generator {
         */
         bool CheckInsufficientMaterial(const std::shared_ptr<Board> &board);
         /**
+         * @brief Check if the board has met the conditions for a draw by move repitition.
+         * @param board The board to check.
+         * @return True if the board has reached the identically same position 3 times already.
+        */
+        bool CheckMoveRepitition(const std::shared_ptr<Board> &board);
+        /**
          * @brief Generate the pseudo-legal moves for a given position and append to the fLegalMoves vector.
          * @param board The board configuration to generate moves for.
         */

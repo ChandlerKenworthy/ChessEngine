@@ -92,6 +92,8 @@ void Generator::GenerateLegalMoves(const std::shared_ptr<Board> &board) { // TOD
         return;
     if(CheckInsufficientMaterial(board))
         return;
+    if(CheckMoveRepitition(board))
+        return;
 
     fColor = board->GetColorToMove();
     fOtherColor = fColor == Color::White ? Color::Black : Color::White;
@@ -112,6 +114,23 @@ void Generator::GenerateLegalMoves(const std::shared_ptr<Board> &board) { // TOD
             board->SetState(State::Stalemate);
         }
     }
+}
+
+bool Generator::CheckMoveRepitition(const std::shared_ptr<Board> &board) {
+    std::unordered_map<U64, int> countMap; // Map to store count of each hash
+    // Count occurrences of each element in the vector
+    for (U64 elem : board->GetHistory()) {
+        countMap[elem]++;
+    }
+
+    // Check if any element appears three or more times
+    for (const auto& pair : countMap) {
+        if (pair.second >= 3) {
+            board->SetState(State::MoveRepetition);
+            return true; // Board has met conditions for move repitition, game is a draw
+        }
+    }
+    return false;
 }
 
 bool Generator::CheckFiftyMoveDraw(const std::shared_ptr<Board> &board) {

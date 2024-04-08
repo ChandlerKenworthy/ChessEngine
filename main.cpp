@@ -75,8 +75,6 @@ void PlaySelf(int nGames, int depth, Color bestEngineColor) {
 
     for(int iGame = 0; iGame < nGames; ++iGame) {
         board->Reset();
-        std::unordered_map<U64, U8> reachedPositions;
-        reachedPositions[board->GetHash()] = 1;
 
         float percentage = 100. * ((float)iGame + 1.) / (float)nGames;
         std::cout << "Percentage completed " << percentage << "% [" << iGame + 1 << "/" << nGames << "]\n";
@@ -92,19 +90,6 @@ void PlaySelf(int nGames, int depth, Color bestEngineColor) {
                 move = engine->GetRandomMove(); // other engine, for now, is the random agent
             }
             board->MakeMove(move);
-            U64 hash = board->GetHash();
-            if(reachedPositions.find(hash) != reachedPositions.end()) {
-                // Position has already been reached before
-                reachedPositions[hash]++;
-                if(reachedPositions[hash] >= 3) {
-                    // Game is drawn due to repetition
-                    board->SetState(State::MoveRepetition);
-                    break;
-                }
-            } else {
-                // First time reaching this position
-                reachedPositions[hash] = 1;
-            }
         }
 
         if(board->GetState() == State::Checkmate) {

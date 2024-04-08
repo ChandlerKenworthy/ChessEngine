@@ -229,12 +229,18 @@ class Board {
          * @brief Calculates a semi-unique hash using the Zobrist keys previously generated for the current board state.
         */
         U64 GetHash();
+        /**
+         * @brief Get the vector of all positions reached by the board during play.
+         * @return Vector of zobrist hashed positions.
+        */
+        std::vector<U64> GetHistory() { return fHistory; };
     private:
         ZobristKeys fKeys; ///< Struct to hold keys for Zobrist board hashing.
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, bishop, knight, rook, queen, king)
         // Move tracking
         std::vector<U16> fMadeMoves; ///< Vector of moves made with the back of the vector being the last made move.
-        unsigned short fHalfMoves; ///< The half-move clock for enforcing the 50 move rule
+        unsigned short fHalfMoves; ///< The half-move clock for enforcing the 50 move rule.
+        std::vector<U64> fHistory; ///< Records the hashed positions reached during the game.
 
         // For better move undoing
         std::vector<Piece> fMovedPieces;
