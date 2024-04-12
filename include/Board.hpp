@@ -234,6 +234,18 @@ class Board {
          * @return Vector of zobrist hashed positions.
         */
         std::vector<U64> GetHistory() { return fHistory; };
+        /**
+         * @brief Adds the current board configuration to the history.
+        */
+        void AddCurrentHistory() { fHistory.push_back(GetHash()); };
+        /**
+         * @brief Clears the last item added to the board history.
+        */
+        void PopCurrentHistory() { fHistory.pop_back(); };
+        /**
+         * @brief Get the last element added to the history book.
+        */
+        U64 GetLastHistory() { return fHistory.back(); };
     private:
         ZobristKeys fKeys; ///< Struct to hold keys for Zobrist board hashing.
         U64 fBoards[12]; ///< Array of 12 bitboards defining the postion. White pieces occupy boards 0-5 and black 6-12 in order (pawn, bishop, knight, rook, queen, king)

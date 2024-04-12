@@ -72,6 +72,8 @@ void Generator::GenerateCaptureMoves(const std::shared_ptr<Board> &board) {
         return;
     if(CheckInsufficientMaterial(board))
         return;
+    if(CheckMoveRepitition(board))
+        return;
 
     fColor = board->GetColorToMove();
     fOtherColor = fColor == Color::White ? Color::Black : Color::White;

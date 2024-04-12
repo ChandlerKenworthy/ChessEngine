@@ -255,7 +255,6 @@ void Board::UndoMove() {
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
-    fHistory.pop_back();
 }
 
 void Board::MakeMove(const U16 move) {
@@ -348,7 +347,6 @@ void Board::MakeMove(const U16 move) {
     fMadeMoves.push_back(move);
     fMovedPieces.push_back(movedPiece);
     fTakenPieces.push_back(takenPiece);
-    fHistory.push_back(GetHash());
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {

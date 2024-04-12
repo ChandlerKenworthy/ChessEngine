@@ -89,8 +89,8 @@ void PlaySelf(int nGames, int depth, Color bestEngineColor) {
             } else {
                 move = engine->GetRandomMove(); // other engine, for now, is the random agent
             }
-            //board->PrintDetailedMove(move);
             board->MakeMove(move);
+            board->AddCurrentHistory();
         }
 
         if(board->GetState() == State::Checkmate) {

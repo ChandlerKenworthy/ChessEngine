@@ -39,6 +39,7 @@ void Renderer::gameLoopSlot() {
 
                 // Make the move
                 fBoard->MakeMove(move);
+                fBoard->AddCurrentHistory();
 
                 // Update the GUI accordingly
                 DrawPieces();
@@ -223,10 +224,10 @@ void Renderer::mouseReleaseEvent(QMouseEvent *event) {
     bool isLegal = fGenerator->GetMoveIsLegal(move);
     if(isLegal) {
         fBoard->MakeMove(move);
+        fBoard->AddCurrentHistory();
     }
     
     DrawPieces();
-
     fIsDragging = false;
     fStartSquare = 0;
     QGraphicsView::mouseReleaseEvent(event);
