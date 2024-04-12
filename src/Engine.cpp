@@ -370,7 +370,6 @@ float Engine::Search(U8 depth, float alpha, float beta) {
 }
 
 U16 Engine::GetBestMove(const bool verbose) {
-    const U8 searchDepth = 4;
     auto start = std::chrono::high_resolution_clock::now();
     U16 bestMove = 0;
     fNHashesFound = 0;
@@ -390,7 +389,7 @@ U16 Engine::GetBestMove(const bool verbose) {
 
     for(U16 primaryMove : primaryMoves) {
         fBoard->MakeMove(primaryMove);
-        float evaluation = Search(searchDepth - 1, MIN_EVAL, MAX_EVAL);
+        float evaluation = Search(fMaxDepth - 1, MIN_EVAL, MAX_EVAL);
         fBoard->UndoMove();
         if(evaluation < bestEvaluation) {
             bestEvaluation = evaluation;
