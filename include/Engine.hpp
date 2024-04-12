@@ -77,7 +77,6 @@ class Engine {
         const std::size_t fMaxCacheSize; // Maximum size of the cache (N evaluations)
 
         int fMaxDepth;
-
         float fGamePhase;
 
         const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
@@ -196,14 +195,6 @@ class Engine {
          * @return Evaluation of the position.
         */
         float SearchAllCaptures(float alpha, float beta);
-        /**
-         * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
-         * @param board The board to evaluate.
-         * @param depth The depth the evaluation function should calculate up-to.
-         * @param alpha The alpha value to prune at.
-         * @param beta The beta value to prune at.
-        */
-        std::pair<float, int> Minimax(int depth, float alpha, float beta);
         /**
          * @brief Counts up the knight material on both sides taking into account the positional value.
          * @return The value of the material with positive values favouring white.
