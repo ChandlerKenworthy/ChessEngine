@@ -290,7 +290,7 @@ void Generator::GenerateEnPassantCaptureMoves(const std::shared_ptr<Board> &boar
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove))
         return;
 
     U64 enPassantPawns = 0;
@@ -314,7 +314,6 @@ void Generator::RemoveIllegalCaptureMoves(const std::shared_ptr<Board> &board) {
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const U64 underAttack = GetAttacks(board, fOtherColor);
 
-    // TODO: lost a flippin pawn in here somehow
     if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board, true);
     fPinnedPieces.clear(); // Empty the vector from the last call
@@ -667,7 +666,7 @@ void Generator::GenerateEnPassantMoves(const std::shared_ptr<Board> &board) {
     U64 lastMoveOrigin = GetMoveOrigin(lastMove);
 
     // Faster return if you know en-passant will not be possible
-    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove)) // TODO: Add this back somehow || board->GetMoveIsEnPassant(lastMove)
+    if(board->GetLastPieceMoved() != Piece::Pawn || GetMoveIsCastling(lastMove))
         return;
 
     U64 enPassantPawns = 0;
@@ -691,8 +690,6 @@ void Generator::RemoveIllegalMoves(const std::shared_ptr<Board> &board) {
 
     // Check all the illegal moves, e.g. do they result in your own king being in check?
     const U64 underAttack = GetAttacks(board, fOtherColor);
-
-    // TODO: lost a flippin pawn in here somehow
     if(fKing & underAttack) // Player to move is in check, only moves resolving the check can be permitted
         PruneCheckMoves(board, false);
 

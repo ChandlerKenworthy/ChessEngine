@@ -50,13 +50,11 @@ void Renderer::gameLoopSlot() {
         QApplication::processEvents();
 
          // Check for checkmate condition and emit signal if true
-        if (fBoard->GetState() != State::Play) {
+        if(fBoard->GetState() != State::Play) {
             std::cout << "Game terminating due to " << get_string_state(fBoard->GetState()) << "\n";
             emit gameEndSignal();
         }
     }
-    std::cout << "Game terminating due to " << get_string_state(fBoard->GetState()) << "\n";
-    emit gameEndSignal();
 }
 
 void Renderer::DrawChessBoard() {
@@ -188,7 +186,6 @@ void Renderer::HighlightLegalMoves() {
         }
     }
 
-    // TODO: We know all the tiles to highlight, now let's highlight them
     // this is actually just drawing another rectangle over the board but under the pieces & labels
     for(U64 endTile : legalEndTiles) {
         const int rank = get_rank_number(endTile) - 1;
@@ -219,11 +216,10 @@ void Renderer::mouseReleaseEvent(QMouseEvent *event) {
     U64 file = get_file_from_number((x / fTileWidth) + 1);
     fEndSquare = rank & file;
 
-    // TODO: Call a function to call the board and make the move
     // also update the GUI based on the new board updates
     U16 move = 0;
     SetMove(move, fStartSquare, fEndSquare);
-    // TODO: Before making any move check it is legal, if it is not send the clicked piece back to the start square
+    // Before making any move check it is legal, if it is not send the clicked piece back to the start square
     bool isLegal = fGenerator->GetMoveIsLegal(move);
     if(isLegal) {
         fBoard->MakeMove(move);

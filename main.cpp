@@ -81,7 +81,7 @@ void PlaySelf(int nGames, int depth, Color bestEngineColor) {
 
         while(board->GetState() == State::Play) {
             generator->GenerateLegalMoves(board);
-            if(generator->GetNLegalMoves() == 0)
+            if(generator->GetNLegalMoves() == 0 || board->GetState() != State::Play)
                 break;
             U16 move{0};
             if(board->GetColorToMove() == bestEngineColor) {
@@ -89,6 +89,7 @@ void PlaySelf(int nGames, int depth, Color bestEngineColor) {
             } else {
                 move = engine->GetRandomMove(); // other engine, for now, is the random agent
             }
+            //board->PrintDetailedMove(move);
             board->MakeMove(move);
         }
 

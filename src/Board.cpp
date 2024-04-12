@@ -153,7 +153,6 @@ bool Board::GetMoveIsEnPassant(const U16 move, const Piece movedPiece, const boo
     if(!((north_east(origin) | north_west(origin) | south_west(origin) | south_east(origin)) & target))
         return false;
 
-    // TODO: Square we land on must not haveb been occupied by any other piece when the move was made, only true for en-passant
     if(targetIsNull)
         return true;
 
@@ -504,7 +503,6 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) c
 }
 
 void Board::PrintDetailedMove(U16 move) {
-    // TODO: These functions don't work anymore
     U64 target = GetMoveTarget(move);
     U64 origin = GetMoveOrigin(move);
     Piece piece = GetMovePiece(move);
