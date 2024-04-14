@@ -60,12 +60,14 @@ void DisplayHelp() {
               << "  ChessEngine --play\n";
 }
 
-void PlaySelf(int nGames, int depth) {
+void PlaySelf(int nGames, int depth, Color bestEngineColor) {
     int whiteWins = 0;
     int blackWins = 0;
     int stalemates = 0;
     int materialDraw = 0;
     int fiftyMoveDraw = 0;
+    int moveRepitition = 0;
+    int nOther = 0;
 
     const std::shared_ptr<Board> board = std::make_unique<Board>();
     const std::shared_ptr<Generator> generator = std::make_unique<Generator>();
@@ -79,17 +81,16 @@ void PlaySelf(int nGames, int depth) {
 
         while(board->GetState() == State::Play) {
             generator->GenerateLegalMoves(board);
-            if(generator->GetNLegalMoves() == 0)
+            if(generator->GetNLegalMoves() == 0 || board->GetState() != State::Play)
                 break;
-
             U16 move{0};
-            if(board->GetColorToMove() == Color::White) {
-                move = engine->GetBestMove(false); 
+            if(board->GetColorToMove() == bestEngineColor) {
+                move = engine->GetBestMove(false);  // userColor parameters controls "best" engine
             } else {
-                move = engine->GetRandomMove(); // For now black is a random agent
+                move = engine->GetRandomMove(); // other engine, for now, is the random agent
             }
-            
             board->MakeMove(move);
+            board->AddCurrentHistory();
         }
 
         if(board->GetState() == State::Checkmate) {
@@ -106,15 +107,20 @@ void PlaySelf(int nGames, int depth) {
             fiftyMoveDraw++;
         } else if(board->GetState() == State::InSufficientMaterial) {
             materialDraw++;
+        } else if(board->GetState() == State::MoveRepetition) {
+            moveRepitition++;
+        } else {
+            nOther++;
         }
     }
-
     std::cout << "\n========== Summary ==========\n";
     std::cout << "Checkmates by white:            " << whiteWins << "\n";
     std::cout << "Checkmates by black:            " << blackWins << "\n";
     std::cout << "Draws by stalemate:             " << stalemates << "\n";
     std::cout << "Draws by 50-move rule:          " << fiftyMoveDraw << "\n";
     std::cout << "Draws by insufficient material: " << materialDraw << "\n";
+    std::cout << "Draws by move repitition:       " << moveRepitition << "\n";
+    std::cout << "Other causes of end:            " << nOther << "\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -156,6 +162,8 @@ int main(int argc, char* argv[]) {
 
         // Connect a custom signal to the game loop slot in the renderer
         QObject::connect(gui.get(), &Renderer::gameLoopSignal, gui.get(), &Renderer::gameLoopSlot);
+        // In your main window or application class constructor
+        QObject::connect(gui.get(), &Renderer::gameEndSignal, gui.get(), &Renderer::close);
 
          // Start the game loop by emitting the signal
         emit gui->gameLoopSignal();
@@ -163,17 +171,19 @@ int main(int argc, char* argv[]) {
         // Start the event loop
         return app.exec();
     } else if(playSelf != 0) {
-        PlaySelf(playSelf, maxDepth);
+        PlaySelf(playSelf, maxDepth, userColor);
     } else {
-        //std::shared_ptr<Board> b = std::make_unique<Board>();
-        //QApplication app(argc, argv);
-        //Renderer window(b);
-        //window.setWindowTitle("Chess Engine");
-        //window.show();
+        std::shared_ptr<Board> b = std::make_unique<Board>();
+        if (fenString.size() > 0)
+            b->LoadFEN(fenString);
 
-        //window.DrawPieces();
-
-        //return app.exec();
+        const std::shared_ptr<Generator> generator = std::make_unique<Generator>(); // Initialize the main game board
+        const std::shared_ptr<Engine> engine = std::make_unique<Engine>(generator, b, maxDepth);
+        generator->GenerateLegalMoves(b);
+        
+        std::cout << "Color to move is: " << (b->GetColorToMove() == Color::White ? "white" : "black") << "\n";
+        std::cout << "Static evaluation is: " << engine->Evaluate() << "\n";
+        
     }
     return 0;
 }

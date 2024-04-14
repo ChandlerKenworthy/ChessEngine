@@ -12,28 +12,39 @@ Engine::Engine(const std::shared_ptr<Generator> &generator, const std::shared_pt
 
 
 float Engine::Evaluate() {
+    // Returns the evaluation already based on the side to move e.g. could return +1.6 or -1.2
     fGamePhase = fBoard->GetGamePhase();
     // See if we have evaluated this board before (via a transposition)
     // Hash not perfectly unique but "unique" enough, extremely unlikely to cause problems
     const U64 thisHash = fBoard->GetHash();
-    const int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
     // Search the transposition table to see if we have evaluated this position before
     auto it = fEvaluationCache.find(thisHash);
-    if(it != fEvaluationCache.end()) {
+    if(it != fEvaluationCache.end()) { // We've evaluated this position before
         fNHashesFound++;
-        // Update LRU list
-        fLruList.erase(it->second.second); // Remove from current position
+        fLruList.erase(it->second.second); // Remove from current position, Update LRU list
         fLruList.push_front(thisHash); // Move to front (most recently used)
         it->second.second = fLruList.begin(); // Update iterator in the map
-        return it->second.first * perspective;
+        return it->second.first;
     }
 
     fOtherColor = fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White;
-    float evaluation = GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
-    evaluation += ForceKingToCornerEndgame();
+    const int perspective = fBoard->GetColorToMove() == Color::White ? 1. : -1.;
+
+    // Evaluate the position
+    float evaluation = 0.0;
+    // These functions are all defined such that positive values are GOOD for the colour to move
+    // so if it's black to move we need to add on minus these values to the evaluation
+    //evaluation += ForceKingToCornerEndgame();  // TODO: These functions must eval for both sides!!!
     evaluation += EvaluatePassedPawns();
-    evaluation += EvaluateIsolatedPawns();
+    evaluation += EvaluateKingSafety(); // Can be +ve or -ve
+    // These functions are return negative values i.e. BAD for the colour to move, agian needs to be adjusted
+    // by perspective
     evaluation += EvaluateBadBishops();
+    evaluation += EvaluateIsolatedPawns();
+    
+    evaluation *= perspective;
+    // Must be applied after the perspective flip
+    evaluation += GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
 
     // Store evaluation in the cache
     fEvaluationCache[thisHash] = {evaluation, fLruList.insert(fLruList.begin(), thisHash)};
@@ -43,23 +54,56 @@ float Engine::Evaluate() {
         fLruList.pop_back(); // Remove from the end of LRU list
         fEvaluationCache.erase(toRemove); // Remove from the cache
     }
+    return evaluation; // Return in centipawns rather than pawns
+}
 
-    return evaluation * perspective; // Return in centipawns rather than pawns (always +ve value)
+float Engine::EvaluateKingSafety() {
+    float eval = 0.0;
+
+    const Color colorToMove = fBoard->GetColorToMove();
+    for(Color c : {Color::White, Color::Black}) {
+            // The king whose safety is being evaluated
+        const int isMover = c == colorToMove ? 1 : -1;
+        const U64 king = fBoard->GetBoard(c, Piece::King);
+        const U64 pawns = fBoard->GetBoard(c, Piece::Pawn);
+        bool kingInCorner = c == Color::White ? king & WHITE_KING_CORNERS : king & BLACK_KING_CORNERS;
+        // Count the number of pawns in front of a diaognally in front of the king
+        int nGuardingPawns = 0;
+        if(c == Color::White) {
+            nGuardingPawns = __builtin_popcountll(pawns & (north(king) | north_east(king) | north_west(king)));
+        } else {
+            nGuardingPawns = __builtin_popcountll(pawns & (south(king) | south_east(king) | south_west(king)));
+        }
+        if(fGamePhase < 0.5) {
+            // Early game reward kings that are safelty tucked in a corner behind the pawns
+            // Penalise kings running aimlessly around the board on a suicide mission
+            eval += isMover * (kingInCorner ? 10.0 : -10.0);
+            eval += isMover * (fPawnGuardKingEval[nGuardingPawns]);
+        } else {
+            // Reverse of the above is true for later game phases
+            eval += isMover * (kingInCorner ? -10.0 : 10.0);
+        }
+    }
+    return eval;
 }
 
 float Engine::EvaluateBadBishops() {
     float penalty = 0.0;
-    const U64 myBishops = fBoard->GetBoard(Piece::Bishop);
-    U64 whiteBishops = myBishops & WHITE_SQUARES;
-    U64 blackBishops = myBishops & BLACK_SQUARES;
-    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
 
-    // First search your white squared bishop
-    const int step = fOtherColor == Color::Black ? 1 : -1;
-    const U8 maxRank = fOtherColor == Color::Black ? 8 : 1;
-    int j = 0;
+    const Color ctm = fBoard->GetColorToMove();
+    for(Color c : {Color::White, Color::Black}) {
+        const U64 allBishops = fBoard->GetBoard(c, Piece::Bishop);
+        U64 whiteBishops = allBishops & WHITE_SQUARES;
+        U64 blackBishops = allBishops & BLACK_SQUARES;
+        U64 pawns = fBoard->GetBoard(c, Piece::Pawn);
+        const int perspective = ctm == c ? 1 : -1;
 
-    for(U64 bishops : {whiteBishops, blackBishops}) {
+        // First search your white squared bishop
+        const int step = c == Color::Black ? 1 : -1;
+        const U8 maxRank = c == Color::Black ? 8 : 1;
+        int j = 0;
+
+        for(U64 bishops : {whiteBishops, blackBishops}) {
         while(bishops) {
             const U64 bishop = 1ULL << __builtin_ctzll(bishops);
             const U64 rank = get_rank(bishop);
@@ -67,17 +111,18 @@ float Engine::EvaluateBadBishops() {
             const U8 rankNo = get_rank_number(bishop);
             for(int i = 1; rank <= abs(maxRank - rankNo); i += step) {
                 const U64 thisRank = RANKS[(rankNo + (i * step)) - 1];
-                while(thisRank & myPawns & squares) { // Pawns on both sides can block the bishop
-                    penalty -= fBadBishopPawnRankAwayPenalty[i - 1];
-                    myPawns &= myPawns - 1;
+                while(thisRank & pawns & squares) { // Pawns on both sides can block the bishop
+                    penalty += (perspective * fBadBishopPawnRankAwayPenalty[i - 1]);
+                    pawns &= pawns - 1;
                 }
             }
             bishops &= bishops - 1;
         }
         j++;
     }
+    }
 
-    return penalty;
+    return penalty; // this will be a negative number
 }
 
 float Engine::EvaluateIsolatedPawns() {
@@ -96,13 +141,30 @@ float Engine::EvaluateIsolatedPawns() {
         }
         myPawns &= myPawns - 1;
     }
-    return penalty * (1.0 + (((float)nIsolated - 1.0) / 2.5));
+
+    // To be fair you must also evaluate your opponents pawns in the same fashion
+    nIsolated = 0;
+    U64 enemyPawns = fBoard->GetBoard(fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::Pawn);
+    const U64 enemyPawnsStatic = enemyPawns;
+    while(enemyPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(enemyPawns);
+        const U64 file = get_file(enemyPawns);
+        const U8 fileNumber = get_file_number(pawn);
+        if(((east(file) | west(file)) & enemyPawnsStatic) == 0) {
+            // Isolated pawn, add penalty based on position, pawns at centre are weaker
+            // Use -= since if our opponent has isolated pawns we apply a -ve penalty -ve.ly i.e. position is better for us
+            penalty -= fIsolatedPawnPenaltyByFile[fileNumber - 1]; // Values of fIsolatedPawnPenaltyByFile are negative
+            nIsolated++;
+        }
+        enemyPawns &= enemyPawns - 1;
+    }
+    return penalty;
 }
 
 float Engine::EvaluatePassedPawns() {
     U64 myPawns = fBoard->GetBoard(Piece::Pawn);
     U64 enemyPawns = fBoard->GetBoard(fOtherColor, Piece::Pawn);
-    const U8 promotionRankNumber = fOtherColor == Color::Black ? 8 : 1;
+    U8 promotionRankNumber = fOtherColor == Color::Black ? 8 : 1;
     float bonus = 0.0;
     while(myPawns) {
         const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
@@ -125,6 +187,32 @@ float Engine::EvaluatePassedPawns() {
         }
         myPawns &= myPawns - 1;
     }
+
+    myPawns = fBoard->GetBoard(Piece::Pawn);
+    enemyPawns = fBoard->GetBoard(fOtherColor, Piece::Pawn);
+    promotionRankNumber = fOtherColor == Color::Black ? 1 : 8;
+    while(enemyPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(enemyPawns);
+        const U8 rankNo = get_rank_number(pawn);
+        U64 passedMask = get_file(pawn);
+        passedMask |= (east(passedMask) | west(passedMask));
+        // Now only allow ranks higher than yours in the defined attacking direction
+        for(int iRank = 0; iRank < 8; ++iRank) {
+            if(fOtherColor == Color::Black) { // Enemy is black
+                if(iRank <= rankNo - 1)
+                    passedMask &= !RANKS[iRank];
+            } else { // You are black
+                if(iRank >= rankNo - 1)
+                    passedMask &= !RANKS[iRank];
+            }
+        }
+        if(passedMask & !myPawns) { // enemy has a passed pawn
+            // this is in range [1, 6] so -1 to put in range of lookup table
+            bonus -= fPassPawnBonus[abs(promotionRankNumber - rankNo) - 1]; // subtract bonus, enemy having passed pawns is bad!
+        }
+        enemyPawns &= enemyPawns - 1;
+    }
+
     return bonus;
 }
 
@@ -274,81 +362,105 @@ void Engine::OrderMoves(std::vector<U16> &moves) {
     });
 }
 
-float Engine::SearchAllCaptures(float alpha, float beta) {
+float Engine::SearchAllCaptures(float alpha, float beta, bool maximising) {
     // TODO: Should this extend the search for checks as well?
-    // TODO: Test this is actually working
-    float eval = Evaluate();
-    if(eval >= beta) {
-        return beta;
-    }
-    alpha = std::max(alpha, eval);
-    fGenerator->GenerateCaptureMoves(fBoard); // TODO: Not sure if this function works
+    fGenerator->GenerateCaptureMoves(fBoard);
+    if(fGenerator->GetNCaptureMoves() == 0) // Nothing to search, return evaluation of the position
+        return Evaluate();
+
     std::vector<U16> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
-
-    // Speed up pruning by doing a quick rough move ordering
-    OrderMoves(captureMoves);
-
-    for(U16 move : captureMoves) {
-        fBoard->MakeMove(move);
-        eval = -SearchAllCaptures(-beta, -alpha);
-        fBoard->UndoMove();
-        fNMovesSearched++;
-        if(eval >= beta)
-            return beta;
-        alpha = std::max(alpha, eval);
+    //for(U16 move : captureMoves) {
+    //    fBoard->PrintDetailedMove(move);
+    //}
+    
+    if(maximising) {
+        float maxEval = MIN_EVAL;
+        for(U16 move : captureMoves) {
+            fBoard->MakeMove(move);
+            float evaluation = SearchAllCaptures(alpha, beta, false);
+            fNMovesSearched++;
+            fBoard->UndoMove();
+            maxEval = std::max(maxEval, evaluation); // White picks the move which maximises the score
+            alpha = std::max(alpha, evaluation);
+            if(beta <= alpha) // Prune the branch
+                break;
+        }
+        return maxEval;
+    } else {
+        float minEval = MAX_EVAL;
+        for(U16 move : captureMoves) {
+            fBoard->MakeMove(move);
+            float evaluation = SearchAllCaptures(alpha, beta, true);
+            fNMovesSearched++;
+            fBoard->UndoMove();
+            minEval = std::min(minEval, evaluation); // White picks the move which maximises the score
+            beta = std::min(beta, evaluation);
+            if(beta <= alpha) // Prune the branch
+                break;
+        }
+        return minEval;
     }
-    return alpha;
 }
 
-float Engine::Search(U8 depth, float alpha, float beta) {
-    // Returns the evaluation of a position after searching to the specified depth. 
-    // Evaluations are returned in centi-pawns (100 cp = 1 pawn). Larger positive
-    // values are better for white. This function includes alpha-beta pruning and
-    // is based on the negamax function.
+float Engine::Search(U8 depth, float alpha, float beta, bool maximising) {
     if(depth == 0) {
         fNMovesSearched++;
-        return SearchAllCaptures(alpha, beta);
+        //float x = SearchAllCaptures(alpha, beta, maximising);
+        float x = Evaluate();
+        //fBoard->PrintFEN();
+        return x; //SearchAllCaptures(alpha, beta, maximising);
     }
 
     fGenerator->GenerateLegalMoves(fBoard);
-    std::vector<U16> moves = fGenerator->GetLegalMoves();
-    const Color movingColor = fBoard->GetColorToMove();
-
-    if(moves.size() == 0) {
-         // These can change on recursive calls
+    if(fGenerator->GetNLegalMoves() == 0) { // No need to search we are at the end of the game tree on this branch
+        const Color movingColor = fBoard->GetColorToMove(); // Who has 0 legal moves remaining
         const Color otherColor = movingColor == Color::White ? Color::Black : Color::White;
         const bool inCheck = fGenerator->IsUnderAttack(fBoard->GetBoard(movingColor, Piece::King), otherColor, fBoard);
         if(inCheck) { // No legal moves and you are in check(mate) so negative infinity in correct "direction"
             return movingColor == Color::White ? MIN_EVAL : MAX_EVAL; 
         } else { // Must be a stalemate - so completely even position
-            return 0.0;
+            return 0.0f;
         }
     }
 
-    // Order moves to speed-up alpha-beta pruning
-    OrderMoves(moves);
-
-    for(U16 move : moves) {
-        fBoard->MakeMove(move); // TODO: Fails inside this call for some reaosn
-        // Minus sign to flip perspective (what is good for our opponent is bad for us -- negamax)
-        float evaluation = -Search(depth - 1, -beta, -alpha); // opposite way around to args of function
-        fBoard->UndoMove();
-        if(evaluation >= beta)
-            return beta;
-        alpha = std::max(alpha, evaluation);
+    std::vector<U16> moves = fGenerator->GetLegalMoves();
+    if(maximising) {
+        float maxEval = MIN_EVAL;
+        for(U16 move : moves) {
+            fBoard->MakeMove(move);
+            float evaluation = Search(depth - 1, alpha, beta, false);
+            fBoard->UndoMove();
+            maxEval = std::max(maxEval, evaluation); // White picks the move which maximises the score
+            alpha = std::max(alpha, evaluation);
+            if(beta <= alpha) { // Prune the branch
+                break;
+            }
+        }
+        return maxEval;
+    } else {
+        float minEval = MAX_EVAL;
+        for(U16 move : moves) {
+            fBoard->MakeMove(move);
+            float evaluation = Search(depth - 1, alpha, beta, true);
+            fBoard->UndoMove();
+            minEval = std::min(minEval, evaluation); // Black picks the move which minimises the score
+            beta = std::min(beta, evaluation);
+            if(beta <= alpha) {// Prune the branch
+                break;
+            }
+        }
+        return minEval;
     }
-    return alpha;
 }
 
 U16 Engine::GetBestMove(const bool verbose) {
-    const U8 searchDepth = 4;
+    // This is based on the negamax algorithm (e.g. https://en.wikipedia.org/wiki/Negamax)
+    // but in this case my Evaluate() function returns the perspective-based evaluation already. 
+    // Such that +ve values favour white and -ve value favour black. Branches are then pruned 
+    // based on this fact using alpha-beta pruning
     auto start = std::chrono::high_resolution_clock::now();
     U16 bestMove = 0;
     fNHashesFound = 0;
-    // Must take into account colour such that more negative values are better for black
-    Color colorToMove = fBoard->GetColorToMove();
-    float bestEvaluation = colorToMove == Color::White ? MIN_EVAL : MAX_EVAL;
-    fNMovesSearched = 0;
 
     // Get the legal moves that we have to choose from (i.e. depth = 1 moves)
     std::vector<U16> primaryMoves = fGenerator->GetLegalMoves();
@@ -359,14 +471,22 @@ U16 Engine::GetBestMove(const bool verbose) {
     // Order moves to speed up alpha-beta pruning
     OrderMoves(primaryMoves);
 
+    // Must take into account colour such that more negative values are better for black
+    Color colorToMove = fBoard->GetColorToMove();
+    float bestEvaluation = colorToMove == Color::White ? MIN_EVAL : MAX_EVAL;
+    float alpha0 = MIN_EVAL; // Opposite as 1 ply from first for loop
+    float beta0 = MAX_EVAL; // Opposite as 1 ply from first for loop
+    fNMovesSearched = 0;
+
+    // This primary for loop accounts for 1 level of depth
     for(U16 primaryMove : primaryMoves) {
         fBoard->MakeMove(primaryMove);
-        float evaluation = Search(searchDepth - 1, MIN_EVAL, MAX_EVAL);
+        // Find the evaluation up to a specified depth using the minimax search algorithm
+        // opposite way round as 1 ply of search already accounted for by this loop
+        float evaluation = Search(fMaxDepth - 1, alpha0, beta0, colorToMove == Color::White ? false : true);
         fBoard->UndoMove();
-        if(colorToMove == Color::White && evaluation > bestEvaluation) { // Use > not >= to prefer faster paths to mate
-            bestEvaluation = evaluation;
-            bestMove = primaryMove;
-        } else if(colorToMove == Color::Black && evaluation < bestEvaluation) {
+        if((evaluation > bestEvaluation && colorToMove == Color::White) ||
+            evaluation < bestEvaluation && colorToMove == Color::Black) {
             bestEvaluation = evaluation;
             bestMove = primaryMove;
         }
@@ -376,7 +496,7 @@ U16 Engine::GetBestMove(const bool verbose) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     if(verbose) {
         std::cout << "Search took " << duration.count() << " ms (" << duration.count() * 0.001 <<" s)\n";
-        std::cout << "Evaluation = " << bestEvaluation / 100.0 << "\n";
+        std::cout << "Evaluation = " << bestEvaluation << " centipawn\n";
         std::cout << "Positions searched = " << fNMovesSearched << " Hashes used = " << fNHashesFound << "\n";
     }
 

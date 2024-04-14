@@ -54,9 +54,14 @@ class Engine {
          * @return Penalty to apply (negative value).
         */
         float EvaluateBadBishops();
-
-
-        float Search(U8 depth, float alpha, float beta);
+        /**
+         * @brief Get the true evaluation of a position in centipawns. Positive values favour white whilst negative values favour black.
+         * @param depth The maximum depth to search to.
+         * @param alpha Alpha cut off value for alpha-beta pruning.
+         * @param beta Beta cut off value for alpha-beta pruning.
+         * @return Evaluation of the board in centipawns.
+        */
+        float Search(U8 depth, float alpha, float beta, bool maximising);
 
         float Evaluate(); // Static evaluation of a board
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
@@ -77,12 +82,13 @@ class Engine {
         const std::size_t fMaxCacheSize; // Maximum size of the cache (N evaluations)
 
         int fMaxDepth;
-
         float fGamePhase;
 
         const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
         const int fIsolatedPawnPenaltyByFile[8] = {-10, -15, -25, -30, -30, -25, -15, -10};
         const int fBadBishopPawnRankAwayPenalty[7] = {-200, -150, -100, -70, -50, -30, -20}; ///< Penalty to apply given number of ranks away pawn is so 0 (1 rank away is very bad)
+
+        const float fPawnGuardKingEval[4] = {-200, 50, 100, 120};
 
         const float fKnightPosModifier[64] = { ///< Value modifier for the knight based on its position on the board
             -50,-40,-30,-30,-30,-30,-40,-50, // H1, G1, F1, E1, D1, C1, B1, A1 (7)
@@ -193,15 +199,7 @@ class Engine {
          * @param beta Current value of beta from minimax.
          * @return Evaluation of the position.
         */
-        float SearchAllCaptures(float alpha, float beta);
-        /**
-         * @brief Main move search function including alpha-beta pruning. Returns evaluation of a position up-to a specified depth.
-         * @param board The board to evaluate.
-         * @param depth The depth the evaluation function should calculate up-to.
-         * @param alpha The alpha value to prune at.
-         * @param beta The beta value to prune at.
-        */
-        std::pair<float, int> Minimax(int depth, float alpha, float beta);
+        float SearchAllCaptures(float alpha, float beta, bool maximising);
         /**
          * @brief Counts up the knight material on both sides taking into account the positional value.
          * @return The value of the material with positive values favouring white.
@@ -227,6 +225,13 @@ class Engine {
          * @return The value of the material with positive values favouring white.
         */
         float EvaluateBishopPositions();
+        /**
+         * @brief Considers the position of the current king and how safe that is considering the current phase of the game. 
+         * @return The value to enhance or reduce the evaluation of the position by based on the king safety (positive values are better).
+        */
+        float EvaluateKingSafety();
+
+        // TODO: Reward rook pair, bishop pair over knight pair, rooks on open files.
 
         float GetMaterialEvaluation();
         void OrderMoves(std::vector<U16> &moves);

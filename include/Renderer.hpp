@@ -55,6 +55,7 @@ class Renderer : public QGraphicsView {
         void gameLoopSlot();
     signals:
         void gameLoopSignal();
+        void gameEndSignal();
     protected:
         void mousePressEvent(QMouseEvent *event) override;
         void mouseReleaseEvent(QMouseEvent *event) override;
@@ -63,6 +64,7 @@ class Renderer : public QGraphicsView {
         const std::shared_ptr<Board> &fBoard;
         const std::shared_ptr<Generator> &fGenerator;
         const std::shared_ptr<Engine> &fEngine;
+        std::unordered_map<U64, U8> fReachedPositions;
         const int fTileWidth; ///< The width (and height since tiles are square) of tiles on the board.
         int fPieceHeight; ///< The height of pieces (used when drawing the board, must be less than fTileWidth).
         Color fUserColor; ///< The colour of pieces the human user controls.

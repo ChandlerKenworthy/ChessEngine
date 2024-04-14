@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "Board.hpp"
 
 Board::Board() : fPawnPhase(0), fKnightPhase(1), fBishopPhase(1), fRookPhase(2), fQueenPhase(4) {
@@ -85,7 +83,6 @@ Board::Board(const Board& other) : fPawnPhase(0), fKnightPhase(1), fBishopPhase(
     this->fTotalPhase = other.fTotalPhase;
 
     // Copy over the game state variables
-    this->fUnique = other.fUnique;
     this->fMadeMoves = other.fMadeMoves;
     this->fHalfMoves = other.fHalfMoves;
     this->fGameState = other.fGameState;
@@ -116,7 +113,6 @@ void Board::Reset() {
     fBoards[10] = RANK_8 & FILE_D; // Black queen
     fBoards[11] = RANK_8 & FILE_E; // Black king
 
-    fUnique = 0;
     fHalfMoves = 0;
     fGameState = State::Play;
     fWhiteKingMoved = 0;
@@ -132,6 +128,7 @@ void Board::Reset() {
     fMovedPieces = {};
     fTakenPieces = {};
     fMadeMoves = {};
+    fHistory = {};
 }
 
 Piece Board::GetMovePiece(const U16 move) const {
@@ -156,7 +153,6 @@ bool Board::GetMoveIsEnPassant(const U16 move, const Piece movedPiece, const boo
     if(!((north_east(origin) | north_west(origin) | south_west(origin) | south_east(origin)) & target))
         return false;
 
-    // TODO: Square we land on must not haveb been occupied by any other piece when the move was made, only true for en-passant
     if(targetIsNull)
         return true;
 
@@ -259,7 +255,6 @@ void Board::UndoMove() {
     fGameState = State::Play;
     fColorToMove = movingColor;
     fMadeMoves.pop_back();
-    fUnique--;
 }
 
 void Board::MakeMove(const U16 move) {
@@ -352,7 +347,6 @@ void Board::MakeMove(const U16 move) {
     fMadeMoves.push_back(move);
     fMovedPieces.push_back(movedPiece);
     fTakenPieces.push_back(takenPiece);
-    fUnique++;
 }
 
 U64 Board::GetBoard(const Color color, const U64 occupiedPosition) {
@@ -507,7 +501,6 @@ std::pair<Color, Piece> Board::GetIsOccupied(const U64 pos, const Color color) c
 }
 
 void Board::PrintDetailedMove(U16 move) {
-    // TODO: These functions don't work anymore
     U64 target = GetMoveTarget(move);
     U64 origin = GetMoveOrigin(move);
     Piece piece = GetMovePiece(move);

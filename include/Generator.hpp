@@ -53,6 +53,11 @@ class Generator {
         */
         U8 GetNLegalMoves() { return fLegalMoves.size(); };
         /**
+         * @brief Get the number of legal capturing moves from last capture move generation.
+         * @return Number of capture moves. 
+        */
+        U8 GetNCaptureMoves() { return fCaptureMoves.size(); };
+        /**
          * @brief Get the move at the specified position from the legal moves vector.
          * @param index The index to copy the move from.
          * @return The move at the specified index.
@@ -128,6 +133,12 @@ class Generator {
          * @return True if the conditions for insufficient material have been met.
         */
         bool CheckInsufficientMaterial(const std::shared_ptr<Board> &board);
+        /**
+         * @brief Check if the board has met the conditions for a draw by move repitition.
+         * @param board The board to check.
+         * @return True if the board has reached the identically same position 3 times already.
+        */
+        bool CheckMoveRepitition(const std::shared_ptr<Board> &board);
         /**
          * @brief Generate the pseudo-legal moves for a given position and append to the fLegalMoves vector.
          * @param board The board configuration to generate moves for.
