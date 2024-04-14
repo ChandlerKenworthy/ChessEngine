@@ -106,10 +106,9 @@ float Engine::EvaluateBadBishops() {
         for(U64 bishops : {whiteBishops, blackBishops}) {
         while(bishops) {
             const U64 bishop = 1ULL << __builtin_ctzll(bishops);
-            const U64 rank = get_rank(bishop);
             const U64 squares = j == 0 ? WHITE_SQUARES : BLACK_SQUARES;
             const U8 rankNo = get_rank_number(bishop);
-            for(int i = 1; rank <= abs(maxRank - rankNo); i += step) {
+            for(int i = 1; rankNo <= abs(maxRank - rankNo); i += step) {
                 const U64 thisRank = RANKS[(rankNo + (i * step)) - 1];
                 while(thisRank & pawns & squares) { // Pawns on both sides can block the bishop
                     penalty += (perspective * fBadBishopPawnRankAwayPenalty[i - 1]);
@@ -127,7 +126,6 @@ float Engine::EvaluateBadBishops() {
 
 float Engine::EvaluateIsolatedPawns() {
     float penalty = 0.0;
-    int nIsolated = 0;
     U64 myPawns = fBoard->GetBoard(Piece::Pawn);
     const U64 myPawnsStatic = myPawns;
     while(myPawns) {
@@ -137,13 +135,11 @@ float Engine::EvaluateIsolatedPawns() {
         if(((east(file) | west(file)) & myPawnsStatic) == 0) {
             // Isolated pawn, add penalty based on position, pawns at centre are weaker
             penalty += fIsolatedPawnPenaltyByFile[fileNumber - 1]; // Values of fIsolatedPawnPenaltyByFile are negative
-            nIsolated++;
         }
         myPawns &= myPawns - 1;
     }
 
     // To be fair you must also evaluate your opponents pawns in the same fashion
-    nIsolated = 0;
     U64 enemyPawns = fBoard->GetBoard(fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::Pawn);
     const U64 enemyPawnsStatic = enemyPawns;
     while(enemyPawns) {
@@ -154,7 +150,6 @@ float Engine::EvaluateIsolatedPawns() {
             // Isolated pawn, add penalty based on position, pawns at centre are weaker
             // Use -= since if our opponent has isolated pawns we apply a -ve penalty -ve.ly i.e. position is better for us
             penalty -= fIsolatedPawnPenaltyByFile[fileNumber - 1]; // Values of fIsolatedPawnPenaltyByFile are negative
-            nIsolated++;
         }
         enemyPawns &= enemyPawns - 1;
     }
@@ -485,8 +480,8 @@ U16 Engine::GetBestMove(const bool verbose) {
         // opposite way round as 1 ply of search already accounted for by this loop
         float evaluation = Search(fMaxDepth - 1, alpha0, beta0, colorToMove == Color::White ? false : true);
         fBoard->UndoMove();
-        if((evaluation > bestEvaluation && colorToMove == Color::White) ||
-            evaluation < bestEvaluation && colorToMove == Color::Black) {
+        if(((evaluation > bestEvaluation) && (colorToMove == Color::White)) ||
+            ((evaluation < bestEvaluation) && (colorToMove == Color::Black))) {
             bestEvaluation = evaluation;
             bestMove = primaryMove;
         }

@@ -82,5 +82,5 @@ target_link_libraries(ChessEngine PRIVATE
     Qt6::Widgets
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Wextra -Werror -Wfatal-errors -Wshadow -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -Werror -Wfatal-errors -Wshadow -pedantic")
