@@ -36,10 +36,10 @@ float Engine::Evaluate() {
     // so if it's black to move we need to add on minus these values to the evaluation
     //evaluation += ForceKingToCornerEndgame();  // TODO: These functions must eval for both sides!!!
     evaluation += EvaluatePassedPawns();
-    //evaluation += EvaluateKingSafety(); // Can be +ve or -ve  // TODO: These functions must eval for both sides!!!
+    evaluation += EvaluateKingSafety(); // Can be +ve or -ve
     // These functions are return negative values i.e. BAD for the colour to move, agian needs to be adjusted
     // by perspective
-    //evaluation += EvaluateBadBishops();  // TODO: These functions must eval for both sides!!!
+    evaluation += EvaluateBadBishops();
     evaluation += EvaluateIsolatedPawns();
     
     evaluation *= perspective;
@@ -59,45 +59,51 @@ float Engine::Evaluate() {
 
 float Engine::EvaluateKingSafety() {
     float eval = 0.0;
-    // The king whose safety is being evaluated
-    const U64 king = fBoard->GetBoard(Piece::King);
-    const U64 pawns = fBoard->GetBoard(Piece::Pawn);
 
-    bool kingInCorner = fBoard->GetColorToMove() == Color::White ? king & WHITE_KING_CORNERS : king & BLACK_KING_CORNERS;
-    
-    // Count the number of pawns in front of a diaognally in front of the king
-    int nGuardingPawns = 0;
-    if(fBoard->GetColorToMove() == Color::White) {
-        nGuardingPawns = __builtin_popcountll(pawns & (north(king) | north_east(king) | north_west(king)));
-    } else {
-        nGuardingPawns = __builtin_popcountll(pawns & (south(king) | south_east(king) | south_west(king)));
-    }
-
-    if(fGamePhase < 0.5) {
-        // Early game reward kings that are safelty tucked in a corner behind the pawns
-        // Penalise kings running aimlessly around the board on a suicide mission
-        eval += kingInCorner ? 10.0 : -10.0;
-        eval += fPawnGuardKingEval[nGuardingPawns];
-    } else {
-        // Reverse of the above is true for later game phases
-        eval += kingInCorner ? -10.0 : 10.0;
+    const Color colorToMove = fBoard->GetColorToMove();
+    for(Color c : {Color::White, Color::Black}) {
+            // The king whose safety is being evaluated
+        const int isMover = c == colorToMove ? 1 : -1;
+        const U64 king = fBoard->GetBoard(c, Piece::King);
+        const U64 pawns = fBoard->GetBoard(c, Piece::Pawn);
+        bool kingInCorner = c == Color::White ? king & WHITE_KING_CORNERS : king & BLACK_KING_CORNERS;
+        // Count the number of pawns in front of a diaognally in front of the king
+        int nGuardingPawns = 0;
+        if(c == Color::White) {
+            nGuardingPawns = __builtin_popcountll(pawns & (north(king) | north_east(king) | north_west(king)));
+        } else {
+            nGuardingPawns = __builtin_popcountll(pawns & (south(king) | south_east(king) | south_west(king)));
+        }
+        if(fGamePhase < 0.5) {
+            // Early game reward kings that are safelty tucked in a corner behind the pawns
+            // Penalise kings running aimlessly around the board on a suicide mission
+            eval += isMover * (kingInCorner ? 10.0 : -10.0);
+            eval += isMover * (fPawnGuardKingEval[nGuardingPawns]);
+        } else {
+            // Reverse of the above is true for later game phases
+            eval += isMover * (kingInCorner ? -10.0 : 10.0);
+        }
     }
     return eval;
 }
 
 float Engine::EvaluateBadBishops() {
     float penalty = 0.0;
-    const U64 myBishops = fBoard->GetBoard(Piece::Bishop);
-    U64 whiteBishops = myBishops & WHITE_SQUARES;
-    U64 blackBishops = myBishops & BLACK_SQUARES;
-    U64 myPawns = fBoard->GetBoard(Piece::Pawn);
 
-    // First search your white squared bishop
-    const int step = fOtherColor == Color::Black ? 1 : -1;
-    const U8 maxRank = fOtherColor == Color::Black ? 8 : 1;
-    int j = 0;
+    const Color ctm = fBoard->GetColorToMove();
+    for(Color c : {Color::White, Color::Black}) {
+        const U64 allBishops = fBoard->GetBoard(c, Piece::Bishop);
+        U64 whiteBishops = allBishops & WHITE_SQUARES;
+        U64 blackBishops = allBishops & BLACK_SQUARES;
+        U64 pawns = fBoard->GetBoard(c, Piece::Pawn);
+        const int perspective = ctm == c ? 1 : -1;
 
-    for(U64 bishops : {whiteBishops, blackBishops}) {
+        // First search your white squared bishop
+        const int step = c == Color::Black ? 1 : -1;
+        const U8 maxRank = c == Color::Black ? 8 : 1;
+        int j = 0;
+
+        for(U64 bishops : {whiteBishops, blackBishops}) {
         while(bishops) {
             const U64 bishop = 1ULL << __builtin_ctzll(bishops);
             const U64 rank = get_rank(bishop);
@@ -105,14 +111,15 @@ float Engine::EvaluateBadBishops() {
             const U8 rankNo = get_rank_number(bishop);
             for(int i = 1; rank <= abs(maxRank - rankNo); i += step) {
                 const U64 thisRank = RANKS[(rankNo + (i * step)) - 1];
-                while(thisRank & myPawns & squares) { // Pawns on both sides can block the bishop
-                    penalty += fBadBishopPawnRankAwayPenalty[i - 1];
-                    myPawns &= myPawns - 1;
+                while(thisRank & pawns & squares) { // Pawns on both sides can block the bishop
+                    penalty += (perspective * fBadBishopPawnRankAwayPenalty[i - 1]);
+                    pawns &= pawns - 1;
                 }
             }
             bishops &= bishops - 1;
         }
         j++;
+    }
     }
 
     return penalty; // this will be a negative number
@@ -358,11 +365,14 @@ void Engine::OrderMoves(std::vector<U16> &moves) {
 float Engine::SearchAllCaptures(float alpha, float beta, bool maximising) {
     // TODO: Should this extend the search for checks as well?
     fGenerator->GenerateCaptureMoves(fBoard);
-    if(fGenerator->GetNCaptureMoves() == 0) { // Nothing to search, return evaluation of the position
+    if(fGenerator->GetNCaptureMoves() == 0) // Nothing to search, return evaluation of the position
         return Evaluate();
-    }
 
     std::vector<U16> captureMoves = fGenerator->GetCaptureMoves(); // Get only capture moves
+    //for(U16 move : captureMoves) {
+    //    fBoard->PrintDetailedMove(move);
+    //}
+    
     if(maximising) {
         float maxEval = MIN_EVAL;
         for(U16 move : captureMoves) {
@@ -397,7 +407,8 @@ float Engine::Search(U8 depth, float alpha, float beta, bool maximising) {
         fNMovesSearched++;
         //float x = SearchAllCaptures(alpha, beta, maximising);
         float x = Evaluate();
-        return x;
+        //fBoard->PrintFEN();
+        return x; //SearchAllCaptures(alpha, beta, maximising);
     }
 
     fGenerator->GenerateLegalMoves(fBoard);
