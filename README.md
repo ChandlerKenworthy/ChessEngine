@@ -7,12 +7,13 @@ This is a personal project where I am aiming to build a chess engine (e.g. a che
 - Potentially use some of my machine learning background and knowledge to inform move making decisions.
 
 ## How to Use
-See "installation" instructions below:
+See "installation" instructions below to build from source.
 1. Download or clone this repository
+2. Note you will need the Pybind11 (pip install pybind) and Qt6 libraries to build from source.
 2. Inside the "ChessEngine" directory make a new directory "build"
 3. cd build
-4. cmake ../src
-5. build [-j 4]
+4. cmake ../
+5. make [-j 4]
 6. The run the program with ./ChessEngine
 
 Only tested with CMake version 3.27.9 and Apple clang version 15.0.0 (clang-1500.0.40.1)
