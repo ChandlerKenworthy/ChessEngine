@@ -35,14 +35,14 @@ float Engine::Evaluate() {
     // These functions are all defined such that positive values are GOOD for the colour to move
     // so if it's black to move we need to add on minus these values to the evaluation
     //evaluation += ForceKingToCornerEndgame();  // TODO: These functions must eval for both sides!!!
-    //evaluation += EvaluatePassedPawns();  // TODO: These functions must eval for both sides!!!
+    evaluation += EvaluatePassedPawns();
     //evaluation += EvaluateKingSafety(); // Can be +ve or -ve  // TODO: These functions must eval for both sides!!!
     // These functions are return negative values i.e. BAD for the colour to move, agian needs to be adjusted
     // by perspective
     //evaluation += EvaluateBadBishops();  // TODO: These functions must eval for both sides!!!
-    //evaluation += EvaluateIsolatedPawns();  // TODO: These functions must eval for both sides!!!
+    evaluation += EvaluateIsolatedPawns();
     
-    //evaluation *= perspective;
+    evaluation *= perspective;
     // Must be applied after the perspective flip
     evaluation += GetMaterialEvaluation(); // returns +ve if white advantage and -ve for black advantage
 
@@ -134,13 +134,30 @@ float Engine::EvaluateIsolatedPawns() {
         }
         myPawns &= myPawns - 1;
     }
-    return penalty * (1.0 + (((float)nIsolated - 1.0) / 2.5)); // Not even sure why I have this math here anymore
+
+    // To be fair you must also evaluate your opponents pawns in the same fashion
+    nIsolated = 0;
+    U64 enemyPawns = fBoard->GetBoard(fBoard->GetColorToMove() == Color::White ? Color::Black : Color::White, Piece::Pawn);
+    const U64 enemyPawnsStatic = enemyPawns;
+    while(enemyPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(enemyPawns);
+        const U64 file = get_file(enemyPawns);
+        const U8 fileNumber = get_file_number(pawn);
+        if(((east(file) | west(file)) & enemyPawnsStatic) == 0) {
+            // Isolated pawn, add penalty based on position, pawns at centre are weaker
+            // Use -= since if our opponent has isolated pawns we apply a -ve penalty -ve.ly i.e. position is better for us
+            penalty -= fIsolatedPawnPenaltyByFile[fileNumber - 1]; // Values of fIsolatedPawnPenaltyByFile are negative
+            nIsolated++;
+        }
+        enemyPawns &= enemyPawns - 1;
+    }
+    return penalty;
 }
 
 float Engine::EvaluatePassedPawns() {
     U64 myPawns = fBoard->GetBoard(Piece::Pawn);
     U64 enemyPawns = fBoard->GetBoard(fOtherColor, Piece::Pawn);
-    const U8 promotionRankNumber = fOtherColor == Color::Black ? 8 : 1;
+    U8 promotionRankNumber = fOtherColor == Color::Black ? 8 : 1;
     float bonus = 0.0;
     while(myPawns) {
         const U64 pawn = 1ULL << __builtin_ctzll(myPawns);
@@ -163,6 +180,32 @@ float Engine::EvaluatePassedPawns() {
         }
         myPawns &= myPawns - 1;
     }
+
+    myPawns = fBoard->GetBoard(Piece::Pawn);
+    enemyPawns = fBoard->GetBoard(fOtherColor, Piece::Pawn);
+    promotionRankNumber = fOtherColor == Color::Black ? 1 : 8;
+    while(enemyPawns) {
+        const U64 pawn = 1ULL << __builtin_ctzll(enemyPawns);
+        const U8 rankNo = get_rank_number(pawn);
+        U64 passedMask = get_file(pawn);
+        passedMask |= (east(passedMask) | west(passedMask));
+        // Now only allow ranks higher than yours in the defined attacking direction
+        for(int iRank = 0; iRank < 8; ++iRank) {
+            if(fOtherColor == Color::Black) { // Enemy is black
+                if(iRank <= rankNo - 1)
+                    passedMask &= !RANKS[iRank];
+            } else { // You are black
+                if(iRank >= rankNo - 1)
+                    passedMask &= !RANKS[iRank];
+            }
+        }
+        if(passedMask & !myPawns) { // enemy has a passed pawn
+            // this is in range [1, 6] so -1 to put in range of lookup table
+            bonus -= fPassPawnBonus[abs(promotionRankNumber - rankNo) - 1]; // subtract bonus, enemy having passed pawns is bad!
+        }
+        enemyPawns &= enemyPawns - 1;
+    }
+
     return bonus;
 }
 
@@ -316,7 +359,6 @@ float Engine::SearchAllCaptures(float alpha, float beta, bool maximising) {
     // TODO: Should this extend the search for checks as well?
     fGenerator->GenerateCaptureMoves(fBoard);
     if(fGenerator->GetNCaptureMoves() == 0) { // Nothing to search, return evaluation of the position
-        fNMovesSearched++;
         return Evaluate();
     }
 
