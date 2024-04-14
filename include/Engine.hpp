@@ -54,9 +54,14 @@ class Engine {
          * @return Penalty to apply (negative value).
         */
         float EvaluateBadBishops();
-
-
-        float Search(U8 depth, float alpha, float beta);
+        /**
+         * @brief Get the true evaluation of a position in centipawns. Positive values favour white whilst negative values favour black.
+         * @param depth The maximum depth to search to.
+         * @param alpha Alpha cut off value for alpha-beta pruning.
+         * @param beta Beta cut off value for alpha-beta pruning.
+         * @return Evaluation of the board in centipawns.
+        */
+        float Search(U8 depth, float alpha, float beta, bool maximising);
 
         float Evaluate(); // Static evaluation of a board
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
@@ -194,7 +199,7 @@ class Engine {
          * @param beta Current value of beta from minimax.
          * @return Evaluation of the position.
         */
-        float SearchAllCaptures(float alpha, float beta);
+        float SearchAllCaptures(float alpha, float beta, bool maximising);
         /**
          * @brief Counts up the knight material on both sides taking into account the positional value.
          * @return The value of the material with positive values favouring white.

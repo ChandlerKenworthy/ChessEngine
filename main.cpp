@@ -173,15 +173,17 @@ int main(int argc, char* argv[]) {
     } else if(playSelf != 0) {
         PlaySelf(playSelf, maxDepth, userColor);
     } else {
-        //std::shared_ptr<Board> b = std::make_unique<Board>();
-        //QApplication app(argc, argv);
-        //Renderer window(b);
-        //window.setWindowTitle("Chess Engine");
-        //window.show();
+        std::shared_ptr<Board> b = std::make_unique<Board>();
+        if (fenString.size() > 0)
+            b->LoadFEN(fenString);
 
-        //window.DrawPieces();
-
-        //return app.exec();
+        const std::shared_ptr<Generator> generator = std::make_unique<Generator>(); // Initialize the main game board
+        const std::shared_ptr<Engine> engine = std::make_unique<Engine>(generator, b, maxDepth);
+        generator->GenerateLegalMoves(b);
+        
+        std::cout << "Color to move is: " << (b->GetColorToMove() == Color::White ? "white" : "black") << "\n";
+        std::cout << "Static evaluation is: " << engine->Evaluate() << "\n";
+        
     }
     return 0;
 }

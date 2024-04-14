@@ -53,6 +53,11 @@ class Generator {
         */
         U8 GetNLegalMoves() { return fLegalMoves.size(); };
         /**
+         * @brief Get the number of legal capturing moves from last capture move generation.
+         * @return Number of capture moves. 
+        */
+        U8 GetNCaptureMoves() { return fCaptureMoves.size(); };
+        /**
          * @brief Get the move at the specified position from the legal moves vector.
          * @param index The index to copy the move from.
          * @return The move at the specified index.
