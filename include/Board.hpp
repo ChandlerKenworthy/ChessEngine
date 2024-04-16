@@ -202,6 +202,11 @@ class Board {
         */
         void PrintFEN() const;
         /**
+         * @brief Calculates the current FEN and returns it.
+         * @return the FEN of the current position
+        */
+        std::string GetFEN() const;
+        /**
          * @brief Get the type of piece at the ORIGIN of the specified move for the current board. (Assumes move has not happened).
          * @param move The move.
          * @return The piece type being moved.

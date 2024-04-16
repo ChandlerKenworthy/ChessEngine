@@ -91,7 +91,10 @@ PYBIND11_MODULE(chess_engine, m) {
 
     py::class_<Board, std::shared_ptr<Board>>(m, "Board")
         .def(py::init<>())
+        .def("reset", &Board::Reset)
+        .def("get_fen", &Board::GetFEN)
         .def("get_hash", &Board::GetHash)
+        .def("get_state", &Board::GetState)
         .def("get_color_to_move", &Board::GetColorToMove)
         .def("load_fen", &Board::LoadFEN)
         .def("get_n_moves", &Board::GetNMoves)

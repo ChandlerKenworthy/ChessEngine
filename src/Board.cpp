@@ -542,7 +542,7 @@ float Board::GetGamePhase() {
     return std::min(std::max(phase / fTotalPhase, (float)0.0), (float)1.0);
 }
 
-void Board::PrintFEN() const {
+std::string Board::GetFEN() const {
     std::ostringstream fen;
     // Piece placement
     for(int i = 7; i >= 0; --i) {
@@ -585,6 +585,7 @@ void Board::PrintFEN() const {
 
     // Side to move
     fen << ' ' << (fColorToMove == Color::White ? 'w' : 'b');
+    fen << ' ';
 
     // Other FEN fields (castling rights, en passant target square, halfmove clock, fullmove number)
     std::vector<char> castlingChars{};
@@ -606,11 +607,13 @@ void Board::PrintFEN() const {
     }
 
     if(castlingChars.size() > 0) {
-        fen << ' ';
         for(char c : castlingChars) {
             fen << c;
         }
+    } else {
+        fen << '-';
     }
+    fen << ' ';
 
     // Available en-passant
     bool wasEnPassant = false;
@@ -624,9 +627,8 @@ void Board::PrintFEN() const {
             fen << get_file_char(origin) << get_rank_number(target) + offset;
         }
     }
-
     if(!wasEnPassant)
-        fen << ' ' << '-';
+        fen << '-';
 
     // Add the half-move clock
     fen << ' ' << fHalfMoves << ' ';
@@ -635,5 +637,9 @@ void Board::PrintFEN() const {
     int nFullMoves = (int)(fMadeMoves.size() / 2); // Always rounds down
     fen << nFullMoves;
 
-    std::cout << fen.str() << "\n";
+    return fen.str();
+}
+
+void Board::PrintFEN() const {
+    std::cout << GetFEN() << "\n";
 }
