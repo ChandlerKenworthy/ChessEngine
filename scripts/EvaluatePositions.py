@@ -6,7 +6,9 @@ n_games_to_process = 1
 fens = []
 evals = []
 
-pgn = open("../games/master/master_games-2.pgn")
+game_file = "master_games-2"
+
+pgn = open(f"../games/master/{game_file}.pgn")
 for i in range(n_games_to_process):
     game = chess.pgn.read_game(pgn)
     moves = game.mainline_moves()
@@ -33,4 +35,4 @@ for fen in fens:
 engine.quit()
 
 df = pd.DataFrame({"position": fens, "score": evals})
-df.to_csv("../games/master/master_games-2_1.txt")
+df.to_csv(f"../games/master/{game_file}_evals.txt")
