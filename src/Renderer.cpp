@@ -25,6 +25,34 @@ void EventScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
     QGraphicsScene::mousePressEvent(event);
 }
 
+void EventScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+    QPointF scenePos = event->pos();
+
+    fRenderer->ClearHighlight();
+
+    // Convert the scene position to integer coordinates
+    int x = static_cast<int>(scenePos.x());
+    int y = static_cast<int>(scenePos.y());
+
+    // Calculate the row and column of the clicked square
+    int tileWidth = fRenderer->GetTileWidth();
+    U64 rank = get_rank_from_number(8 - (y / tileWidth));
+    U64 file = get_file_from_number((x / tileWidth) + 1);
+    U64 endSquare = rank & file;
+    fRenderer->SetEndSquare(endSquare);
+    fRenderer->UpdateMakeMove();
+    fRenderer->SetIsDragging(false);
+    fRenderer->SetStartSquare(0);
+    QGraphicsScene::mouseReleaseEvent(event);
+}
+
+void EventScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
+    QPointF scenePos = event->pos();
+    fRenderer->MovePiece(scenePos);
+    // Call the base classs implementation to handle the event further
+    QGraphicsScene::mouseMoveEvent(event);
+}
+
 Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Generator> &generator, const std::shared_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fBoardScene(new EventScene(this)), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
     fPieceHeight = fTileWidth * 0.75;
     fPieces.reserve(32);
@@ -328,4 +356,40 @@ void Renderer::SetDraggedPieceFromLSB(const U8 lsb) {
     if(it != fPieces.end()) {
         fDraggedPiece = it->second;
     }
+}
+
+void Renderer::ClearHighlight() {
+    // Clear all highlighted tiles
+    for(auto tile : fHighlighted) {
+        fBoardScene->removeItem(tile);
+        delete tile;
+    }
+    fHighlighted.clear();
+}
+
+void Renderer::UpdateMakeMove() {
+    // also update the GUI based on the new board updates
+    U16 move = 0;
+    SetMove(move, fStartSquare, fEndSquare);
+
+    // Before making any move check it is legal, if it is not send the clicked piece back to the start square
+    bool isLegal = fGenerator->GetMoveIsLegal(move);
+    if(isLegal) {
+        fBoard->MakeMove(move);
+        fBoard->AddCurrentHistory();
+    }
+    DrawPieces();
+}
+
+void Renderer::MovePiece(QPointF scenePos) {
+     // If a piece is being dragged, update its position
+    if(!fIsDragging || fDraggedPiece == nullptr)
+        return;
+
+    // Adjust the scenePos to center of the piece
+    qreal offsetX = -fDraggedPiece->boundingRect().width() / 2.0;
+    qreal offsetY = -fDraggedPiece->boundingRect().height() / 2.0;
+    QPointF adjustedScenePos = scenePos + QPointF(offsetX, offsetY);
+
+    fDraggedPiece->setPos(adjustedScenePos);
 }

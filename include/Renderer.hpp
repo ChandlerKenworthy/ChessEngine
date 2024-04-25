@@ -31,6 +31,8 @@ class EventScene : public QGraphicsScene {
          EventScene(Renderer *renderer, QObject *parent = nullptr) : QGraphicsScene(parent), fRenderer(renderer) { }
     protected:
         void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
+        void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
+        void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
     private:
         Renderer *fRenderer;
 };
@@ -68,11 +70,16 @@ class Renderer : public QGraphicsView {
 
 
         void SetDraggedPiece(QGraphicsPixmapItem* item) { fDraggedPiece = item; };
+        QGraphicsPixmapItem* GetDraggedPiece() { return fDraggedPiece; };
         void SetIsDragging(bool isDragging) { fIsDragging = isDragging; };
         void SetStartSquare(U64 square) { fStartSquare = square; };
+        void SetEndSquare(U64 square) { fEndSquare = square; };
+        void ClearHighlight();
         int GetTileWidth() { return fTileWidth; };
         void SetDraggedPieceFromLSB(const U8 lsb);
         void HighlightLegalMoves();
+        void UpdateMakeMove();
+        void MovePiece(QPointF scenePos);
     public slots:
         void gameLoopSlot();
         void playAsWhiteSlot();
