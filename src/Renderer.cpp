@@ -63,15 +63,28 @@ Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Ge
     fBlackButton = new QRadioButton("Play as Black", this);
     // Slider to select difficulty of the engine
     fDifficultySlider = new QSlider(Qt::Horizontal, this);
+    fDifficultySlider->setRange(500, 1500); // Set range from 0 to 1500 (ELO)
+    fDifficultySlider->setTickInterval(100); // Set tick interval
+    fDifficultySlider->setTickPosition(QSlider::TicksBelow); // Optional: Set tick position
+
+    QLabel *valueLabel = new QLabel(this);
+    QString initialText = "Difficulty: " + QString::number(fDifficultySlider->value());
+    valueLabel->setText(initialText); // Set initial value
+    valueLabel->setAlignment(Qt::AlignCenter); // Align text to center
 
     // Create button to start the game
     fPlayButton = new QPushButton("Reset", this);
+
+    // Optionally, add spacing between slider and label
+    QVBoxLayout *sliderLayout = new QVBoxLayout;
+    sliderLayout->addWidget(fDifficultySlider);
+    sliderLayout->addWidget(valueLabel);
 
     // Create layouts
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(fWhiteButton);
     buttonLayout->addWidget(fBlackButton);
-    buttonLayout->addWidget(fDifficultySlider);
+    buttonLayout->addLayout(sliderLayout);
 
     QHBoxLayout *playButtonLayout = new QHBoxLayout;
     playButtonLayout->addWidget(fPlayButton);
@@ -104,6 +117,11 @@ Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Ge
     connect(fWhiteButton, &QPushButton::clicked, this, &Renderer::playAsWhiteSlot);
     connect(fBlackButton, &QPushButton::clicked, this, &Renderer::playAsBlackSlot);
     connect(fPlayButton, &QPushButton::clicked, this, &Renderer::resetSlot);
+    connect(fDifficultySlider, &QSlider::valueChanged, this, &Renderer::changeEngineDifficultySlot);
+    connect(fDifficultySlider, &QSlider::valueChanged, this, [valueLabel](int value) {
+        QString text = "Difficulty: " + QString::number(value);
+        valueLabel->setText(text); // Update label text on slider value change
+    });
     connect(this, &Renderer::gameEndSignal, this, &Renderer::close); // when game ends just close the window?
     // seems a bit dumb should probably fix
 }
@@ -114,6 +132,10 @@ Renderer::~Renderer() {
     delete fSelectedPiece;
     fHighlighted.clear();
     fPieces.clear();
+}
+
+void Renderer::changeEngineDifficultySlot(int elo) {
+    fEngine->SetDifficulty(elo); // Set difficulty as prescribed by an approximate chess elo
 }
 
 void Renderer::playAsWhiteSlot() {

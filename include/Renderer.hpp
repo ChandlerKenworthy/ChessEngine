@@ -85,6 +85,7 @@ class Renderer : public QGraphicsView {
         void playAsWhiteSlot();
         void playAsBlackSlot();
         void resetSlot();
+        void changeEngineDifficultySlot(int elo);
     signals:
         void gameLoopSignal();
         void gameEndSignal();
