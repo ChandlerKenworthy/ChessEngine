@@ -26,8 +26,7 @@ void EventScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
 }
 
 void EventScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
-    QPointF scenePos = event->pos();
-
+    QPointF scenePos = event->scenePos();
     fRenderer->ClearHighlight();
 
     // Convert the scene position to integer coordinates
@@ -47,7 +46,7 @@ void EventScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
 }
 
 void EventScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
-    QPointF scenePos = event->pos();
+    QPointF scenePos = event->scenePos();
     fRenderer->MovePiece(scenePos);
     // Call the base classs implementation to handle the event further
     QGraphicsScene::mouseMoveEvent(event);
