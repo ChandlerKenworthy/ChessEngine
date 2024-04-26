@@ -14,11 +14,28 @@
 #include <QtWidgets>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QMouseEvent>
 #include "Constants.hpp"
 #include "Board.hpp"
 #include "Engine.hpp"
 #include "Generator.hpp"
+
+class Renderer; // Forward declaration for EventScene
+
+class EventScene : public QGraphicsScene {
+    public:
+         EventScene(Renderer *renderer, QObject *parent = nullptr) : QGraphicsScene(parent), fRenderer(renderer) { }
+    protected:
+        void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
+        void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
+        void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
+    private:
+        Renderer *fRenderer;
+};
 
 /**
  * @class Renderer
@@ -26,7 +43,6 @@
  * 
  * The Renderer class provides an interface to easily display, update and handle GUI based events. It should be used only for handling GUI elements and not be involved in updating e.g. bitboards based on player input.
  */ 
-
 class Renderer : public QGraphicsView {
         Q_OBJECT
     public:
@@ -51,8 +67,25 @@ class Renderer : public QGraphicsView {
          * @param color The colour the user is to play as.
         */
         void setUserColor(const Color color) { fUserColor = color; };
+
+
+        void SetDraggedPiece(QGraphicsPixmapItem* item) { fDraggedPiece = item; };
+        QGraphicsPixmapItem* GetDraggedPiece() { return fDraggedPiece; };
+        void SetIsDragging(bool isDragging) { fIsDragging = isDragging; };
+        void SetStartSquare(U64 square) { fStartSquare = square; };
+        void SetEndSquare(U64 square) { fEndSquare = square; };
+        void ClearHighlight();
+        int GetTileWidth() { return fTileWidth; };
+        void SetDraggedPieceFromLSB(const U8 lsb);
+        void HighlightLegalMoves();
+        void UpdateMakeMove();
+        void MovePiece(QPointF scenePos);
     public slots:
         void gameLoopSlot();
+        void playAsWhiteSlot();
+        void playAsBlackSlot();
+        void resetSlot();
+        void changeEngineDifficultySlot(int elo);
     signals:
         void gameLoopSignal();
         void gameEndSignal();
@@ -86,12 +119,16 @@ class Renderer : public QGraphicsView {
         std::vector<QGraphicsRectItem*> fHighlighted;
         QGraphicsPixmapItem *fDraggedPiece;
 
+        // Option buttons the user can use to select game parameters
+        QRadioButton *fWhiteButton;
+        QRadioButton *fBlackButton;
+        QSlider *fDifficultySlider;
+        QPushButton *fPlayButton;
+
         // Create graphics view and scene
-        QGraphicsScene *fScene;
+        EventScene *fBoardScene;
 
         void DrawChessBoard();
-        void DoMoveUpdate();
-        void HighlightLegalMoves();
 };
 
 enum class ZLevel {

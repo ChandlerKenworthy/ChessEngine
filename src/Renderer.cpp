@@ -1,31 +1,154 @@
 #include "Renderer.hpp"
 
-Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Generator> &generator, const std::shared_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fScene(new QGraphicsScene), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
+void EventScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+    fRenderer->SetDraggedPiece(nullptr);
+    QPointF scenePos = event->scenePos();
+
+    // Convert the scene position to integer coordinates
+    int x = static_cast<int>(scenePos.x());
+    int y = static_cast<int>(scenePos.y());
+
+    // Calculate the row and column of the clicked square
+    int tileWidth = fRenderer->GetTileWidth();
+    U64 rank = get_rank_from_number(8 - (y / tileWidth));
+    U64 file = get_file_from_number((x / tileWidth) + 1);
+    U64 startTile = rank & file;
+
+    fRenderer->SetStartSquare(startTile);
+    fRenderer->SetDraggedPieceFromLSB((U8)__builtin_ctzll(startTile));
+    fRenderer->SetIsDragging(true); // True whilst mouse is clicked
+
+    // Highlight the squares which represent legal moves
+    fRenderer->HighlightLegalMoves();
+
+    // Call the base class implementation to handle the event further
+    QGraphicsScene::mousePressEvent(event);
+}
+
+void EventScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+    QPointF scenePos = event->scenePos();
+    fRenderer->ClearHighlight();
+
+    // Convert the scene position to integer coordinates
+    int x = static_cast<int>(scenePos.x());
+    int y = static_cast<int>(scenePos.y());
+
+    // Calculate the row and column of the clicked square
+    int tileWidth = fRenderer->GetTileWidth();
+    U64 rank = get_rank_from_number(8 - (y / tileWidth));
+    U64 file = get_file_from_number((x / tileWidth) + 1);
+    U64 endSquare = rank & file;
+    fRenderer->SetEndSquare(endSquare);
+    fRenderer->UpdateMakeMove();
+    fRenderer->SetIsDragging(false);
+    fRenderer->SetStartSquare(0);
+    QGraphicsScene::mouseReleaseEvent(event);
+}
+
+void EventScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
+    QPointF scenePos = event->scenePos();
+    fRenderer->MovePiece(scenePos);
+    // Call the base classs implementation to handle the event further
+    QGraphicsScene::mouseMoveEvent(event);
+}
+
+Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Generator> &generator, const std::shared_ptr<Engine> &engine, QWidget *parent) : QGraphicsView(parent), fBoard(board), fGenerator(generator), fEngine(engine), fTileWidth(70), fBoardWidth(560), fBoardHeight(560), fLightSquare(255, 206, 158), fDarkSquare(209, 139, 71), fLightYellow(255, 255, 204), fDarkYellow(255, 255, 0), fBoardScene(new EventScene(this)), fIsDragging(false), fStartSquare(0), fEndSquare(0), fSelectedPiece(nullptr) {
     fPieceHeight = fTileWidth * 0.75;
     fPieces.reserve(32);
     fDraggedPiece = nullptr;
 
-    // Resize the window on opening
-    resize(fBoardWidth, fBoardHeight);
+    // Define radio buttons so the user can select who to play as
+    fWhiteButton = new QRadioButton("Play as White", this);
+    fWhiteButton->setChecked(true);
+    fBlackButton = new QRadioButton("Play as Black", this);
+    // Slider to select difficulty of the engine
+    fDifficultySlider = new QSlider(Qt::Horizontal, this);
+    fDifficultySlider->setRange(500, 1500); // Set range from 0 to 1500 (ELO)
+    fDifficultySlider->setTickInterval(100); // Set tick interval
+    fDifficultySlider->setTickPosition(QSlider::TicksBelow); // Optional: Set tick position
 
-    // Set the scene
-    setScene(fScene);
-    fScene->setSceneRect(0, 0, fBoardWidth, fBoardHeight);
+    QLabel *valueLabel = new QLabel(this);
+    QString initialText = "Difficulty: " + QString::number(fDifficultySlider->value());
+    valueLabel->setText(initialText); // Set initial value
+    valueLabel->setAlignment(Qt::AlignCenter); // Align text to center
+
+    // Create button to start the game
+    fPlayButton = new QPushButton("Reset", this);
+
+    // Optionally, add spacing between slider and label
+    QVBoxLayout *sliderLayout = new QVBoxLayout;
+    sliderLayout->addWidget(fDifficultySlider);
+    sliderLayout->addWidget(valueLabel);
+
+    // Create layouts
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    buttonLayout->addWidget(fWhiteButton);
+    buttonLayout->addWidget(fBlackButton);
+    buttonLayout->addLayout(sliderLayout);
+
+    QHBoxLayout *playButtonLayout = new QHBoxLayout;
+    playButtonLayout->addWidget(fPlayButton);
+    
+    // Create QGraphicsView and QGraphicsScene
+    QGraphicsView *view = new QGraphicsView(this);
+    //view->setMouseTracking(true);
+    view->setScene(fBoardScene);
+
+    // Draw chessboard on the scene
+    DrawChessBoard();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    mainLayout->addWidget(view); // Add the chessboard to the layout
+    mainLayout->addLayout(buttonLayout);
+    mainLayout->addLayout(playButtonLayout);
+    mainLayout->addStretch(); // Add stretch to push buttons to the bottom
+
+    QWidget *centralWidget = new QWidget(this);
+    centralWidget->setLayout(mainLayout);
+
+    // Resize the window on opening
+    resize(fBoardWidth * 1.1, fBoardHeight * 1.3);
 
     // Set render hints
     setRenderHint(QPainter::Antialiasing);
     setMouseTracking(true);
 
-    // Set up chessboard
-    DrawChessBoard();
+    // Connect buttons
+    connect(fWhiteButton, &QPushButton::clicked, this, &Renderer::playAsWhiteSlot);
+    connect(fBlackButton, &QPushButton::clicked, this, &Renderer::playAsBlackSlot);
+    connect(fPlayButton, &QPushButton::clicked, this, &Renderer::resetSlot);
+    connect(fDifficultySlider, &QSlider::valueChanged, this, &Renderer::changeEngineDifficultySlot);
+    connect(fDifficultySlider, &QSlider::valueChanged, this, [valueLabel](int value) {
+        QString text = "Difficulty: " + QString::number(value);
+        valueLabel->setText(text); // Update label text on slider value change
+    });
+    connect(this, &Renderer::gameEndSignal, this, &Renderer::close); // when game ends just close the window?
+    // seems a bit dumb should probably fix
 }
 
 Renderer::~Renderer() {
-    delete fScene;
+    delete fBoardScene;
     delete fDraggedPiece;
     delete fSelectedPiece;
     fHighlighted.clear();
     fPieces.clear();
+}
+
+void Renderer::changeEngineDifficultySlot(int elo) {
+    fEngine->SetDifficulty(elo); // Set difficulty as prescribed by an approximate chess elo
+}
+
+void Renderer::playAsWhiteSlot() {
+    fUserColor = Color::White;
+}
+
+void Renderer::playAsBlackSlot() {
+    fUserColor = Color::Black;
+}
+
+void Renderer::resetSlot() {
+    fBoard->Reset();
+    DrawPieces();
 }
 
 void Renderer::gameLoopSlot() {
@@ -63,7 +186,7 @@ void Renderer::DrawChessBoard() {
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             QColor color = (i + j) % 2 == 0 ? fLightSquare : fDarkSquare;
-            QGraphicsRectItem *square = fScene->addRect(i * fTileWidth, j * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
+            QGraphicsRectItem *square = fBoardScene->addRect(i * fTileWidth, j * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
             square->setZValue((int)ZLevel::RegularTile);
         }
     }
@@ -71,7 +194,7 @@ void Renderer::DrawChessBoard() {
     // Add rank labels
     for(int i = 0; i < 8; ++i) {
         QString label = QString::number(8 - i);
-        QGraphicsTextItem *rankLabel = fScene->addText(label);
+        QGraphicsTextItem *rankLabel = fBoardScene->addText(label);
         rankLabel->setZValue((int)ZLevel::TileText);
         rankLabel->setPos(0, i * fTileWidth);
         rankLabel->setDefaultTextColor(i % 2 == 0 ? fDarkSquare : fLightSquare);
@@ -81,7 +204,7 @@ void Renderer::DrawChessBoard() {
     QString files = "abcdefgh";
     for(int i = 0; i < 8; ++i) {
         QString label = files.at(i);
-        QGraphicsTextItem *fileLabel = fScene->addText(label);
+        QGraphicsTextItem *fileLabel = fBoardScene->addText(label);
         fileLabel->setZValue((int)ZLevel::TileText);
         fileLabel->setPos(i * fTileWidth, (8 * fTileWidth) - (fileLabel->boundingRect().height()));
         fileLabel->setDefaultTextColor(i % 2 == 0 ? fLightSquare : fDarkSquare);
@@ -91,7 +214,7 @@ void Renderer::DrawChessBoard() {
 void Renderer::DrawPieces() {
     // Empty all the old pieces off of the board
     for(auto currentPiece : fPieces) {
-        fScene->removeItem(currentPiece.second);
+        fBoardScene->removeItem(currentPiece.second);
         delete currentPiece.second;
     }
     fPieces.clear();
@@ -114,7 +237,7 @@ void Renderer::DrawPieces() {
             QPixmap pixmap(assetPathWhite.c_str());
             int scaledWidth = fPieceHeight * pixmap.width() / pixmap.height();
             QPixmap scaledPixmap = pixmap.scaled(scaledWidth, fPieceHeight);
-            QGraphicsPixmapItem *chessPiece = fScene->addPixmap(scaledPixmap);
+            QGraphicsPixmapItem *chessPiece = fBoardScene->addPixmap(scaledPixmap);
             chessPiece->setZValue((int)ZLevel::Piece);
             fPieces.push_back(std::make_pair(__builtin_ctzll(thisPiece), chessPiece));
 
@@ -132,7 +255,7 @@ void Renderer::DrawPieces() {
             QPixmap pixmap(assetPathBlack.c_str());
             int scaledWidth = fPieceHeight * pixmap.width() / pixmap.height();
             QPixmap scaledPixmap = pixmap.scaled(scaledWidth, fPieceHeight);
-            QGraphicsPixmapItem *chessPiece = fScene->addPixmap(scaledPixmap);
+            QGraphicsPixmapItem *chessPiece = fBoardScene->addPixmap(scaledPixmap);
             chessPiece->setZValue((int)ZLevel::Piece);
             fPieces.push_back(std::make_pair(__builtin_ctzll(thisPiece), chessPiece));
 
@@ -192,7 +315,7 @@ void Renderer::HighlightLegalMoves() {
         const int rank = get_rank_number(endTile) - 1;
         const int file = get_file_number(endTile) - 1;
         QColor color = (rank + file) % 2 == 0 ? fLightYellow : fDarkYellow;
-        QGraphicsRectItem *square = fScene->addRect(file * fTileWidth, (8 - (rank + 1)) * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
+        QGraphicsRectItem *square = fBoardScene->addRect(file * fTileWidth, (8 - (rank + 1)) * fTileWidth, fTileWidth, fTileWidth, Qt::NoPen, QBrush(color));
         square->setZValue((int)ZLevel::HighlightTile);
         fHighlighted.push_back(square);
     }
@@ -203,7 +326,7 @@ void Renderer::mouseReleaseEvent(QMouseEvent *event) {
 
     // Clear all highlighted tiles
     for(auto tile : fHighlighted) {
-        fScene->removeItem(tile);
+        fBoardScene->removeItem(tile);
         delete tile;
     }
     fHighlighted.clear();
@@ -249,4 +372,50 @@ void Renderer::mouseMoveEvent(QMouseEvent *event) {
 
     // Call the base class implementation to handle the event further
     QGraphicsView::mouseMoveEvent(event);
+}
+
+void Renderer::SetDraggedPieceFromLSB(const U8 lsb) {
+    // Get the piece being dragged 
+    auto it = std::find_if(fPieces.begin(), fPieces.end(), [lsb](const std::pair<U8, QGraphicsPixmapItem*>& element) {
+        return element.first == lsb;
+    });
+    if(it != fPieces.end()) {
+        fDraggedPiece = it->second;
+    }
+}
+
+void Renderer::ClearHighlight() {
+    // Clear all highlighted tiles
+    for(auto tile : fHighlighted) {
+        fBoardScene->removeItem(tile);
+        delete tile;
+    }
+    fHighlighted.clear();
+}
+
+void Renderer::UpdateMakeMove() {
+    // also update the GUI based on the new board updates
+    U16 move = 0;
+    SetMove(move, fStartSquare, fEndSquare);
+
+    // Before making any move check it is legal, if it is not send the clicked piece back to the start square
+    bool isLegal = fGenerator->GetMoveIsLegal(move);
+    if(isLegal) {
+        fBoard->MakeMove(move);
+        fBoard->AddCurrentHistory();
+    }
+    DrawPieces();
+}
+
+void Renderer::MovePiece(QPointF scenePos) {
+     // If a piece is being dragged, update its position
+    if(!fIsDragging || fDraggedPiece == nullptr)
+        return;
+
+    // Adjust the scenePos to center of the piece
+    qreal offsetX = -fDraggedPiece->boundingRect().width() / 2.0;
+    qreal offsetY = -fDraggedPiece->boundingRect().height() / 2.0;
+    QPointF adjustedScenePos = scenePos + QPointF(offsetX, offsetY);
+
+    fDraggedPiece->setPos(adjustedScenePos);
 }

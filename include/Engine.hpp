@@ -62,6 +62,19 @@ class Engine {
          * @return Evaluation of the board in centipawns.
         */
         float Search(U8 depth, float alpha, float beta, bool maximising);
+        /**
+         * @brief Change the difficulty of the engine with higher values meaning a stronger engine. Values are designed to be elo values.
+         * Also clears the previously evaluation cache since we don't want to use old potentially worse/better evaluations when the difficulty changes. We will change the difficulty by making the evaluation function simpler.
+         * @param elo The approximate elo-based difficulty of the engine.
+        */
+        void SetDifficulty(int elo) { fDifficulty = elo; fEvaluationCache.clear(); };
+        /**
+         * @brief Get the difficulty level of the engine.
+         * @return Difficulty of the engine in elo.
+        */
+        int GetDifficulty() { return fDifficulty; };
+
+
 
         float Evaluate(); // Static evaluation of a board
         float ForceKingToCornerEndgame(); // Favour positions where king is forced to edge of board for an easier mate in the endgame
@@ -83,6 +96,7 @@ class Engine {
 
         int fMaxDepth;
         float fGamePhase;
+        int fDifficulty; ///< Difficulty of the chess engine, values correspond to approximate chess ELO ratings
 
         const int fPassPawnBonus[6] = {50, 40, 30, 20, 10, 5}; ///< Distance from left to right so 0th = 1 square from promo values are in centipawns
         const int fIsolatedPawnPenaltyByFile[8] = {-10, -15, -25, -30, -30, -25, -15, -10};
