@@ -64,9 +64,10 @@ class Engine {
         float Search(U8 depth, float alpha, float beta, bool maximising);
         /**
          * @brief Change the difficulty of the engine with higher values meaning a stronger engine. Values are designed to be elo values.
+         * Also clears the previously evaluation cache since we don't want to use old potentially worse/better evaluations when the difficulty changes. We will change the difficulty by making the evaluation function simpler.
          * @param elo The approximate elo-based difficulty of the engine.
         */
-        void SetDifficulty(int elo) { fDifficulty = elo; };
+        void SetDifficulty(int elo) { fDifficulty = elo; fEvaluationCache.clear(); };
         /**
          * @brief Get the difficulty level of the engine.
          * @return Difficulty of the engine in elo.

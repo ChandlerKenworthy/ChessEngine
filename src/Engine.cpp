@@ -35,11 +35,15 @@ float Engine::Evaluate() {
     // These functions are all defined such that positive values are GOOD for the colour to move
     // so if it's black to move we need to add on minus these values to the evaluation
     //evaluation += ForceKingToCornerEndgame();  // TODO: These functions must eval for both sides!!!
-    evaluation += EvaluatePassedPawns();
+    if(fDifficulty > 1000)
+        evaluation += EvaluatePassedPawns();
+    if(fDifficulty > 800)
     evaluation += EvaluateKingSafety(); // Can be +ve or -ve
     // These functions are return negative values i.e. BAD for the colour to move, agian needs to be adjusted
     // by perspective
-    evaluation += EvaluateBadBishops();
+    if(fDifficulty > 700)
+        evaluation += EvaluateBadBishops();
+    if(fDifficulty > 900)
     evaluation += EvaluateIsolatedPawns();
     
     evaluation *= perspective;
