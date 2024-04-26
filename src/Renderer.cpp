@@ -65,7 +65,7 @@ Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Ge
     fDifficultySlider = new QSlider(Qt::Horizontal, this);
 
     // Create button to start the game
-    fPlayButton = new QPushButton("Play", this);
+    fPlayButton = new QPushButton("Reset", this);
 
     // Create layouts
     QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -103,7 +103,7 @@ Renderer::Renderer(const std::shared_ptr<Board> &board, const std::shared_ptr<Ge
     // Connect buttons
     connect(fWhiteButton, &QPushButton::clicked, this, &Renderer::playAsWhiteSlot);
     connect(fBlackButton, &QPushButton::clicked, this, &Renderer::playAsBlackSlot);
-    connect(fPlayButton, &QPushButton::clicked, this, &Renderer::gameLoopSlot);
+    connect(fPlayButton, &QPushButton::clicked, this, &Renderer::resetSlot);
     connect(this, &Renderer::gameEndSignal, this, &Renderer::close); // when game ends just close the window?
     // seems a bit dumb should probably fix
 }
@@ -122,6 +122,11 @@ void Renderer::playAsWhiteSlot() {
 
 void Renderer::playAsBlackSlot() {
     fUserColor = Color::Black;
+}
+
+void Renderer::resetSlot() {
+    fBoard->Reset();
+    DrawPieces();
 }
 
 void Renderer::gameLoopSlot() {

@@ -84,6 +84,7 @@ class Renderer : public QGraphicsView {
         void gameLoopSlot();
         void playAsWhiteSlot();
         void playAsBlackSlot();
+        void resetSlot();
     signals:
         void gameLoopSignal();
         void gameEndSignal();
